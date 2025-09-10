@@ -55,22 +55,22 @@ export default function TherapeuticsStep5_5() {
     <div className="space-y-4">
       <FormProgress currentStep={5} />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">5.5 — Study Sites</h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/admin/therapeutics/new/5-4">Previous</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/admin/therapeutics/new/5-6">Next</Link>
-          </Button>
-        </div>
+      <div className="flex justify-end w-full gap-3">
+        <Button
+          variant="outline"
+          asChild
+        >
+          <Link href="/admin/therapeutics">Cancel</Link>
+        </Button>
+        <Button
+          className="text-white font-medium px-6 py-2"
+          style={{ backgroundColor: '#204B73' }}
+        >
+          Save Changes
+        </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-primary">Study Sites</CardTitle>
-        </CardHeader>
         <CardContent className="space-y-6">
           {/* Study Sites */}
           <div className="space-y-2">
@@ -78,10 +78,11 @@ export default function TherapeuticsStep5_5() {
             <div className="space-y-2">
               {form.study_sites.map((site, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input
+                  <Textarea
                     placeholder="e.g., Memorial Sloan Kettering Cancer Center"
                     value={site}
                     onChange={(e) => updateStudySite(idx, e.target.value)}
+                    rows={2}
                   />
                   {idx === 0 ? (
                     <Button
@@ -111,12 +112,13 @@ export default function TherapeuticsStep5_5() {
             <div className="space-y-2">
               {form.principal_investigators.map((investigator, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input
+                  <Textarea
                     placeholder="e.g., Dr. John Smith, MD"
                     value={investigator}
                     onChange={(e) =>
                       updatePrincipalInvestigator(idx, e.target.value)
                     }
+                    rows={2}
                   />
                   {idx === 0 ? (
                     <Button
@@ -143,12 +145,13 @@ export default function TherapeuticsStep5_5() {
           {/* Site Status */}
           <div className="space-y-2">
             <Label>Site Status</Label>
-            <Input
+            <Textarea
               placeholder="e.g., Active, Recruiting, Completed"
               value={form.site_status}
               onChange={(e) =>
                 updateField("step5_5", "site_status", e.target.value)
               }
+              rows={2}
             />
           </div>
 
@@ -158,10 +161,11 @@ export default function TherapeuticsStep5_5() {
             <div className="space-y-2">
               {form.site_countries.map((country, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input
+                  <Textarea
                     placeholder="e.g., United States"
                     value={country}
                     onChange={(e) => updateSiteCountry(idx, e.target.value)}
+                    rows={2}
                   />
                   {idx === 0 ? (
                     <Button
@@ -191,10 +195,11 @@ export default function TherapeuticsStep5_5() {
             <div className="space-y-2">
               {form.site_regions.map((region, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input
+                  <Textarea
                     placeholder="e.g., North America, Europe"
                     value={region}
                     onChange={(e) => updateSiteRegion(idx, e.target.value)}
+                    rows={2}
                   />
                   {idx === 0 ? (
                     <Button
@@ -224,10 +229,11 @@ export default function TherapeuticsStep5_5() {
             <div className="space-y-2">
               {form.site_contact_info.map((contact, idx) => (
                 <div key={idx} className="flex gap-2">
-                  <Input
+                  <Textarea
                     placeholder="e.g., Phone: +1-555-0123, Email: contact@site.com"
                     value={contact}
                     onChange={(e) => updateSiteContactInfo(idx, e.target.value)}
+                    rows={2}
                   />
                   {idx === 0 ? (
                     <Button

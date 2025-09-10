@@ -14,61 +14,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useContent } from "@/hooks/use-content";
+import { useDrugNames } from "@/hooks/use-drug-names";
 
 interface DrugFormData {
   overview: {
-    drug_name: string;
+    drug_name_lab_code: string;
     generic_name: string;
+    other_name: string;
+    primary_name: string;
+    global_status: string;
+    development_status: string;
+    drug_summary: string;
+    originator: string;
+    other_active_companies: string;
     therapeutic_area: string;
     disease_type: string;
-    is_approved: boolean;
-    drug_summary?: string;
-    originator?: string;
-    other_active_companies?: string;
-    global_status?: string;
-    development_status?: string;
-    regulator_designations?: string;
-    source_link?: string;
+    regulatory_designations: string;
+    source_links: string;
+    drug_record_status: string;
   };
-  devStatus: {
-    disease_type: string;
-    therapeutic_class: string;
-    company: string;
-    status: string;
-    company_type?: string;
-    reference?: {
-      source?: string;
-      type?: string;
-      url?: string | null;
-    } | null;
-  };
-  activity: {
+  drugActivity: {
     mechanism_of_action: string;
     biological_target: string;
     delivery_route: string;
-    drug_technology?: string;
-    delivery_medium?: string;
+    drug_technology: string;
+    delivery_medium: string;
   };
   development: {
-    preclinical: string;
+    disease_type: string;
+    therapeutic_class: string;
+    company: string;
+    company_type: string;
     status: string;
-    sponsor: string;
-    trial_id?: string;
-    title?: string;
-    primary_drugs?: string;
+    reference: string;
+    add_attachments: string[];
+    add_links: string[];
   };
   otherSources: {
-    data: string;
+    pipelineData: string;
+    pressReleases: string;
+    publications: string;
   };
-  licencesMarketing: {
+  licensingMarketing: {
     agreement: string;
     marketing_approvals: string;
-    licensing_availability?: string;
+    licensing_availability: string;
   };
   logs: {
     drug_changes_log: string;
@@ -77,69 +73,117 @@ interface DrugFormData {
 }
 
 const steps = [
-  {
-    id: 1,
-    title: "Basic Information",
-    description: "Drug name and basic details",
-  },
-  {
-    id: 2,
-    title: "Development Status",
-    description: "Company and development info",
-  },
-  { id: 3, title: "Mechanism of Action", description: "How the drug works" },
-  {
-    id: 4,
-    title: "Clinical Development",
-    description: "Development stages and trials",
-  },
-  {
-    id: 5,
-    title: "Marketing & Licensing",
-    description: "Commercial information",
-  },
-  {
-    id: 6,
-    title: "Additional Details",
-    description: "Extra information and notes",
-  },
-  { id: 7, title: "Review & Submit", description: "Review all information" },
+  { id: 1, title: "Overview", description: "Basic drug information" },
+  { id: 2, title: "Drug Activity", description: "Mechanism and biological details" },
+  { id: 3, title: "Development", description: "Development status and company info" },
+  { id: 4, title: "Other Sources", description: "Additional data sources" },
+  { id: 5, title: "Licensing & Marketing", description: "Commercial information" },
+  { id: 6, title: "Logs", description: "Change logs and notes" },
 ];
 
 export default function NewDrugPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { addDrugName, getPrimaryNameOptions } = useDrugNames();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState("Pipeline Data");
+
+  // Options for searchable dropdowns
+  const primaryNameOptions: SearchableSelectOption[] = [
+    ...getPrimaryNameOptions().map(drug => ({
+      value: drug.value,
+      label: drug.label
+    }))
+  ];
+
+  const globalStatusOptions: SearchableSelectOption[] = [
+    { value: "approved", label: "Approved" },
+    { value: "pending", label: "Pending" },
+    { value: "discontinued", label: "Discontinued" },
+    { value: "phase_3", label: "Phase III" },
+    { value: "phase_2", label: "Phase II" },
+    { value: "phase_1", label: "Phase I" },
+  ];
+
+  const developmentStatusOptions: SearchableSelectOption[] = [
+    { value: "market", label: "Market" },
+    { value: "phase_3", label: "Phase III" },
+    { value: "phase_2", label: "Phase II" },
+    { value: "phase_1", label: "Phase I" },
+    { value: "preclinical", label: "Preclinical" },
+    { value: "discontinued", label: "Discontinued" },
+  ];
+
+  const originatorOptions: SearchableSelectOption[] = [
+    { value: "pfizer", label: "Pfizer" },
+    { value: "novartis", label: "Novartis" },
+    { value: "roche", label: "Roche" },
+    { value: "merck", label: "Merck" },
+    { value: "johnson_johnson", label: "Johnson & Johnson" },
+  ];
+
+  const otherActiveCompaniesOptions: SearchableSelectOption[] = [
+    { value: "multiple", label: "Multiple Companies" },
+    { value: "generic_manufacturers", label: "Generic Manufacturers" },
+    { value: "biosimilar_companies", label: "Biosimilar Companies" },
+  ];
+
+  const therapeuticAreaOptions: SearchableSelectOption[] = [
+    { value: "oncology", label: "Oncology" },
+    { value: "cardiology", label: "Cardiology" },
+    { value: "neurology", label: "Neurology" },
+    { value: "immunology", label: "Immunology" },
+    { value: "endocrinology", label: "Endocrinology" },
+  ];
+
+  const diseaseTypeOptions: SearchableSelectOption[] = [
+    { value: "lung_cancer", label: "Lung Cancer" },
+    { value: "breast_cancer", label: "Breast Cancer" },
+    { value: "diabetes", label: "Diabetes" },
+    { value: "hypertension", label: "Hypertension" },
+    { value: "alzheimers", label: "Alzheimer's Disease" },
+  ];
+
+  const regulatoryDesignationsOptions: SearchableSelectOption[] = [
+    { value: "breakthrough_therapy", label: "Breakthrough Therapy" },
+    { value: "fast_track", label: "Fast Track" },
+    { value: "orphan_drug", label: "Orphan Drug" },
+    { value: "priority_review", label: "Priority Review" },
+  ];
+
+  const drugRecordStatusOptions: SearchableSelectOption[] = [
+    { value: "active", label: "Active" },
+    { value: "draft", label: "Draft" },
+    { value: "archived", label: "Archived" },
+    { value: "under_review", label: "Under Review" },
+  ];
+
+  const drugTechnologyOptions: SearchableSelectOption[] = [
+    { value: "proprietary", label: "Proprietary" },
+    { value: "licensed", label: "Licensed" },
+    { value: "partnership", label: "Partnership" },
+    { value: "open_source", label: "Open Source" },
+  ];
 
   const { content, updateContent, resetContent } = useContent<DrugFormData>({
     overview: {
-      drug_name: "",
+      drug_name_lab_code: "",
       generic_name: "",
-      therapeutic_area: "",
-      disease_type: "",
-      is_approved: true,
+      other_name: "",
+      primary_name: "",
+      global_status: "",
+      development_status: "",
       drug_summary: "",
       originator: "",
       other_active_companies: "",
-      global_status: "",
-      development_status: "",
-      regulator_designations: "",
-      source_link: "",
-    },
-    devStatus: {
+      therapeutic_area: "",
       disease_type: "",
-      therapeutic_class: "",
-      company: "",
-      status: "Approved",
-      company_type: "",
-      reference: {
-        source: "",
-        type: "documentation",
-        url: null,
-      },
+      regulatory_designations: "",
+      source_links: "",
+      drug_record_status: "",
     },
-    activity: {
+    drugActivity: {
       mechanism_of_action: "",
       biological_target: "",
       delivery_route: "",
@@ -147,18 +191,22 @@ export default function NewDrugPage() {
       delivery_medium: "",
     },
     development: {
-      preclinical: "",
-      status: "Market",
-      sponsor: "",
-      trial_id: "",
-      title: "",
-      primary_drugs: "",
+      disease_type: "",
+      therapeutic_class: "",
+      company: "",
+      company_type: "",
+      status: "",
+      reference: "",
+      add_attachments: [],
+      add_links: [],
     },
     otherSources: {
-      data: "",
+      pipelineData: "",
+      pressReleases: "",
+      publications: ""
     },
-    licencesMarketing: {
-      agreement: "Proprietary",
+    licensingMarketing: {
+      agreement: "",
       marketing_approvals: "",
       licensing_availability: "",
     },
@@ -187,18 +235,18 @@ export default function NewDrugPage() {
   const isStepComplete = (step: number) => {
     switch (step) {
       case 1:
-        return content.overview.drug_name.trim() !== "";
+        return content.overview.drug_name_lab_code.trim() !== "";
       case 2:
-        return (
-          content.devStatus.company.trim() !== "" &&
-          content.devStatus.therapeutic_class.trim() !== ""
-        );
+        return content.drugActivity.mechanism_of_action.trim() !== "";
       case 3:
-        return content.activity.mechanism_of_action.trim() !== "";
+        return (
+          content.development.company.trim() !== "" &&
+          content.development.therapeutic_class.trim() !== ""
+        );
       case 4:
-        return content.development.sponsor.trim() !== "";
+        return true; // Optional step
       case 5:
-        return content.licencesMarketing.marketing_approvals.trim() !== "";
+        return true; // Optional step
       case 6:
         return true; // Optional step
       default:
@@ -220,19 +268,7 @@ export default function NewDrugPage() {
         return;
       }
 
-      // Clean up reference field - if source is empty, send null instead of empty object
-      const cleanedContent = {
-        ...content,
-        devStatus: {
-          ...content.devStatus,
-          reference: content.devStatus.reference?.source?.trim()
-            ? content.devStatus.reference
-            : null,
-        },
-      };
-
-      // Log the cleaned content for debugging
-      console.log("Submitting drug data:", cleanedContent);
+      console.log("Submitting drug data:", content);
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/create-drug`,
@@ -243,7 +279,7 @@ export default function NewDrugPage() {
           },
           body: JSON.stringify({
             user_id: currentUserId,
-            ...cleanedContent,
+            ...content,
           }),
         }
       );
@@ -277,31 +313,59 @@ export default function NewDrugPage() {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 1:
+      case 1: // Overview Tab
         return (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Basic Drug Information</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="drug_name">Drug Name *</Label>
-                  <Input
-                    id="drug_name"
-                    value={content.overview.drug_name}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/admin/drugs")}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-white font-medium px-6 py-2"
+                style={{ backgroundColor: '#204B73' }}
+              >
+                Save Changes
+              </Button>
+            </div>
+            {/* First Row: Drug Name, Generic Name, Other Name */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="drug_name_lab_code" className="text-sm font-medium text-gray-700">Drug Name - Lab code</Label>
+                <div className="relative">
+                  <Textarea
+                    id="drug_name_lab_code"
+                    value={content.overview.drug_name_lab_code}
                     onChange={(e) =>
                       updateContent("overview", {
                         ...content.overview,
-                        drug_name: e.target.value,
+                        drug_name_lab_code: e.target.value
                       })
                     }
-                    placeholder="Enter drug name"
+                    placeholder=""
+                    rows={2}
+                    className="border-gray-300"
+                  />
+                  <Plus 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
+                    onClick={() => {
+                      if (content.overview.drug_name_lab_code.trim()) {
+                        addDrugName(content.overview.drug_name_lab_code, 'drug_name_lab_code');
+                        toast({
+                          title: "Added to Primary Name",
+                          description: `"${content.overview.drug_name_lab_code}" added to Primary Name dropdown`,
+                        });
+                      }
+                    }}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="generic_name">Generic Name</Label>
-                  <Input
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="generic_name" className="text-sm font-medium text-gray-700">Generic Name</Label>
+                <div className="relative">
+                  <Textarea
                     id="generic_name"
                     value={content.overview.generic_name}
                     onChange={(e) =>
@@ -310,694 +374,695 @@ export default function NewDrugPage() {
                         generic_name: e.target.value,
                       })
                     }
-                    placeholder="Enter generic name"
+                    placeholder=""
+                    rows={2}
+                    className="border-gray-300"
+                  />
+                  <Plus 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
+                    onClick={() => {
+                      if (content.overview.generic_name.trim()) {
+                        addDrugName(content.overview.generic_name, 'generic_name');
+                        toast({
+                          title: "Added to Primary Name",
+                          description: `"${content.overview.generic_name}" added to Primary Name dropdown`,
+                        });
+                      }
+                    }}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="therapeutic_area">Therapeutic Area</Label>
-                  <Input
-                    id="therapeutic_area"
-                    value={content.overview.therapeutic_area}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="other_name" className="text-sm font-medium text-gray-700">Other Name</Label>
+                <div className="relative">
+                  <Textarea
+                    id="other_name"
+                    value={content.overview.other_name}
                     onChange={(e) =>
                       updateContent("overview", {
                         ...content.overview,
-                        therapeutic_area: e.target.value,
+                        other_name: e.target.value,
                       })
                     }
-                    placeholder="Enter therapeutic area"
+                    placeholder=""
+                    rows={2}
+                    className="border-gray-300"
+                  />
+                  <Plus 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
+                    onClick={() => {
+                      if (content.overview.other_name.trim()) {
+                        addDrugName(content.overview.other_name, 'other_name');
+                        toast({
+                          title: "Added to Primary Name",
+                          description: `"${content.overview.other_name}" added to Primary Name dropdown`,
+                        });
+                      }
+                    }}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="disease_type">Disease Type</Label>
-                  <Input
-                    id="disease_type"
-                    value={content.overview.disease_type}
+              </div>
+            </div>
+
+            {/* Second Row: Primary Name, Global Status, Development Status */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="primary_name" className="text-sm font-medium text-gray-700">Primary Name</Label>
+                <SearchableSelect
+                  options={primaryNameOptions}
+                  value={content.overview.primary_name}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      primary_name: value,
+                    })
+                  }
+                  placeholder="Select primary name"
+                  searchPlaceholder="Search primary name..."
+                  emptyMessage="No primary name found."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="global_status" className="text-sm font-medium text-gray-700">Global Status</Label>
+                <SearchableSelect
+                  options={globalStatusOptions}
+                  value={content.overview.global_status}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      global_status: value,
+                    })
+                  }
+                  placeholder="Select global status"
+                  searchPlaceholder="Search global status..."
+                  emptyMessage="No global status found."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="development_status" className="text-sm font-medium text-gray-700">Development status</Label>
+                <SearchableSelect
+                  options={developmentStatusOptions}
+                  value={content.overview.development_status}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      development_status: value,
+                    })
+                  }
+                  placeholder="Select development status"
+                  searchPlaceholder="Search development status..."
+                  emptyMessage="No development status found."
+                />
+              </div>
+            </div>
+
+            {/* Drug Summary */}
+            <div className="space-y-2">
+              <Label htmlFor="drug_summary" className="text-sm font-medium text-gray-700">Drug Summary</Label>
+              <div className="relative">
+                <Textarea
+                  id="drug_summary"
+                  value={content.overview.drug_summary}
+                  onChange={(e) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      drug_summary: e.target.value,
+                    })
+                  }
+                  placeholder=""
+                  rows={4}
+                  className="min-h-[120px] border-gray-300"
+                />
+              </div>
+            </div>
+
+            {/* Third Row: Originator, Other Active Companies */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="originator" className="text-sm font-medium text-gray-700">Originator</Label>
+                <SearchableSelect
+                  options={originatorOptions}
+                  value={content.overview.originator}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      originator: value,
+                    })
+                  }
+                  placeholder="Select originator"
+                  searchPlaceholder="Search originator..."
+                  emptyMessage="No originator found."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="other_active_companies" className="text-sm font-medium text-gray-700">Other Active Companies</Label>
+                <SearchableSelect
+                  options={otherActiveCompaniesOptions}
+                  value={content.overview.other_active_companies}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      other_active_companies: value,
+                    })
+                  }
+                  placeholder="Select other active companies"
+                  searchPlaceholder="Search other active companies..."
+                  emptyMessage="No other active companies found."
+                />
+              </div>
+            </div>
+
+            {/* Fourth Row: Therapeutic Area, Disease Type, Regulatory Designations */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="therapeutic_area" className="text-sm font-medium text-gray-700">Clinical Trials Area</Label>
+                <SearchableSelect
+                  options={therapeuticAreaOptions}
+                  value={content.overview.therapeutic_area}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      therapeutic_area: value,
+                    })
+                  }
+                  placeholder="Select therapeutic area"
+                  searchPlaceholder="Search therapeutic area..."
+                  emptyMessage="No therapeutic area found."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="disease_type" className="text-sm font-medium text-gray-700">Disease Type</Label>
+                <SearchableSelect
+                  options={diseaseTypeOptions}
+                  value={content.overview.disease_type}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      disease_type: value,
+                    })
+                  }
+                  placeholder="Select disease type"
+                  searchPlaceholder="Search disease type..."
+                  emptyMessage="No disease type found."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="regulatory_designations" className="text-sm font-medium text-gray-700">Regulatory Designations</Label>
+                <SearchableSelect
+                  options={regulatoryDesignationsOptions}
+                  value={content.overview.regulatory_designations}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      regulatory_designations: value,
+                    })
+                  }
+                  placeholder="Select regulatory designations"
+                  searchPlaceholder="Search regulatory designations..."
+                  emptyMessage="No regulatory designations found."
+                />
+              </div>
+            </div>
+
+            {/* Bottom Row: Source Links, Drug Record Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="source_links" className="text-sm font-medium text-gray-700">Source Links</Label>
+                <div className="relative">
+                  <Textarea
+                    id="source_links"
+                    value={content.overview.source_links}
                     onChange={(e) =>
                       updateContent("overview", {
                         ...content.overview,
+                        source_links: e.target.value,
+                      })
+                    }
+                    placeholder=""
+                    rows={2}
+                    className="border-gray-300"
+                  />
+                  <Plus className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="drug_record_status" className="text-sm font-medium text-gray-700">Drug Record Status</Label>
+                <SearchableSelect
+                  options={drugRecordStatusOptions}
+                  value={content.overview.drug_record_status}
+                  onValueChange={(value) =>
+                    updateContent("overview", {
+                      ...content.overview,
+                      drug_record_status: value,
+                    })
+                  }
+                  placeholder="Select drug record status"
+                  searchPlaceholder="Search drug record status..."
+                  emptyMessage="No drug record status found."
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2: // Drug Activity Tab
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/admin/drugs")}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-white font-medium px-6 py-2"
+                style={{ backgroundColor: '#204B73' }}
+              >
+                Save Changes
+              </Button>
+            </div>
+            {/* First Row: Mechanism of Action, Biological Target */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="mechanism_of_action" className="text-sm font-medium text-gray-700">Mechanism of action</Label>
+                <Textarea
+                  id="mechanism_of_action"
+                  value={content.drugActivity.mechanism_of_action}
+                  onChange={(e) =>
+                    updateContent("drugActivity", {
+                      ...content.drugActivity,
+                      mechanism_of_action: e.target.value,
+                    })
+                  }
+                  placeholder=""
+                  rows={4}
+                  className="min-h-[120px] border-gray-300"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="biological_target" className="text-sm font-medium text-gray-700">Biological target</Label>
+                <Textarea
+                  id="biological_target"
+                  value={content.drugActivity.biological_target}
+                  onChange={(e) =>
+                    updateContent("drugActivity", {
+                      ...content.drugActivity,
+                      biological_target: e.target.value,
+                    })
+                  }
+                  placeholder=""
+                  rows={4}
+                  className="min-h-[120px] border-gray-300"
+                />
+              </div>
+            </div>
+
+            {/* Full Width: Drug Technology */}
+            <div className="space-y-2">
+              <Label htmlFor="drug_technology" className="text-sm font-medium text-gray-700">Drug Technology</Label>
+              <Textarea
+                id="drug_technology"
+                value={content.drugActivity.drug_technology}
+                onChange={(e) =>
+                  updateContent("drugActivity", {
+                    ...content.drugActivity,
+                    drug_technology: e.target.value,
+                  })
+                }
+                placeholder=""
+                rows={6}
+                className="min-h-[150px] border-gray-300"
+              />
+            </div>
+
+            {/* Second Row: Delivery Route, Delivery Medium */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="delivery_route" className="text-sm font-medium text-gray-700">Delivery Route</Label>
+                <Textarea
+                  id="delivery_route"
+                  value={content.drugActivity.delivery_route}
+                  onChange={(e) =>
+                    updateContent("drugActivity", {
+                      ...content.drugActivity,
+                      delivery_route: e.target.value,
+                    })
+                  }
+                  placeholder=""
+                  rows={4}
+                  className="min-h-[120px] border-gray-300"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="delivery_medium" className="text-sm font-medium text-gray-700">Delivery Medium</Label>
+                <Textarea
+                  id="delivery_medium"
+                  value={content.drugActivity.delivery_medium}
+                  onChange={(e) =>
+                    updateContent("drugActivity", {
+                      ...content.drugActivity,
+                      delivery_medium: e.target.value,
+                    })
+                  }
+                  placeholder=""
+                  rows={4}
+                  className="min-h-[120px] border-gray-300"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3: // Development Tab
+        return (
+          <div className="space-y-6 p-6 border border-gray-200 rounded-lg bg-white">
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/admin/drugs")}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-white font-medium px-6 py-2"
+                style={{ backgroundColor: '#204B73' }}
+              >
+                Save Changes
+              </Button>
+            </div>
+            <h3 className="font-semibold text-lg text-gray-800 mb-4">Development</h3>
+
+            {/* Preclinical Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-base font-semibold text-gray-900">
+                  Preclinical
+                </label>
+                <button type="button">
+                  <Plus className="h-5 w-5 text-gray-400 cursor-pointer" />
+                </button>
+              </div>
+              <Textarea
+                value={content.development.reference || ''}
+                onChange={(e) => updateContent("development", {
+                  ...content.development,
+                  reference: e.target.value,
+                })}
+                rows={2}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Clinical Section */}
+            <div className="space-y-4">
+              <label className="text-base font-semibold text-gray-900">
+                Clinical
+              </label>
+
+              {/* Clinical Trials Table */}
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                {/* Table Header */}
+                <div className="grid grid-cols-5 bg-gray-50 border-b border-gray-300">
+                  <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
+                    Trial ID
+                  </div>
+                  <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
+                    Title
+                  </div>
+                  <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
+                    Primary Drugs
+                  </div>
+                  <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
+                    Status
+                  </div>
+                  <div className="p-3 text-sm font-medium text-gray-700">Sponsor</div>
+                </div>
+
+                {/* Table Row */}
+                <div className="grid grid-cols-5">
+                  <div className="p-3 border-r border-gray-300">
+                    <Textarea
+                      value={content.development.disease_type || ''}
+                      onChange={(e) => updateContent("development", {
+                        ...content.development,
                         disease_type: e.target.value,
-                      })
-                    }
-                    placeholder="Enter disease type"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="originator">Originator Company</Label>
-                  <Input
-                    id="originator"
-                    value={content.overview.originator}
-                    onChange={(e) =>
-                      updateContent("overview", {
-                        ...content.overview,
-                        originator: e.target.value,
-                      })
-                    }
-                    placeholder="Enter originator company"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="is_approved">Approval Status</Label>
-                  <Select
-                    value={content.overview.is_approved ? "true" : "false"}
-                    onValueChange={(value) =>
-                      updateContent("overview", {
-                        ...content.overview,
-                        is_approved: value === "true",
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Approved</SelectItem>
-                      <SelectItem value="false">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="drug_summary">Drug Summary</Label>
-                  <Textarea
-                    id="drug_summary"
-                    value={content.overview.drug_summary}
-                    onChange={(e) =>
-                      updateContent("overview", {
-                        ...content.overview,
-                        drug_summary: e.target.value,
-                      })
-                    }
-                    placeholder="Enter drug summary"
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Development Status</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="therapeutic_class">Therapeutic Class *</Label>
-                  <Input
-                    id="therapeutic_class"
-                    value={content.devStatus.therapeutic_class}
-                    onChange={(e) =>
-                      updateContent("devStatus", {
-                        ...content.devStatus,
+                      })}
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="p-3 border-r border-gray-300">
+                    <Textarea
+                      value={content.development.therapeutic_class || ''}
+                      onChange={(e) => updateContent("development", {
+                        ...content.development,
                         therapeutic_class: e.target.value,
-                      })
-                    }
-                    placeholder="Enter therapeutic class"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company *</Label>
-                  <Input
-                    id="company"
-                    value={content.devStatus.company}
-                    onChange={(e) =>
-                      updateContent("devStatus", {
-                        ...content.devStatus,
+                      })}
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="p-3 border-r border-gray-300">
+                    <Textarea
+                      value={content.development.company || ''}
+                      onChange={(e) => updateContent("development", {
+                        ...content.development,
                         company: e.target.value,
-                      })
-                    }
-                    placeholder="Enter company name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dev_status">Development Status</Label>
-                  <Select
-                    value={content.devStatus.status}
-                    onValueChange={(value) =>
-                      updateContent("devStatus", {
-                        ...content.devStatus,
-                        status: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Approved">Approved</SelectItem>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Under Review">Under Review</SelectItem>
-                      <SelectItem value="Rejected">Rejected</SelectItem>
-                      <SelectItem value="Phase I">Phase I</SelectItem>
-                      <SelectItem value="Phase II">Phase II</SelectItem>
-                      <SelectItem value="Phase III">Phase III</SelectItem>
-                      <SelectItem value="Phase IV">Phase IV</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company_type">Company Type</Label>
-                  <Input
-                    id="company_type"
-                    value={content.devStatus.company_type}
-                    onChange={(e) =>
-                      updateContent("devStatus", {
-                        ...content.devStatus,
+                      })}
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="p-3 border-r border-gray-300">
+                    <Textarea
+                      value={content.development.company_type || ''}
+                      onChange={(e) => updateContent("development", {
+                        ...content.development,
                         company_type: e.target.value,
-                      })
-                    }
-                    placeholder="Enter company type"
-                  />
+                      })}
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="p-3">
+                    <Textarea
+                      value={content.development.status || ''}
+                      onChange={(e) => updateContent("development", {
+                        ...content.development,
+                        status: e.target.value,
+                      })}
+                      rows={2}
+                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="reference_source">Reference Source</Label>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    This will be stored as a structured JSON object in the
-                    database
-                  </p>
-                  <Input
-                    id="reference_source"
-                    value={content.devStatus.reference?.source || ""}
-                    onChange={(e) =>
-                      updateContent("devStatus", {
-                        ...content.devStatus,
-                        reference: {
-                          ...content.devStatus.reference,
-                          source: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="Enter reference source"
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="reference_type">Reference Type</Label>
-                  <Select
-                    value={content.devStatus.reference?.type || "documentation"}
-                    onValueChange={(value) =>
-                      updateContent("devStatus", {
-                        ...content.devStatus,
-                        reference: {
-                          ...content.devStatus.reference,
-                          type: value,
-                        },
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="documentation">
-                        Documentation
-                      </SelectItem>
-                      <SelectItem value="research_paper">
-                        Research Paper
-                      </SelectItem>
-                      <SelectItem value="clinical_trial">
-                        Clinical Trial
-                      </SelectItem>
-                      <SelectItem value="regulatory">Regulatory</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="reference_url">
-                    Reference URL (Optional)
-                  </Label>
-                  <Input
-                    id="reference_url"
-                    value={content.devStatus.reference?.url || ""}
-                    onChange={(e) =>
-                      updateContent("devStatus", {
-                        ...content.devStatus,
-                        reference: {
-                          ...content.devStatus.reference,
-                          url: e.target.value || null,
-                        },
-                      })
-                    }
-                    placeholder="Enter reference URL"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Leave reference source empty to store as null in database
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
           </div>
         );
 
-      case 3:
+      case 4: // Other Sources Tab
         return (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Mechanism of Action</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="mechanism_of_action">
-                    Mechanism of Action *
-                  </Label>
-                  <Textarea
-                    id="mechanism_of_action"
-                    value={content.activity.mechanism_of_action}
-                    onChange={(e) =>
-                      updateContent("activity", {
-                        ...content.activity,
-                        mechanism_of_action: e.target.value,
-                      })
-                    }
-                    placeholder="Describe how the drug works"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="biological_target">Biological Target</Label>
-                  <Input
-                    id="biological_target"
-                    value={content.activity.biological_target}
-                    onChange={(e) =>
-                      updateContent("activity", {
-                        ...content.activity,
-                        biological_target: e.target.value,
-                      })
-                    }
-                    placeholder="Enter biological target"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="delivery_route">Delivery Route</Label>
-                  <Input
-                    id="delivery_route"
-                    value={content.activity.delivery_route}
-                    onChange={(e) =>
-                      updateContent("activity", {
-                        ...content.activity,
-                        delivery_route: e.target.value,
-                      })
-                    }
-                    placeholder="Enter delivery route"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="drug_technology">Drug Technology</Label>
-                  <Input
-                    id="drug_technology"
-                    value={content.activity.drug_technology}
-                    onChange={(e) =>
-                      updateContent("activity", {
-                        ...content.activity,
-                        drug_technology: e.target.value,
-                      })
-                    }
-                    placeholder="Enter drug technology"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="delivery_medium">Delivery Medium</Label>
-                  <Input
-                    id="delivery_medium"
-                    value={content.activity.delivery_medium}
-                    onChange={(e) =>
-                      updateContent("activity", {
-                        ...content.activity,
-                        delivery_medium: e.target.value,
-                      })
-                    }
-                    placeholder="Enter delivery medium"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/admin/drugs")}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-white font-medium px-6 py-2"
+                style={{ backgroundColor: '#204B73' }}
+              >
+                Save Changes
+              </Button>
+            </div>
+            {/* Pipeline Data */}
+            <div className="space-y-2">
+              <Label htmlFor="pipeline_data" className="text-sm font-medium text-gray-700">Pipeline Data</Label>
+              <Textarea
+                id="pipeline_data"
+                value={content.otherSources.pipelineData}
+                onChange={(e) =>
+                  updateContent("otherSources", {
+                    ...content.otherSources,
+                    pipelineData: e.target.value,
+                  })
+                }
+                placeholder="Enter pipeline data information..."
+                rows={4}
+                className="min-h-[120px] border-gray-300"
+              />
+            </div>
+
+            {/* Press Releases */}
+            <div className="space-y-2">
+              <Label htmlFor="press_releases" className="text-sm font-medium text-gray-700">Press Releases</Label>
+              <Textarea
+                id="press_releases"
+                value={content.otherSources.pressReleases}
+                onChange={(e) =>
+                  updateContent("otherSources", {
+                    ...content.otherSources,
+                    pressReleases: e.target.value,
+                  })
+                }
+                placeholder="Enter press release information..."
+                rows={4}
+                className="min-h-[120px] border-gray-300"
+              />
+            </div>
+
+            {/* Publications */}
+            <div className="space-y-2">
+              <Label htmlFor="publications" className="text-sm font-medium text-gray-700">Publications</Label>
+              <Textarea
+                id="publications"
+                value={content.otherSources.publications}
+                onChange={(e) =>
+                  updateContent("otherSources", {
+                    ...content.otherSources,
+                    publications: e.target.value,
+                  })
+                }
+                placeholder="Enter publication information..."
+                rows={4}
+                className="min-h-[120px] border-gray-300"
+              />
+            </div>
           </div>
         );
 
-      case 4:
+
+      case 5: // Licensing & Marketing Tab
         return (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Clinical Development</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="preclinical">Preclinical Status</Label>
-                  <Select
-                    value={content.development.preclinical}
-                    onValueChange={(value) =>
-                      updateContent("development", {
-                        ...content.development,
-                        preclinical: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Completed">Completed</SelectItem>
-                      <SelectItem value="In Progress">In Progress</SelectItem>
-                      <SelectItem value="Not Started">Not Started</SelectItem>
-                      <SelectItem value="On Hold">On Hold</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dev_status">Development Status</Label>
-                  <Select
-                    value={content.development.status}
-                    onValueChange={(value) =>
-                      updateContent("development", {
-                        ...content.development,
-                        status: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Market">Market</SelectItem>
-                      <SelectItem value="Phase I">Phase I</SelectItem>
-                      <SelectItem value="Phase II">Phase II</SelectItem>
-                      <SelectItem value="Phase III">Phase III</SelectItem>
-                      <SelectItem value="Phase IV">Phase IV</SelectItem>
-                      <SelectItem value="Preclinical">Preclinical</SelectItem>
-                      <SelectItem value="Discontinued">Discontinued</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sponsor">Sponsor *</Label>
-                  <Input
-                    id="sponsor"
-                    value={content.development.sponsor}
-                    onChange={(e) =>
-                      updateContent("development", {
-                        ...content.development,
-                        sponsor: e.target.value,
-                      })
-                    }
-                    placeholder="Enter sponsor name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="trial_id">Trial ID</Label>
-                  <Input
-                    id="trial_id"
-                    value={content.development.trial_id}
-                    onChange={(e) =>
-                      updateContent("development", {
-                        ...content.development,
-                        trial_id: e.target.value,
-                      })
-                    }
-                    placeholder="Enter trial ID"
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="title">Trial Title</Label>
-                  <Input
-                    id="title"
-                    value={content.development.title}
-                    onChange={(e) =>
-                      updateContent("development", {
-                        ...content.development,
-                        title: e.target.value,
-                      })
-                    }
-                    placeholder="Enter trial title"
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="primary_drugs">Primary Drugs</Label>
-                  <Input
-                    id="primary_drugs"
-                    value={content.development.primary_drugs}
-                    onChange={(e) =>
-                      updateContent("development", {
-                        ...content.development,
-                        primary_drugs: e.target.value,
-                      })
-                    }
-                    placeholder="Enter primary drugs"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/admin/drugs")}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-white font-medium px-6 py-2"
+                style={{ backgroundColor: '#204B73' }}
+              >
+                Save Changes
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="agreement">Agreement Type</Label>
+                <SearchableSelect
+                  options={drugTechnologyOptions}
+                  value={content.licensingMarketing.agreement}
+                  onValueChange={(value) =>
+                    updateContent("licensingMarketing", {
+                      ...content.licensingMarketing,
+                      agreement: value,
+                    })
+                  }
+                  placeholder="Select drug technology"
+                  searchPlaceholder="Search drug technology..."
+                  emptyMessage="No drug technology found."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="licensing_availability">Licensing Availability</Label>
+                <Textarea
+                  id="licensing_availability"
+                  value={content.licensingMarketing.licensing_availability}
+                  onChange={(e) =>
+                    updateContent("licensingMarketing", {
+                      ...content.licensingMarketing,
+                      licensing_availability: e.target.value,
+                    })
+                  }
+                  placeholder=""
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="marketing_approvals">Marketing Approvals</Label>
+              <Textarea
+                id="marketing_approvals"
+                value={content.licensingMarketing.marketing_approvals}
+                onChange={(e) =>
+                  updateContent("licensingMarketing", {
+                    ...content.licensingMarketing,
+                    marketing_approvals: e.target.value,
+                  })
+                }
+                placeholder=""
+                rows={4}
+                className="min-h-[120px]"
+              />
+            </div>
           </div>
         );
 
-      case 5:
+      case 6: // Logs Tab
         return (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Marketing & Licensing</CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="agreement">Agreement Type</Label>
-                  <Select
-                    value={content.licencesMarketing.agreement}
-                    onValueChange={(value) =>
-                      updateContent("licencesMarketing", {
-                        ...content.licencesMarketing,
-                        agreement: value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Proprietary">Proprietary</SelectItem>
-                      <SelectItem value="Licensed">Licensed</SelectItem>
-                      <SelectItem value="Partnership">Partnership</SelectItem>
-                      <SelectItem value="Open Source">Open Source</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="licensing_availability">
-                    Licensing Availability
-                  </Label>
-                  <Input
-                    id="licensing_availability"
-                    value={content.licencesMarketing.licensing_availability}
-                    onChange={(e) =>
-                      updateContent("licencesMarketing", {
-                        ...content.licencesMarketing,
-                        licensing_availability: e.target.value,
-                      })
-                    }
-                    placeholder="Enter licensing availability"
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="marketing_approvals">
-                    Marketing Approvals *
-                  </Label>
-                  <Input
-                    id="marketing_approvals"
-                    value={content.licencesMarketing.marketing_approvals}
-                    onChange={(e) =>
-                      updateContent("licencesMarketing", {
-                        ...content.licencesMarketing,
-                        marketing_approvals: e.target.value,
-                      })
-                    }
-                    placeholder="Enter marketing approvals (e.g., FDA, EMA)"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/admin/drugs")}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-white font-medium px-6 py-2"
+                style={{ backgroundColor: '#204B73' }}
+              >
+                Save Changes
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="drug_changes_log">Drug Changes Log</Label>
+              <Textarea
+                id="drug_changes_log"
+                value={content.logs.drug_changes_log}
+                onChange={(e) =>
+                  updateContent("logs", {
+                    ...content.logs,
+                    drug_changes_log: e.target.value,
+                  })
+                }
+                placeholder=""
+                rows={4}
+                className="min-h-[120px]"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={content.logs.notes}
+                onChange={(e) =>
+                  updateContent("logs", {
+                    ...content.logs,
+                    notes: e.target.value,
+                  })
+                }
+                placeholder=""
+                rows={4}
+                className="min-h-[120px]"
+              />
+            </div>
           </div>
         );
 
-      case 6:
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Additional Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="other_sources">Additional Data Sources</Label>
-                  <Textarea
-                    id="other_sources"
-                    value={content.otherSources.data}
-                    onChange={(e) =>
-                      updateContent("otherSources", {
-                        ...content.otherSources,
-                        data: e.target.value,
-                      })
-                    }
-                    placeholder="Enter additional information from other sources"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={content.logs.notes}
-                    onChange={(e) =>
-                      updateContent("logs", {
-                        ...content.logs,
-                        notes: e.target.value,
-                      })
-                    }
-                    placeholder="Enter additional notes or comments"
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
-
-      case 7:
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Review All Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Basic Information</h4>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <strong>Drug Name:</strong>{" "}
-                        {content.overview.drug_name || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Generic Name:</strong>{" "}
-                        {content.overview.generic_name || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Therapeutic Area:</strong>{" "}
-                        {content.overview.therapeutic_area || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Disease Type:</strong>{" "}
-                        {content.overview.disease_type || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        {content.overview.is_approved ? "Approved" : "Pending"}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Development Status</h4>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <strong>Company:</strong>{" "}
-                        {content.devStatus.company || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Therapeutic Class:</strong>{" "}
-                        {content.devStatus.therapeutic_class || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        {content.devStatus.status || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Reference:</strong>{" "}
-                        {content.devStatus.reference?.source ? (
-                          <>
-                            {content.devStatus.reference.source}(
-                            {content.devStatus.reference.type})
-                            {content.devStatus.reference.url && (
-                              <span className="block text-xs text-muted-foreground">
-                                URL: {content.devStatus.reference.url}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          "Not provided"
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-semibold mb-2">Mechanism of Action</h4>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <strong>Mechanism:</strong>{" "}
-                        {content.activity.mechanism_of_action || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Biological Target:</strong>{" "}
-                        {content.activity.biological_target || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Delivery Route:</strong>{" "}
-                        {content.activity.delivery_route || "Not provided"}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-2">Clinical Development</h4>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <strong>Sponsor:</strong>{" "}
-                        {content.development.sponsor || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Status:</strong>{" "}
-                        {content.development.status || "Not provided"}
-                      </p>
-                      <p>
-                        <strong>Preclinical:</strong>{" "}
-                        {content.development.preclinical || "Not provided"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Marketing & Licensing</h4>
-                  <div className="space-y-1 text-sm">
-                    <p>
-                      <strong>Agreement:</strong>{" "}
-                      {content.licencesMarketing.agreement || "Not provided"}
-                    </p>
-                    <p>
-                      <strong>Marketing Approvals:</strong>{" "}
-                      {content.licencesMarketing.marketing_approvals ||
-                        "Not provided"}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Additional Information</h4>
-                  <div className="space-y-1 text-sm">
-                    <p>
-                      <strong>Additional Data Sources:</strong>{" "}
-                      {content.otherSources.data || "Not provided"}
-                    </p>
-                    <p>
-                      <strong>Notes:</strong>{" "}
-                      {content.logs.notes || "Not provided"}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        );
 
       default:
         return null;
@@ -1009,63 +1074,39 @@ export default function NewDrugPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={() => router.push("/admin/drugs")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Drugs
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Create New Drug</h1>
-            <p className="text-sm text-muted-foreground">
-              Step {currentStep} of {steps.length}
-            </p>
-          </div>
+          {/* Header content can be added here if needed */}
         </div>
       </div>
 
-      {/* Progress Steps */}
-      <div className="flex items-center justify-between">
-        {steps.map((step, index) => (
-          <div key={step.id} className="flex items-center">
-            <div className="flex items-center">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                  currentStep === step.id
-                    ? "bg-primary border-primary text-primary-foreground"
-                    : isStepComplete(step.id)
-                    ? "bg-green-500 border-green-500 text-white"
-                    : "bg-muted border-muted-foreground text-muted-foreground"
+      {/* Tab Navigation */}
+      <div className="rounded-lg" style={{ backgroundColor: '#61CCFA66' }}>
+        <div className="flex">
+          {steps.map((step) => (
+            <button
+              key={step.id}
+              onClick={() => goToStep(step.id)}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-all border-b-2 ${currentStep === step.id
+                ? "text-white border-b-transparent"
+                : "text-gray-700 border-b-transparent hover:bg-white hover:bg-opacity-20"
                 }`}
-              >
-                {isStepComplete(step.id) ? (
-                  <Check className="h-5 w-5" />
-                ) : (
-                  step.id
-                )}
-              </div>
-              <div className="ml-3">
-                <p
-                  className={`text-sm font-medium ${
-                    currentStep === step.id
-                      ? "text-primary"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {step.title}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {step.description}
-                </p>
-              </div>
-            </div>
-            {index < steps.length - 1 && (
-              <div
-                className={`w-16 h-0.5 mx-4 ${
-                  isStepComplete(step.id) ? "bg-green-500" : "bg-muted"
-                }`}
-              />
-            )}
-          </div>
-        ))}
+              style={{
+                backgroundColor: currentStep === step.id ? '#204B73' : 'transparent'
+              }}
+            >
+              {step.title}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Active Tab Content Header */}
+      <div
+        className="rounded-lg p-4"
+        style={{ backgroundColor: '#204B73' }}
+      >
+        <h2 className="text-white text-lg font-semibold">
+          {steps.find(step => step.id === currentStep)?.title}
+        </h2>
       </div>
 
       {/* Step Content */}
@@ -1112,3 +1153,4 @@ export default function NewDrugPage() {
     </div>
   );
 }
+

@@ -26,7 +26,11 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { drugsApi } from "../../lib/api";
-import { Edit, Trash2, Eye, Plus, Search, Loader2 } from "lucide-react";
+import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock } from "lucide-react";
+import { DrugAdvancedSearchModal, DrugSearchCriteria } from "@/components/drug-advanced-search-modal";
+import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal";
+import { SaveQueryModal } from "@/components/save-query-modal";
+import { QueryHistoryModal } from "@/components/query-history-modal";
 
 // Types based on the new API response
 interface DrugOverview {
@@ -134,6 +138,28 @@ export default function DrugsDashboardPage() {
   const [deletingDrugs, setDeletingDrugs] = useState<Record<string, boolean>>(
     {}
   );
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [advancedSearchCriteria, setAdvancedSearchCriteria] = useState<DrugSearchCriteria[]>([]);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<DrugFilterState>({
+    globalStatuses: [],
+    developmentStatuses: [],
+    therapeuticAreas: [],
+    diseaseTypes: [],
+    originators: [],
+    otherActiveCompanies: [],
+    regulatorDesignations: [],
+    drugRecordStatus: [],
+    isApproved: [],
+    companyTypes: [],
+    mechanismOfAction: [],
+    biologicalTargets: [],
+    drugTechnologies: [],
+    deliveryRoutes: [],
+    deliveryMediums: []
+  });
+  const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
+  const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
 
   // Fetch drugs data
   const fetchDrugs = async () => {
@@ -207,21 +233,215 @@ export default function DrugsDashboardPage() {
     }
   };
 
-  // Handle edit button click
-  const handleEditClick = () => {
-    toast({
-      title: "Contact Required",
-      description: "Please contact the Manager for editing this drug",
-      variant: "default",
-    });
+
+  // Handle advanced search
+  const handleAdvancedSearch = (criteria: DrugSearchCriteria[]) => {
+    setAdvancedSearchCriteria(criteria);
   };
 
-  // Filter drugs based on search term
-  const filteredDrugs = drugs.filter((drug) =>
-    (drug.overview.drug_name || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+  // Handle load query from history
+  const handleLoadQuery = (query: any) => {
+    if (query.criteria) {
+      setAdvancedSearchCriteria(query.criteria);
+      toast({
+        title: "Query Loaded",
+        description: `Loaded query: ${query.name}`,
+      });
+    }
+  };
+
+  // Handle filter application
+  const handleApplyFilters = (filters: DrugFilterState) => {
+    setAppliedFilters(filters);
+    const activeFilterCount = Object.values(filters).reduce((count, arr) => count + arr.length, 0);
+    if (activeFilterCount > 0) {
+      toast({
+        title: "Filters Applied",
+        description: `Applied ${activeFilterCount} filter criteria`,
+      });
+    } else {
+      toast({
+        title: "Filters Cleared",
+        description: "All filters have been cleared",
+      });
+    }
+  };
+
+  // Apply advanced search criteria to filter drugs
+  const applyAdvancedSearchFilter = (drug: DrugData, criteria: DrugSearchCriteria[]): boolean => {
+    if (criteria.length === 0) return true;
+
+    const results = criteria.map((criterion) => {
+      const { field, operator, value } = criterion;
+      let fieldValue = "";
+
+      // Get the field value from the drug data
+      switch (field) {
+        case "drug_name":
+          fieldValue = drug.overview.drug_name || "";
+          break;
+        case "generic_name":
+          fieldValue = drug.overview.generic_name || "";
+          break;
+        case "other_name":
+          fieldValue = drug.overview.other_name || "";
+          break;
+        case "primary_name":
+          fieldValue = drug.overview.primary_name || "";
+          break;
+        case "global_status":
+          fieldValue = drug.overview.global_status || "";
+          break;
+        case "development_status":
+          fieldValue = drug.overview.development_status || "";
+          break;
+        case "originator":
+          fieldValue = drug.overview.originator || "";
+          break;
+        case "other_active_companies":
+          fieldValue = drug.overview.other_active_companies || "";
+          break;
+        case "therapeutic_area":
+          fieldValue = drug.overview.therapeutic_area || "";
+          break;
+        case "disease_type":
+          fieldValue = drug.overview.disease_type || "";
+          break;
+        case "regulator_designations":
+          fieldValue = drug.overview.regulator_designations || "";
+          break;
+        case "drug_record_status":
+          fieldValue = drug.overview.drug_record_status || "";
+          break;
+        case "is_approved":
+          fieldValue = drug.overview.is_approved ? "true" : "false";
+          break;
+        case "mechanism_of_action":
+          fieldValue = drug.activity.length > 0 ? (drug.activity[0].mechanism_of_action || "") : "";
+          break;
+        case "biological_target":
+          fieldValue = drug.activity.length > 0 ? (drug.activity[0].biological_target || "") : "";
+          break;
+        case "drug_technology":
+          fieldValue = drug.activity.length > 0 ? (drug.activity[0].drug_technology || "") : "";
+          break;
+        case "delivery_route":
+          fieldValue = drug.activity.length > 0 ? (drug.activity[0].delivery_route || "") : "";
+          break;
+        case "delivery_medium":
+          fieldValue = drug.activity.length > 0 ? (drug.activity[0].delivery_medium || "") : "";
+          break;
+        case "company":
+          fieldValue = drug.devStatus.length > 0 ? (drug.devStatus[0].company || "") : "";
+          break;
+        case "company_type":
+          fieldValue = drug.devStatus.length > 0 ? (drug.devStatus[0].company_type || "") : "";
+          break;
+        case "status":
+          fieldValue = drug.devStatus.length > 0 ? (drug.devStatus[0].status || "") : "";
+          break;
+        case "created_at":
+          fieldValue = drug.overview.created_at || "";
+          break;
+        case "updated_at":
+          fieldValue = drug.overview.updated_at || "";
+          break;
+        default:
+          fieldValue = "";
+      }
+
+      // Apply the operator
+      const searchValue = value.toLowerCase();
+      const targetValue = fieldValue.toLowerCase();
+
+      switch (operator) {
+        case "contains":
+          return targetValue.includes(searchValue);
+        case "is":
+          return targetValue === searchValue;
+        case "is_not":
+          return targetValue !== searchValue;
+        case "starts_with":
+          return targetValue.startsWith(searchValue);
+        case "ends_with":
+          return targetValue.endsWith(searchValue);
+        case "equals":
+          return targetValue === searchValue;
+        case "not_equals":
+          return targetValue !== searchValue;
+        case "greater_than":
+          return parseFloat(fieldValue) > parseFloat(value);
+        case "less_than":
+          return parseFloat(fieldValue) < parseFloat(value);
+        default:
+          return true;
+      }
+    });
+
+    // Apply logic operators
+    let finalResult = results[0];
+    for (let i = 1; i < results.length; i++) {
+      const logic = criteria[i - 1].logic;
+      if (logic === "AND") {
+        finalResult = finalResult && results[i];
+      } else if (logic === "OR") {
+        finalResult = finalResult || results[i];
+      }
+    }
+
+    return finalResult;
+  };
+
+  // Filter drugs based on search term, advanced search criteria, and filters
+  const filteredDrugs = drugs.filter((drug) => {
+    // Basic search term filter
+    const matchesSearchTerm = searchTerm === "" || 
+      (drug.overview.drug_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (drug.overview.generic_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (drug.overview.therapeutic_area || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (drug.overview.disease_type || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Advanced search filter
+    const matchesAdvancedSearch = applyAdvancedSearchFilter(drug, advancedSearchCriteria);
+
+    // Apply filters
+    const matchesFilters = (
+      (appliedFilters.globalStatuses.length === 0 || 
+       appliedFilters.globalStatuses.includes(drug.overview.global_status || "")) &&
+      (appliedFilters.developmentStatuses.length === 0 || 
+       appliedFilters.developmentStatuses.includes(drug.overview.development_status || "")) &&
+      (appliedFilters.therapeuticAreas.length === 0 || 
+       appliedFilters.therapeuticAreas.includes(drug.overview.therapeutic_area || "")) &&
+      (appliedFilters.diseaseTypes.length === 0 || 
+       appliedFilters.diseaseTypes.includes(drug.overview.disease_type || "")) &&
+      (appliedFilters.originators.length === 0 || 
+       appliedFilters.originators.includes(drug.overview.originator || "")) &&
+      (appliedFilters.otherActiveCompanies.length === 0 || 
+       appliedFilters.otherActiveCompanies.some(company => 
+         (drug.overview.other_active_companies || "").toLowerCase().includes(company.toLowerCase()))) &&
+      (appliedFilters.regulatorDesignations.length === 0 || 
+       appliedFilters.regulatorDesignations.some(designation => 
+         (drug.overview.regulator_designations || "").toLowerCase().includes(designation.toLowerCase()))) &&
+      (appliedFilters.drugRecordStatus.length === 0 || 
+       appliedFilters.drugRecordStatus.includes(drug.overview.drug_record_status || "")) &&
+      (appliedFilters.isApproved.length === 0 || 
+       appliedFilters.isApproved.includes(drug.overview.is_approved ? "Yes" : "No")) &&
+      (appliedFilters.companyTypes.length === 0 || 
+       drug.devStatus.length > 0 && appliedFilters.companyTypes.includes(drug.devStatus[0].company_type || "")) &&
+      (appliedFilters.mechanismOfAction.length === 0 || 
+       drug.activity.length > 0 && appliedFilters.mechanismOfAction.includes(drug.activity[0].mechanism_of_action || "")) &&
+      (appliedFilters.biologicalTargets.length === 0 || 
+       drug.activity.length > 0 && appliedFilters.biologicalTargets.includes(drug.activity[0].biological_target || "")) &&
+      (appliedFilters.drugTechnologies.length === 0 || 
+       drug.activity.length > 0 && appliedFilters.drugTechnologies.includes(drug.activity[0].drug_technology || "")) &&
+      (appliedFilters.deliveryRoutes.length === 0 || 
+       drug.activity.length > 0 && appliedFilters.deliveryRoutes.includes(drug.activity[0].delivery_route || "")) &&
+      (appliedFilters.deliveryMediums.length === 0 || 
+       drug.activity.length > 0 && appliedFilters.deliveryMediums.includes(drug.activity[0].delivery_medium || ""))
+    );
+
+    return matchesSearchTerm && matchesAdvancedSearch && matchesFilters;
+  });
 
   useEffect(() => {
     fetchDrugs();
@@ -275,12 +495,48 @@ export default function DrugsDashboardPage() {
           <h1 className="text-2xl font-bold">Drugs</h1>
           <p className="text-sm text-muted-foreground">
             Browse and manage all drugs. Total: {drugs.length}
+            {advancedSearchCriteria.length > 0 && (
+              <span className="ml-2 text-blue-600">
+                • {advancedSearchCriteria.length} advanced filter{advancedSearchCriteria.length > 1 ? 's' : ''} active
+              </span>
+            )}
+            {Object.values(appliedFilters).some(arr => arr.length > 0) && (
+              <span className="ml-2 text-purple-600">
+                • {Object.values(appliedFilters).reduce((count, arr) => count + arr.length, 0)} filter{Object.values(appliedFilters).reduce((count, arr) => count + arr.length, 0) > 1 ? 's' : ''} active
+              </span>
+            )}
           </p>
         </div>
-        <Button onClick={() => router.push("/admin/drugs/new")}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Drug
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setQueryHistoryModalOpen(true)}
+            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Saved Queries
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsAdvancedSearchOpen(true)}
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Advanced Search
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setFilterModalOpen(true)}
+            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
+          </Button>
+          <Button onClick={() => router.push("/admin/drugs/new")}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Drug
+          </Button>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -294,6 +550,35 @@ export default function DrugsDashboardPage() {
             className="pl-10"
           />
         </div>
+        {(advancedSearchCriteria.length > 0 || Object.values(appliedFilters).some(arr => arr.length > 0)) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setAdvancedSearchCriteria([]);
+              setAppliedFilters({
+                globalStatuses: [],
+                developmentStatuses: [],
+                therapeuticAreas: [],
+                diseaseTypes: [],
+                originators: [],
+                otherActiveCompanies: [],
+                regulatorDesignations: [],
+                drugRecordStatus: [],
+                isApproved: [],
+                companyTypes: [],
+                mechanismOfAction: [],
+                biologicalTargets: [],
+                drugTechnologies: [],
+                deliveryRoutes: [],
+                deliveryMediums: []
+              });
+            }}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            Clear Filters
+          </Button>
+        )}
       </div>
 
       <div className="rounded-xl border bg-card">
@@ -302,11 +587,11 @@ export default function DrugsDashboardPage() {
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead>Drug ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Generic Name</TableHead>
-                <TableHead>Therapeutic Area</TableHead>
+                <TableHead>Drug Name</TableHead>
+                <TableHead>Global Status</TableHead>
+                <TableHead>Originator</TableHead>
                 <TableHead>Disease Type</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Development Status</TableHead>
 
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -428,14 +713,6 @@ export default function DrugsDashboardPage() {
                         </DialogContent>
                       </Dialog>
 
-                      {/* Edit Drug */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEditClick}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
 
                       {/* Delete Drug */}
                       <Button
@@ -465,6 +742,37 @@ export default function DrugsDashboardPage() {
           </Table>
         </div>
       </div>
+
+      {/* Advanced Search Modal */}
+      <DrugAdvancedSearchModal
+        open={isAdvancedSearchOpen}
+        onOpenChange={setIsAdvancedSearchOpen}
+        onApplySearch={handleAdvancedSearch}
+      />
+
+      {/* Filter Modal */}
+      <DrugFilterModal
+        open={filterModalOpen}
+        onOpenChange={setFilterModalOpen}
+        onApplyFilters={handleApplyFilters}
+        currentFilters={appliedFilters}
+      />
+
+      {/* Save Query Modal */}
+      <SaveQueryModal
+        open={saveQueryModalOpen}
+        onOpenChange={setSaveQueryModalOpen}
+        currentFilters={appliedFilters}
+        currentSearchCriteria={advancedSearchCriteria}
+        searchTerm={searchTerm}
+      />
+
+      {/* Query History Modal */}
+      <QueryHistoryModal
+        open={queryHistoryModalOpen}
+        onOpenChange={setQueryHistoryModalOpen}
+        onLoadQuery={handleLoadQuery}
+      />
     </div>
   );
 }

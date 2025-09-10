@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Activity, Pill, LayoutDashboard, LogOut } from "lucide-react";
+import { Users, Activity, Pill, LayoutDashboard, LogOut, FileText, Shield, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -32,27 +32,27 @@ const items = [
     icon: Users,
   },
   {
-    title: "Therapeutics",
+    title: "Clinical Trials",
     url: "/admin/therapeutics",
     icon: Activity,
   },
   {
     title: "Activity Logs",
     url: "/admin/activity-logs",
-    icon: Activity,
+    icon: FileText,
   },
   {
     title: "Role Management",
     url: "/admin/role-management",
-    icon: Users,
+    icon: Shield,
   },
   {
     title: "Approvals",
     url: "/admin/approvals",
-    icon: LayoutDashboard,
+    icon: CheckCircle,
   },
   {
-    title: "Drug List",
+    title: "Drugs",
     url: "/admin/drugs",
     icon: Pill,
   },
@@ -91,7 +91,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <Link href={item.url}>
-                      {/* <item.icon /> */}
+                      <item.icon className="mr-2 h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>

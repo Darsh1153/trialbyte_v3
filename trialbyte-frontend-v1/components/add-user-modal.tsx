@@ -1,13 +1,12 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle, 
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +30,7 @@ interface AddUserModalProps {
 export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
   const [isSubmitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
+    userId: "",
     username: "",
     email: "",
     password: "",
@@ -41,7 +41,7 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
     region: "",
     sex: "",
     age: "",
-    plan: "",
+    ipAuthority: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +49,7 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
     setSubmitting(true);
     try {
       const payload = {
+        userId: formData.userId,
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -59,11 +60,12 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
         region: formData.region || undefined,
         sex: formData.sex || undefined,
         age: formData.age ? Number(formData.age) : undefined,
-        plan: formData.plan || undefined,
+        ipAuthority: formData.ipAuthority || undefined,
       };
       await usersApi.create(payload);
       onOpenChange(false);
       setFormData({
+        userId: "",
         username: "",
         email: "",
         password: "",
@@ -74,7 +76,7 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
         region: "",
         sex: "",
         age: "",
-        plan: "",
+        ipAuthority: "",
       });
     } catch (err) {
       console.error(err);
@@ -104,6 +106,20 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* User ID */}
+          <div className="space-y-2">
+            <Label htmlFor="userId">
+              User ID<span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="userId"
+              value={formData.userId}
+              onChange={(e) => handleInputChange("userId", e.target.value)}
+              className="bg-gray-100"
+              required
+            />
+          </div>
+
           {/* Username, Email, Password */}
           <div className="space-y-2">
             <Label htmlFor="username">
@@ -239,7 +255,7 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
             </div>
           </div>
 
-          {/* Sex, Age, Plan */}
+          {/* Sex, Age, IP Authority */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="sex">
@@ -273,20 +289,19 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="plan">
-                Plan<span className="text-red-500">*</span>
+              <Label htmlFor="ipAuthority">
+                IP Authority<span className="text-red-500">*</span>
               </Label>
               <Select
-                value={formData.plan}
-                onValueChange={(value) => handleInputChange("plan", value)}
+                value={formData.ipAuthority}
+                onValueChange={(value) => handleInputChange("ipAuthority", value)}
               >
                 <SelectTrigger className="bg-gray-100">
-                  <SelectValue placeholder="Select plan" />
+                  <SelectValue placeholder="Select option" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="basic">Basic</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                  <SelectItem value="yes">Yes</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
                 </SelectContent>
               </Select>
             </div>

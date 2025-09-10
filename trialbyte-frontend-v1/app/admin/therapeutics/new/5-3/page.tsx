@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Plus, X } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
@@ -26,6 +27,21 @@ export default function TherapeuticsStep5_3() {
     updateArrayItem,
   } = useTherapeuticForm();
   const form = formData.step5_3;
+
+  // Options for searchable dropdowns
+  const genderOptions: SearchableSelectOption[] = [
+    { value: "All", label: "All" },
+    { value: "Male", label: "Male" },
+    { value: "Female", label: "Female" },
+  ];
+
+  const ecogPerformanceStatusOptions: SearchableSelectOption[] = [
+    { value: "0", label: "0 - Fully active" },
+    { value: "1", label: "1 - Restricted in physically strenuous activity" },
+    { value: "2", label: "2 - Ambulatory and capable of all self-care" },
+    { value: "3", label: "3 - Capable of only limited self-care" },
+    { value: "4", label: "4 - Completely disabled" },
+  ];
 
   const addInclusionCriteria = () =>
     addArrayItem("step5_3", "inclusion_criteria");
@@ -45,22 +61,22 @@ export default function TherapeuticsStep5_3() {
     <div className="space-y-4">
       <FormProgress currentStep={3} />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">5.3 — Eligibility Criteria</h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/admin/therapeutics/new/5-2">Previous</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/admin/therapeutics/new/5-4">Next</Link>
-          </Button>
-        </div>
+      <div className="flex justify-end w-full gap-3">
+        <Button
+          variant="outline"
+          asChild
+        >
+          <Link href="/admin/therapeutics">Cancel</Link>
+        </Button>
+        <Button
+          className="text-white font-medium px-6 py-2"
+          style={{ backgroundColor: '#204B73' }}
+        >
+          Save Changes
+        </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-primary">Eligibility Criteria</CardTitle>
-        </CardHeader>
         <CardContent className="space-y-6">
           {/* Inclusion Criteria */}
           <div className="space-y-2">
@@ -70,7 +86,7 @@ export default function TherapeuticsStep5_3() {
                 <div key={idx} className="flex gap-2">
                   <Textarea
                     rows={3}
-                    placeholder="Enter inclusion criteria"
+                    placeholder=""
                     value={criteria}
                     onChange={(e) =>
                       updateInclusionCriteria(idx, e.target.value)
@@ -106,7 +122,7 @@ export default function TherapeuticsStep5_3() {
                 <div key={idx} className="flex gap-2">
                   <Textarea
                     rows={3}
-                    placeholder="Enter exclusion criteria"
+                    placeholder=""
                     value={criteria}
                     onChange={(e) =>
                       updateExclusionCriteria(idx, e.target.value)
@@ -162,19 +178,14 @@ export default function TherapeuticsStep5_3() {
             </div>
             <div className="space-y-2">
               <Label>Gender</Label>
-              <Select
+              <SearchableSelect
+                options={genderOptions}
                 value={form.gender}
                 onValueChange={(v) => updateField("step5_3", "gender", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All</SelectItem>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select gender"
+                searchPlaceholder="Search gender..."
+                emptyMessage="No gender found."
+              />
             </div>
           </div>
 
@@ -182,33 +193,20 @@ export default function TherapeuticsStep5_3() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>ECOG Performance Status</Label>
-              <Select
+              <SearchableSelect
+                options={ecogPerformanceStatusOptions}
                 value={form.ecog_performance_status}
                 onValueChange={(v) =>
                   updateField("step5_3", "ecog_performance_status", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select ECOG status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">0 - Fully active</SelectItem>
-                  <SelectItem value="1">
-                    1 - Restricted in physically strenuous activity
-                  </SelectItem>
-                  <SelectItem value="2">
-                    2 - Ambulatory and capable of all self-care
-                  </SelectItem>
-                  <SelectItem value="3">
-                    3 - Capable of only limited self-care
-                  </SelectItem>
-                  <SelectItem value="4">4 - Completely disabled</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select ECOG status"
+                searchPlaceholder="Search ECOG status..."
+                emptyMessage="No ECOG status found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Prior Treatments</Label>
-              <Input
+              <Textarea
                 placeholder="e.g., Chemotherapy, Radiation"
                 value={form.prior_treatments[0] || ""}
                 onChange={(e) =>
@@ -219,6 +217,7 @@ export default function TherapeuticsStep5_3() {
                     e.target.value
                   )
                 }
+                rows={2}
               />
             </div>
           </div>
@@ -226,7 +225,7 @@ export default function TherapeuticsStep5_3() {
           {/* Biomarker Requirements */}
           <div className="space-y-2">
             <Label>Biomarker Requirements</Label>
-            <Input
+            <Textarea
               placeholder="e.g., HER2+, EGFR mutation"
               value={form.biomarker_requirements[0] || ""}
               onChange={(e) =>
@@ -237,6 +236,7 @@ export default function TherapeuticsStep5_3() {
                   e.target.value
                 )
               }
+              rows={2}
             />
           </div>
 

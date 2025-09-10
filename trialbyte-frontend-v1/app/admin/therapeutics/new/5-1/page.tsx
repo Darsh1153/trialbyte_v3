@@ -12,9 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Plus, X } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
+import { Textarea } from "@/components/ui/textarea";
+import { useDrugNames } from "@/hooks/use-drug-names";
 
 export default function TherapeuticsStep5_1() {
   const {
@@ -24,7 +27,102 @@ export default function TherapeuticsStep5_1() {
     removeArrayItem,
     updateArrayItem,
   } = useTherapeuticForm();
+  const { getPrimaryDrugsOptions } = useDrugNames();
   const form = formData.step5_1;
+
+  // Options for searchable dropdowns
+  const therapeuticAreaOptions: SearchableSelectOption[] = [
+    { value: "Oncology", label: "Oncology" },
+    { value: "Cardiology", label: "Cardiology" },
+    { value: "Neurology", label: "Neurology" },
+  ];
+
+  const trialPhaseOptions: SearchableSelectOption[] = [
+    { value: "I", label: "Phase I" },
+    { value: "II", label: "Phase II" },
+    { value: "III", label: "Phase III" },
+    { value: "IV", label: "Phase IV" },
+  ];
+
+  const statusOptions: SearchableSelectOption[] = [
+    { value: "Planned", label: "Planned" },
+    { value: "Open", label: "Open" },
+    { value: "Closed", label: "Closed" },
+    { value: "Completed", label: "Completed" },
+    { value: "Terminated", label: "Terminated" },
+  ];
+
+  const primaryDrugsOptions: SearchableSelectOption[] = [
+    ...getPrimaryDrugsOptions().map(drug => ({
+      value: drug.value,
+      label: drug.label
+    }))
+  ];
+
+  const otherDrugsOptions: SearchableSelectOption[] = [
+    { value: "Drug X", label: "Drug X" },
+    { value: "Drug Y", label: "Drug Y" },
+    { value: "Drug Z", label: "Drug Z" },
+  ];
+
+  const diseaseTypeOptions: SearchableSelectOption[] = [
+    { value: "Lung Cancer", label: "Lung Cancer" },
+    { value: "Breast Cancer", label: "Breast Cancer" },
+  ];
+
+  const patientSegmentOptions: SearchableSelectOption[] = [
+    { value: "Adult", label: "Adult" },
+    { value: "Pediatric", label: "Pediatric" },
+    { value: "Elderly", label: "Elderly" },
+  ];
+
+  const lineOfTherapyOptions: SearchableSelectOption[] = [
+    { value: "First Line", label: "First Line" },
+    { value: "Second Line", label: "Second Line" },
+    { value: "Maintenance", label: "Maintenance" },
+  ];
+
+  const trialTagsOptions: SearchableSelectOption[] = [
+    { value: "Immunotherapy", label: "Immunotherapy" },
+    { value: "Targeted", label: "Targeted" },
+    { value: "Chemotherapy", label: "Chemotherapy" },
+  ];
+
+  const sponsorOptions: SearchableSelectOption[] = [
+    { value: "Pfizer", label: "Pfizer" },
+    { value: "Novartis", label: "Novartis" },
+    { value: "AstraZeneca", label: "AstraZeneca" },
+  ];
+
+  const sponsorFieldOptions: SearchableSelectOption[] = [
+    { value: "Pharma", label: "Pharma" },
+    { value: "Biotech", label: "Biotech" },
+    { value: "Academic", label: "Academic" },
+  ];
+
+  const croOptions: SearchableSelectOption[] = [
+    { value: "IQVIA", label: "IQVIA" },
+    { value: "Syneos", label: "Syneos" },
+    { value: "PPD", label: "PPD" },
+  ];
+
+  const countriesOptions: SearchableSelectOption[] = [
+    { value: "United States", label: "United States" },
+    { value: "Canada", label: "Canada" },
+    { value: "United Kingdom", label: "United Kingdom" },
+  ];
+
+  const regionOptions: SearchableSelectOption[] = [
+    { value: "West Coast", label: "West Coast" },
+    { value: "East Coast", label: "East Coast" },
+    { value: "EMEA", label: "EMEA" },
+  ];
+
+  const trialRecordStatusOptions: SearchableSelectOption[] = [
+    { value: "Draft", label: "Draft" },
+    { value: "Active", label: "Active" },
+    { value: "Archived", label: "Archived" },
+  ];
 
   // Helpers for multi-input fields
   const addTrialIdentifierField = () =>
@@ -44,54 +142,52 @@ export default function TherapeuticsStep5_1() {
   return (
     <div className="space-y-4">
       <FormProgress currentStep={1} />
-
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">5.1 — Trial Overview</h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/admin/therapeutics">Cancel</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/admin/therapeutics/new/5-2">Next</Link>
-          </Button>
-        </div>
+      
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-3">
+        <Button 
+          variant="outline"
+          asChild
+        >
+          <Link href="/admin/therapeutics">Cancel</Link>
+        </Button>
+        <Button 
+          className="text-white font-medium px-6 py-2"
+          style={{ backgroundColor: '#204B73' }}
+        >
+          Save Changes
+        </Button>
       </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle className="text-primary">Trial overview</CardTitle>
-        </CardHeader>
         <CardContent className="space-y-6">
           {/* Row 1: therapeutic area / trial identifier / phase */}
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label>Therapeutic Area</Label>
-              <Select
+              <Label>Clinical Trials</Label>
+              <SearchableSelect
+                options={therapeuticAreaOptions}
                 value={form.therapeutic_area}
                 onValueChange={(v) =>
                   updateField("step5_1", "therapeutic_area", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select therapeutic area" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Oncology">Oncology</SelectItem>
-                  <SelectItem value="Cardiology">Cardiology</SelectItem>
-                  <SelectItem value="Neurology">Neurology</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select Clinical Trials"
+                searchPlaceholder="Search therapeutic areas..."
+                emptyMessage="No therapeutic area found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Trial Identifier</Label>
               <div className="space-y-2">
                 {form.trial_identifier.map((val, idx) => (
                   <div key={idx} className="flex gap-2">
-                    <Input
+                    <Textarea
                       value={val}
                       onChange={(e) =>
                         updateTrialIdentifier(idx, e.target.value)
                       }
                       placeholder="#807996"
+                      rows={2}
                     />
                     {idx === 0 ? (
                       <Button
@@ -116,20 +212,14 @@ export default function TherapeuticsStep5_1() {
             </div>
             <div className="space-y-2">
               <Label>Trial Phase</Label>
-              <Select
+              <SearchableSelect
+                options={trialPhaseOptions}
                 value={form.trial_phase}
                 onValueChange={(v) => updateField("step5_1", "trial_phase", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Phase" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="I">Phase I</SelectItem>
-                  <SelectItem value="II">Phase II</SelectItem>
-                  <SelectItem value="III">Phase III</SelectItem>
-                  <SelectItem value="IV">Phase IV</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select Phase"
+                searchPlaceholder="Search trial phases..."
+                emptyMessage="No trial phase found."
+              />
             </div>
           </div>
 
@@ -137,119 +227,90 @@ export default function TherapeuticsStep5_1() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select
+              <SearchableSelect
+                options={statusOptions}
                 value={form.status}
                 onValueChange={(v) => updateField("step5_1", "status", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Planned">Planned</SelectItem>
-                  <SelectItem value="Open">Open</SelectItem>
-                  <SelectItem value="Closed">Closed</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Terminated">Terminated</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select status"
+                searchPlaceholder="Search status..."
+                emptyMessage="No status found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Primary Drugs</Label>
-              <Select
+              <SearchableSelect
+                options={primaryDrugsOptions}
                 value={form.primary_drugs}
                 onValueChange={(v) =>
                   updateField("step5_1", "primary_drugs", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select primary drug" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Drug A">Drug A</SelectItem>
-                  <SelectItem value="Drug B">Drug B</SelectItem>
-                  <SelectItem value="Drug C">Drug C</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select primary drug"
+                searchPlaceholder="Search primary drugs..."
+                emptyMessage="No primary drug found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Other Drugs</Label>
-              <Select
+              <SearchableSelect
+                options={otherDrugsOptions}
                 value={form.other_drugs}
                 onValueChange={(v) => updateField("step5_1", "other_drugs", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select other drug" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Drug X">Drug X</SelectItem>
-                  <SelectItem value="Drug Y">Drug Y</SelectItem>
-                  <SelectItem value="Drug Z">Drug Z</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select other drug"
+                searchPlaceholder="Search other drugs..."
+                emptyMessage="No other drug found."
+              />
             </div>
           </div>
 
           {/* Title */}
           <div className="space-y-2">
             <Label>Title</Label>
-            <Input
+            <Textarea
               value={form.title}
               onChange={(e) => updateField("step5_1", "title", e.target.value)}
+              className="resize-y min-h-[40px]"
             />
           </div>
+
 
           {/* Row 3: disease type / patient segment / line of therapy */}
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label>Disease Type</Label>
-              <Select
+              <SearchableSelect
+                options={diseaseTypeOptions}
                 value={form.disease_type}
                 onValueChange={(v) => updateField("step5_1", "disease_type", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select disease type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Lung Cancer">Lung Cancer</SelectItem>
-                  <SelectItem value="Breast Cancer">Breast Cancer</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select disease type"
+                searchPlaceholder="Search disease types..."
+                emptyMessage="No disease type found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Patient Segment</Label>
-              <Select
+              <SearchableSelect
+                options={patientSegmentOptions}
                 value={form.patient_segment}
                 onValueChange={(v) =>
                   updateField("step5_1", "patient_segment", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select segment" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Adult">Adult</SelectItem>
-                  <SelectItem value="Pediatric">Pediatric</SelectItem>
-                  <SelectItem value="Elderly">Elderly</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select segment"
+                searchPlaceholder="Search patient segments..."
+                emptyMessage="No patient segment found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Line Of Therapy</Label>
-              <Select
+              <SearchableSelect
+                options={lineOfTherapyOptions}
                 value={form.line_of_therapy}
                 onValueChange={(v) =>
                   updateField("step5_1", "line_of_therapy", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select line of therapy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="First Line">First Line</SelectItem>
-                  <SelectItem value="Second Line">Second Line</SelectItem>
-                  <SelectItem value="Maintenance">Maintenance</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select line of therapy"
+                searchPlaceholder="Search lines of therapy..."
+                emptyMessage="No line of therapy found."
+              />
             </div>
           </div>
 
@@ -260,10 +321,11 @@ export default function TherapeuticsStep5_1() {
               <div className="space-y-2">
                 {form.reference_links.map((val, idx) => (
                   <div key={idx} className="flex gap-2">
-                    <Input
+                    <Textarea
                       value={val}
                       onChange={(e) => updateReferenceLink(idx, e.target.value)}
                       placeholder="https://..."
+                      rows={2}
                     />
                     {idx === 0 ? (
                       <Button
@@ -288,19 +350,14 @@ export default function TherapeuticsStep5_1() {
             </div>
             <div className="space-y-2">
               <Label>Trial Tags</Label>
-              <Select
+              <SearchableSelect
+                options={trialTagsOptions}
                 value={form.trial_tags}
                 onValueChange={(v) => updateField("step5_1", "trial_tags", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select trial tag" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Immunotherapy">Immunotherapy</SelectItem>
-                  <SelectItem value="Targeted">Targeted</SelectItem>
-                  <SelectItem value="Chemotherapy">Chemotherapy</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select trial tag"
+                searchPlaceholder="Search trial tags..."
+                emptyMessage="No trial tag found."
+              />
             </div>
           </div>
 
@@ -308,57 +365,42 @@ export default function TherapeuticsStep5_1() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label>Sponsor & Collaborators</Label>
-              <Select
+              <SearchableSelect
+                options={sponsorOptions}
                 value={form.sponsor_collaborators}
                 onValueChange={(v) =>
                   updateField("step5_1", "sponsor_collaborators", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select sponsor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pfizer">Pfizer</SelectItem>
-                  <SelectItem value="Novartis">Novartis</SelectItem>
-                  <SelectItem value="AstraZeneca">AstraZeneca</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select sponsor"
+                searchPlaceholder="Search sponsors..."
+                emptyMessage="No sponsor found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Sponsor Field of Activity</Label>
-              <Select
+              <SearchableSelect
+                options={sponsorFieldOptions}
                 value={form.sponsor_field_activity}
                 onValueChange={(v) =>
                   updateField("step5_1", "sponsor_field_activity", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select field" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pharma">Pharma</SelectItem>
-                  <SelectItem value="Biotech">Biotech</SelectItem>
-                  <SelectItem value="Academic">Academic</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select field"
+                searchPlaceholder="Search sponsor fields..."
+                emptyMessage="No sponsor field found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Associated CRO</Label>
-              <Select
+              <SearchableSelect
+                options={croOptions}
                 value={form.associated_cro}
                 onValueChange={(v) =>
                   updateField("step5_1", "associated_cro", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select CRO" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="IQVIA">IQVIA</SelectItem>
-                  <SelectItem value="Syneos">Syneos</SelectItem>
-                  <SelectItem value="PPD">PPD</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select CRO"
+                searchPlaceholder="Search CROs..."
+                emptyMessage="No CRO found."
+              />
             </div>
           </div>
 
@@ -366,53 +408,38 @@ export default function TherapeuticsStep5_1() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label>Countries</Label>
-              <Select
+              <SearchableSelect
+                options={countriesOptions}
                 value={form.countries}
                 onValueChange={(v) => updateField("step5_1", "countries", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select countries" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="United States">United States</SelectItem>
-                  <SelectItem value="Canada">Canada</SelectItem>
-                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select countries"
+                searchPlaceholder="Search countries..."
+                emptyMessage="No country found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Region</Label>
-              <Select
+              <SearchableSelect
+                options={regionOptions}
                 value={form.region}
                 onValueChange={(v) => updateField("step5_1", "region", v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select region" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="West Coast">West Coast</SelectItem>
-                  <SelectItem value="East Coast">East Coast</SelectItem>
-                  <SelectItem value="EMEA">EMEA</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select region"
+                searchPlaceholder="Search regions..."
+                emptyMessage="No region found."
+              />
             </div>
             <div className="space-y-2">
               <Label>Trial Record Status</Label>
-              <Select
+              <SearchableSelect
+                options={trialRecordStatusOptions}
                 value={form.trial_record_status}
                 onValueChange={(v) =>
                   updateField("step5_1", "trial_record_status", v)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Draft">Draft</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select status"
+                searchPlaceholder="Search trial record status..."
+                emptyMessage="No trial record status found."
+              />
             </div>
           </div>
 

@@ -227,19 +227,22 @@ export default function TherapeuticsStep5_8() {
     <div className="space-y-4">
       <FormProgress currentStep={8} />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">5.8 — Notes & Documentation</h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" asChild>
-            <Link href="/admin/therapeutics/new/5-7">Previous</Link>
-          </Button>
-        </div>
-      </div>
+      <div className="flex justify-end w-full gap-3">
+            <Button 
+              variant="outline"
+              asChild
+            >
+              <Link href="/admin/therapeutics">Cancel</Link>
+            </Button>
+            <Button 
+              className="text-white font-medium px-6 py-2"
+              style={{ backgroundColor: '#204B73' }}
+            >
+              Save Changes
+            </Button>
+          </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-primary">Notes & Documentation</CardTitle>
-        </CardHeader>
         <CardContent className="space-y-6">
           {/* Date Type */}
           <div className="space-y-2">

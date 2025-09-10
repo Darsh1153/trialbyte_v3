@@ -90,14 +90,14 @@ export default function DrugsNewOverview() {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label>Primary Name</Label>
+              <Label className="text-sm font-medium text-gray-700">Primary Name</Label>
               <Select
                 value={form.primary_name}
                 onValueChange={(value) =>
                   updateField("overview", "primary_name", value)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-10 border-gray-300">
                   <SelectValue placeholder="Select" />
                 </SelectTrigger>
                 <SelectContent>
@@ -106,13 +106,14 @@ export default function DrugsNewOverview() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Global Status</Label>
+              <Label className="text-sm font-medium text-gray-700">Global Status</Label>
               <Input
                 placeholder="Enter"
                 value={form.global_status}
                 onChange={(e) =>
                   updateField("overview", "global_status", e.target.value)
                 }
+                className="h-10 border-gray-300"
               />
             </div>
             <div className="space-y-2">
