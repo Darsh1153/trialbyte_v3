@@ -91,6 +91,11 @@ export interface TherapeuticFormData {
     statistical_significance: string;
     adverse_events: string[];
     conclusion: string;
+    pipeline_data: string[];
+    press_releases: string[];
+    publications: string[];
+    trial_registries: string[];
+    associated_studies: string[];
   };
 
   // Step 5-8: Notes & Documentation
@@ -177,6 +182,11 @@ const initialFormState: TherapeuticFormData = {
     statistical_significance: "",
     adverse_events: [""],
     conclusion: "",
+    pipeline_data: [""],
+    press_releases: [""],
+    publications: [""],
+    trial_registries: [""],
+    associated_studies: [""],
   },
   step5_8: {
     date_type: "",

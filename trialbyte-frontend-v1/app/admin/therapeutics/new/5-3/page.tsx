@@ -2,75 +2,58 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
-import { Plus, X } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 
 export default function TherapeuticsStep5_3() {
-  const {
-    formData,
-    updateField,
-    addArrayItem,
-    removeArrayItem,
-    updateArrayItem,
-  } = useTherapeuticForm();
+  const { formData, updateField } = useTherapeuticForm();
   const form = formData.step5_3;
 
-  // Options for searchable dropdowns
+  // Age From/To Options (0-150)
+  const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
+    value: i.toString(),
+    label: i.toString()
+  }));
+
+  // Age Unit Options
+  const ageUnitOptions: SearchableSelectOption[] = [
+    { value: "years", label: "Years" },
+    { value: "months", label: "Months" },
+    { value: "weeks", label: "Weeks" },
+    { value: "days", label: "Days" },
+  ];
+
+  // Sex Options
   const genderOptions: SearchableSelectOption[] = [
-    { value: "All", label: "All" },
-    { value: "Male", label: "Male" },
-    { value: "Female", label: "Female" },
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "both", label: "Both" },
   ];
 
-  const ecogPerformanceStatusOptions: SearchableSelectOption[] = [
-    { value: "0", label: "0 - Fully active" },
-    { value: "1", label: "1 - Restricted in physically strenuous activity" },
-    { value: "2", label: "2 - Ambulatory and capable of all self-care" },
-    { value: "3", label: "3 - Capable of only limited self-care" },
-    { value: "4", label: "4 - Completely disabled" },
+  // Healthy Volunteers Options
+  const healthyVolunteersOptions: SearchableSelectOption[] = [
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" },
+    { value: "no_information", label: "No Information" },
   ];
-
-  const addInclusionCriteria = () =>
-    addArrayItem("step5_3", "inclusion_criteria");
-  const removeInclusionCriteria = (index: number) =>
-    removeArrayItem("step5_3", "inclusion_criteria", index);
-  const updateInclusionCriteria = (index: number, value: string) =>
-    updateArrayItem("step5_3", "inclusion_criteria", index, value);
-
-  const addExclusionCriteria = () =>
-    addArrayItem("step5_3", "exclusion_criteria");
-  const removeExclusionCriteria = (index: number) =>
-    removeArrayItem("step5_3", "exclusion_criteria", index);
-  const updateExclusionCriteria = (index: number, value: string) =>
-    updateArrayItem("step5_3", "exclusion_criteria", index, value);
 
   return (
     <div className="space-y-4">
       <FormProgress currentStep={3} />
 
+      {/* Header Buttons */}
       <div className="flex justify-end w-full gap-3">
-        <Button
-          variant="outline"
-          asChild
-        >
+        <Button variant="outline" asChild>
           <Link href="/admin/therapeutics">Cancel</Link>
         </Button>
         <Button
           className="text-white font-medium px-6 py-2"
-          style={{ backgroundColor: '#204B73' }}
+          style={{ backgroundColor: "#204B73" }}
         >
           Save Changes
         </Button>
@@ -78,174 +61,188 @@ export default function TherapeuticsStep5_3() {
 
       <Card>
         <CardContent className="space-y-6">
-          {/* Inclusion Criteria */}
-          <div className="space-y-2">
-            <Label>Inclusion Criteria</Label>
+          {/* Top section: Inclusion & Exclusion */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              {form.inclusion_criteria.map((criteria, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <Textarea
-                    rows={3}
-                    placeholder=""
-                    value={criteria}
-                    onChange={(e) =>
-                      updateInclusionCriteria(idx, e.target.value)
-                    }
-                  />
-                  {idx === 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addInclusionCriteria}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => removeInclusionCriteria(idx)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              <Label>Inclusion Criteria</Label>
+              <Textarea
+                rows={5}
+                placeholder="Enter inclusion criteria"
+                value={form.inclusion_criteria?.[0] || ""}
+                onChange={(e) =>
+                  updateField("step5_3", "inclusion_criteria", [e.target.value])
+                }
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Exclusion Criteria</Label>
+              <Textarea
+                rows={5}
+                placeholder="Enter exclusion criteria"
+                value={form.exclusion_criteria?.[0] || ""}
+                onChange={(e) =>
+                  updateField("step5_3", "exclusion_criteria", [e.target.value])
+                }
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
             </div>
           </div>
 
-          {/* Exclusion Criteria */}
-          <div className="space-y-2">
-            <Label>Exclusion Criteria</Label>
-            <div className="space-y-2">
-              {form.exclusion_criteria.map((criteria, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <Textarea
-                    rows={3}
-                    placeholder=""
-                    value={criteria}
-                    onChange={(e) =>
-                      updateExclusionCriteria(idx, e.target.value)
-                    }
-                  />
-                  {idx === 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addExclusionCriteria}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => removeExclusionCriteria(idx)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Bottom section: Form fields */}
 
-          {/* Age Range */}
-          <div className="grid gap-4 md:grid-cols-3">
+          {/* Row 1: Age From + Subject Type */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Age From</Label>
+              <div className="flex gap-2">
+                <SearchableSelect
+                  options={ageNumberOptions}
+                  value={form.age_min || ""}
+                  onValueChange={(value) =>
+                    updateField("step5_3", "age_min", value)
+                  }
+                  placeholder="0"
+                  searchPlaceholder="Search age..."
+                  emptyMessage="No age found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+                <SearchableSelect
+                  options={ageUnitOptions}
+                  value={form.biomarker_requirements[0] || ""}
+                  onValueChange={(value) => {
+                    const current = form.biomarker_requirements || [""];
+                    const updated = [...current];
+                    updated[0] = value;
+                    updateField("step5_3", "biomarker_requirements", updated);
+                  }}
+                  placeholder="Years"
+                  searchPlaceholder="Search unit..."
+                  emptyMessage="No unit found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Subject Type</Label>
               <Input
-                type="number"
-                placeholder="18"
-                value={form.age_min}
+                placeholder="Enter subject type..."
+                value={form.ecog_performance_status || ""}
                 onChange={(e) =>
-                  updateField("step5_3", "age_min", e.target.value)
+                  updateField("step5_3", "ecog_performance_status", e.target.value)
                 }
-                min="0"
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
+          </div>
+
+          {/* Row 2: Age To + Sex + Healthy Volunteers */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Age To</Label>
-              <Input
-                type="number"
-                placeholder="75"
-                value={form.age_max}
-                onChange={(e) =>
-                  updateField("step5_3", "age_max", e.target.value)
-                }
-                min="0"
-              />
+              <div className="flex gap-2">
+                <SearchableSelect
+                  options={ageNumberOptions}
+                  value={form.age_max || ""}
+                  onValueChange={(value) =>
+                    updateField("step5_3", "age_max", value)
+                  }
+                  placeholder="150"
+                  searchPlaceholder="Search age..."
+                  emptyMessage="No age found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+                <SearchableSelect
+                  options={ageUnitOptions}
+                  value={form.biomarker_requirements[1] || ""}
+                  onValueChange={(value) => {
+                    const current = form.biomarker_requirements || [""];
+                    const updated = [...current];
+                    updated[1] = value;
+                    updateField("step5_3", "biomarker_requirements", updated);
+                  }}
+                  placeholder="Years"
+                  searchPlaceholder="Search unit..."
+                  emptyMessage="No unit found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Gender</Label>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Sex</Label>
               <SearchableSelect
                 options={genderOptions}
-                value={form.gender}
+                value={form.gender || ""}
                 onValueChange={(v) => updateField("step5_3", "gender", v)}
-                placeholder="Select gender"
-                searchPlaceholder="Search gender..."
-                emptyMessage="No gender found."
+                placeholder="Select sex"
+                searchPlaceholder="Search sex..."
+                emptyMessage="No option found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
+              </div>
+              <div className="space-y-2">
+                <Label>Healthy Volunteers</Label>
+               <SearchableSelect
+                 options={healthyVolunteersOptions}
+                 value={form.prior_treatments[0] || ""}
+                 onValueChange={(v) =>
+                   updateField("step5_3", "prior_treatments", [v])
+                 }
+                 placeholder="Select"
+                 searchPlaceholder="Search..."
+                 emptyMessage="No option found."
+                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+               />
+              </div>
             </div>
           </div>
 
-          {/* Additional Criteria */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>ECOG Performance Status</Label>
-              <SearchableSelect
-                options={ecogPerformanceStatusOptions}
-                value={form.ecog_performance_status}
-                onValueChange={(v) =>
-                  updateField("step5_3", "ecog_performance_status", v)
-                }
-                placeholder="Select ECOG status"
-                searchPlaceholder="Search ECOG status..."
-                emptyMessage="No ECOG status found."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Prior Treatments</Label>
-              <Textarea
-                placeholder="e.g., Chemotherapy, Radiation"
-                value={form.prior_treatments[0] || ""}
-                onChange={(e) =>
-                  updateArrayItem(
-                    "step5_3",
-                    "prior_treatments",
-                    0,
-                    e.target.value
-                  )
-                }
-                rows={2}
-              />
-            </div>
+          {/* Row 3: Target Volunteers + Actual Enrolled + Next Button */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+             <div className="space-y-2">
+               <Label>Target No Of Volunteers</Label>
+               <Input
+                 type="number"
+                 placeholder="e.g., 50"
+                 value={form.biomarker_requirements[0] || ""}
+                 onChange={(e) => {
+                   const current = form.biomarker_requirements || [""];
+                   const updated = [...current];
+                   updated[0] = e.target.value;
+                   updateField("step5_3", "biomarker_requirements", updated);
+                 }}
+                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+               />
+             </div>
+             <div className="space-y-2">
+               <Label>Actual Enrolled Volunteers</Label>
+               <Input
+                 type="number"
+                 placeholder="e.g., 40"
+                 value={form.biomarker_requirements[1] || ""}
+                 onChange={(e) => {
+                   const current = form.biomarker_requirements || [""];
+                   const updated = [...current];
+                   updated[1] = e.target.value;
+                   updateField("step5_3", "biomarker_requirements", updated);
+                 }}
+                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+               />
+             </div>
           </div>
 
-          {/* Biomarker Requirements */}
-          <div className="space-y-2">
-            <Label>Biomarker Requirements</Label>
-            <Textarea
-              placeholder="e.g., HER2+, EGFR mutation"
-              value={form.biomarker_requirements[0] || ""}
-              onChange={(e) =>
-                updateArrayItem(
-                  "step5_3",
-                  "biomarker_requirements",
-                  0,
-                  e.target.value
-                )
-              }
-              rows={2}
-            />
+          {/* Next Button Row */}
+          <div className="flex justify-end">
+            <Button className="mt-6" asChild>
+              <Link href="/admin/therapeutics/new/5-4">Next</Link>
+            </Button>
           </div>
 
-          <div className="flex justify-between">
+          {/* Previous button below */}
+          <div className="flex justify-start">
             <Button variant="ghost" asChild>
               <Link href="/admin/therapeutics/new/5-2">Previous</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/admin/therapeutics/new/5-4">Next</Link>
             </Button>
           </div>
         </CardContent>
@@ -253,3 +250,4 @@ export default function TherapeuticsStep5_3() {
     </div>
   );
 }
+

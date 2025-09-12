@@ -17,7 +17,7 @@ import {
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowRight, Check, Loader2, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useContent } from "@/hooks/use-content";
 import { useDrugNames } from "@/hooks/use-drug-names";
@@ -38,6 +38,15 @@ interface DrugFormData {
     regulatory_designations: string;
     source_links: string;
     drug_record_status: string;
+    drug_development_status_rows: Array<{
+    disease_type: string;
+      therapeutic_class: string;
+      company: string;
+      company_type: string;
+      country: string;
+      development_status: string;
+      reference: string;
+    }>;
   };
   drugActivity: {
     mechanism_of_action: string;
@@ -45,6 +54,10 @@ interface DrugFormData {
     delivery_route: string;
     drug_technology: string;
     delivery_medium: string;
+    therapeutic_class_development_rows: Array<{
+      therapeutic_class: string;
+      development_status: string;
+    }>;
   };
   development: {
     disease_type: string;
@@ -65,9 +78,18 @@ interface DrugFormData {
     agreement: string;
     marketing_approvals: string;
     licensing_availability: string;
+    agreement_rows: string[];
+    licensing_availability_rows: string[];
+    marketing_approvals_rows: string[];
   };
   logs: {
     drug_changes_log: string;
+    drug_added_date: string;
+    last_modified_date: string;
+    last_modified_user: string;
+    full_review_user: string;
+    full_review: boolean;
+    next_review_date: string;
     notes: string;
   };
 }
@@ -87,7 +109,7 @@ export default function NewDrugPage() {
   const { addDrugName, getPrimaryNameOptions } = useDrugNames();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("Pipeline Data");
+  const [activeTab, setActiveTab] = useState("pipeline_data");
 
   // Options for searchable dropdowns
   const primaryNameOptions: SearchableSelectOption[] = [
@@ -98,21 +120,20 @@ export default function NewDrugPage() {
   ];
 
   const globalStatusOptions: SearchableSelectOption[] = [
-    { value: "approved", label: "Approved" },
-    { value: "pending", label: "Pending" },
+    { value: "clinical_phase_1", label: "Clinical Phase I" },
+    { value: "clinical_phase_2", label: "Clinical Phase II" },
+    { value: "clinical_phase_3", label: "Clinical Phase III" },
+    { value: "clinical_phase_4", label: "Clinical Phase IV" },
     { value: "discontinued", label: "Discontinued" },
-    { value: "phase_3", label: "Phase III" },
-    { value: "phase_2", label: "Phase II" },
-    { value: "phase_1", label: "Phase I" },
+    { value: "launched", label: "Launched" },
+    { value: "no_development_reported", label: "No Development Reported" },
+    { value: "preclinical", label: "Preclinical" },
   ];
 
   const developmentStatusOptions: SearchableSelectOption[] = [
-    { value: "market", label: "Market" },
-    { value: "phase_3", label: "Phase III" },
-    { value: "phase_2", label: "Phase II" },
-    { value: "phase_1", label: "Phase I" },
-    { value: "preclinical", label: "Preclinical" },
+    { value: "active_development", label: "Active development" },
     { value: "discontinued", label: "Discontinued" },
+    { value: "marketed", label: "Marketed" },
   ];
 
   const originatorOptions: SearchableSelectOption[] = [
@@ -153,10 +174,9 @@ export default function NewDrugPage() {
   ];
 
   const drugRecordStatusOptions: SearchableSelectOption[] = [
-    { value: "active", label: "Active" },
-    { value: "draft", label: "Draft" },
-    { value: "archived", label: "Archived" },
-    { value: "under_review", label: "Under Review" },
+    { value: "development_in_progress", label: "Development In Progress (DIP)" },
+    { value: "in_production", label: "In Production (IP)" },
+    { value: "update_in_progress", label: "Update In Progress (UIP)" },
   ];
 
   const drugTechnologyOptions: SearchableSelectOption[] = [
@@ -164,6 +184,141 @@ export default function NewDrugPage() {
     { value: "licensed", label: "Licensed" },
     { value: "partnership", label: "Partnership" },
     { value: "open_source", label: "Open Source" },
+  ];
+
+  // Options for Drug Activity Tab
+  const mechanismOfActionOptions: SearchableSelectOption[] = [
+    { value: "alkylating_agents", label: "Alkylating Agents" },
+    { value: "antimetabolites", label: "Antimetabolites" },
+    { value: "topoisomerase_inhibitors", label: "Topoisomerase Inhibitors" },
+    { value: "mitotic_inhibitors", label: "Mitotic Inhibitors" },
+    { value: "monoclonal_antibodies", label: "Monoclonal Antibodies (mAbs)" },
+    { value: "tyrosine_kinase_inhibitors", label: "Tyrosine Kinase Inhibitors (TKIs)" },
+    { value: "proteasome_inhibitors", label: "Proteasome Inhibitors" },
+    { value: "mtor_inhibitors", label: "mTOR Inhibitors" },
+    { value: "parp_inhibitors", label: "PARP Inhibitors" },
+    { value: "aromatase_inhibitors", label: "Aromatase Inhibitors" },
+  ];
+
+  const biologicalTargetOptions: SearchableSelectOption[] = [
+    { value: "egfr", label: "EGFR (Epidermal Growth Factor Receptor)" },
+    { value: "her2", label: "HER2 (Human Epidermal Growth Factor Receptor 2)" },
+    { value: "vegf", label: "VEGF (Vascular Endothelial Growth Factor)" },
+    { value: "met", label: "MET (Hepatocyte Growth Factor Receptor, c-MET)" },
+    { value: "alk", label: "ALK (Anaplastic Lymphoma Kinase)" },
+    { value: "pd1", label: "PD-1 (Programmed Death-1)" },
+    { value: "pdl1", label: "PD-L1 (Programmed Death-Ligand 1)" },
+    { value: "ctla4", label: "CTLA-4 (Cytotoxic T-Lymphocyte-Associated Protein 4)" },
+    { value: "cdk46", label: "CDK4/6 (Cyclin-Dependent Kinases 4/6)" },
+    { value: "aurora_kinases", label: "Aurora Kinases" },
+    { value: "parp", label: "PARP (Poly ADP-Ribose Polymerase)" },
+    { value: "hdacs", label: "Histone Deacetylases (HDACs)" },
+    { value: "dnmts", label: "DNA Methyltransferases (DNMTs)" },
+  ];
+
+  const deliveryRouteOptions: SearchableSelectOption[] = [
+    { value: "oral", label: "Oral" },
+    { value: "injectable", label: "Injectable" },
+    { value: "topical", label: "Topical" },
+    { value: "inhalation", label: "Inhalation" },
+    { value: "ophthalmic", label: "Ophthalmic" },
+    { value: "nasal", label: "Nasal" },
+    { value: "otic", label: "Otic" },
+    { value: "rectal", label: "Rectal" },
+    { value: "vaginal", label: "Vaginal" },
+  ];
+
+  const deliveryMediumOptions: SearchableSelectOption[] = [
+    { value: "tablet", label: "Tablet" },
+    { value: "capsule", label: "Capsule" },
+    { value: "injection", label: "Injection" },
+    { value: "infusion", label: "Infusion" },
+    { value: "cream", label: "Cream" },
+    { value: "ointment", label: "Ointment" },
+    { value: "gel", label: "Gel" },
+    { value: "patch", label: "Patch" },
+    { value: "inhaler", label: "Inhaler" },
+    { value: "spray", label: "Spray" },
+    { value: "drops", label: "Drops" },
+    { value: "suppository", label: "Suppository" },
+  ];
+
+  // Drug Development Status Options
+  const THERAPEUTIC_CLASS_OPTIONS: SearchableSelectOption[] = [
+    { value: "alkylating_agents", label: "Alkylating Agents" },
+    { value: "antimetabolites", label: "Antimetabolites" },
+    { value: "topoisomerase_inhibitors", label: "Topoisomerase Inhibitors" },
+    { value: "mitotic_inhibitors", label: "Mitotic Inhibitors" },
+    { value: "monoclonal_antibodies", label: "Monoclonal Antibodies (mAbs)" },
+    { value: "tyrosine_kinase_inhibitors", label: "Tyrosine Kinase Inhibitors (TKIs)" },
+    { value: "proteasome_inhibitors", label: "Proteasome Inhibitors" },
+    { value: "mtor_inhibitors", label: "mTOR Inhibitors" },
+    { value: "parp_inhibitors", label: "PARP Inhibitors" },
+    { value: "aromatase_inhibitors", label: "Aromatase Inhibitors" },
+  ];
+
+  const COMPANY_OPTIONS: SearchableSelectOption[] = [
+    { value: "pfizer", label: "Pfizer" },
+    { value: "novartis", label: "Novartis" },
+    { value: "roche", label: "Roche" },
+    { value: "merck", label: "Merck" },
+    { value: "johnson_johnson", label: "Johnson & Johnson" },
+    { value: "bristol_myers_squibb", label: "Bristol Myers Squibb" },
+    { value: "gilead", label: "Gilead Sciences" },
+    { value: "abbvie", label: "AbbVie" },
+    { value: "amgen", label: "Amgen" },
+    { value: "biogen", label: "Biogen" },
+  ];
+
+  const COMPANY_TYPE_OPTIONS: SearchableSelectOption[] = [
+    { value: "originator", label: "Originator" },
+    { value: "licensee", label: "Licensee" },
+  ];
+
+  const COUNTRY_OPTIONS: SearchableSelectOption[] = [
+    { value: "united_states", label: "United States" },
+    { value: "canada", label: "Canada" },
+    { value: "united_kingdom", label: "United Kingdom" },
+    { value: "germany", label: "Germany" },
+    { value: "france", label: "France" },
+    { value: "italy", label: "Italy" },
+    { value: "spain", label: "Spain" },
+    { value: "japan", label: "Japan" },
+    { value: "china", label: "China" },
+    { value: "india", label: "India" },
+    { value: "australia", label: "Australia" },
+    { value: "brazil", label: "Brazil" },
+    { value: "mexico", label: "Mexico" },
+    { value: "south_korea", label: "South Korea" },
+    { value: "switzerland", label: "Switzerland" },
+    { value: "netherlands", label: "Netherlands" },
+    { value: "belgium", label: "Belgium" },
+    { value: "sweden", label: "Sweden" },
+    { value: "norway", label: "Norway" },
+    { value: "denmark", label: "Denmark" },
+  ];
+
+  const DEVELOPMENT_STATUS_OPTIONS_DETAILED: SearchableSelectOption[] = [
+    { value: "launched", label: "Launched" },
+    { value: "no_development_reported", label: "No Development Reported" },
+    { value: "discontinued", label: "Discontinued" },
+    { value: "clinical_phase_1", label: "Clinical Phase I" },
+    { value: "clinical_phase_2", label: "Clinical Phase II" },
+    { value: "clinical_phase_3", label: "Clinical Phase III" },
+    { value: "clinical_phase_4", label: "Clinical Phase IV" },
+    { value: "preclinical", label: "Preclinical" },
+  ];
+
+  // Therapeutic Class Development Status Options
+  const THERAPEUTIC_CLASS_DEVELOPMENT_STATUS_OPTIONS: SearchableSelectOption[] = [
+    { value: "launched", label: "Launched" },
+    { value: "no_development_reported", label: "No Development Reported" },
+    { value: "discontinued", label: "Discontinued" },
+    { value: "clinical_phase_1", label: "Clinical Phase I" },
+    { value: "clinical_phase_2", label: "Clinical Phase II" },
+    { value: "clinical_phase_3", label: "Clinical Phase III" },
+    { value: "clinical_phase_4", label: "Clinical Phase IV" },
+    { value: "preclinical", label: "Preclinical" },
   ];
 
   const { content, updateContent, resetContent } = useContent<DrugFormData>({
@@ -182,6 +337,7 @@ export default function NewDrugPage() {
       regulatory_designations: "",
       source_links: "",
       drug_record_status: "",
+      drug_development_status_rows: [],
     },
     drugActivity: {
       mechanism_of_action: "",
@@ -189,6 +345,7 @@ export default function NewDrugPage() {
       delivery_route: "",
       drug_technology: "",
       delivery_medium: "",
+      therapeutic_class_development_rows: [],
     },
     development: {
       disease_type: "",
@@ -209,9 +366,18 @@ export default function NewDrugPage() {
       agreement: "",
       marketing_approvals: "",
       licensing_availability: "",
+      agreement_rows: [""],
+      licensing_availability_rows: [""],
+      marketing_approvals_rows: [""],
     },
     logs: {
       drug_changes_log: "Initial creation",
+      drug_added_date: "",
+      last_modified_date: "",
+      last_modified_user: "",
+      full_review_user: "",
+      full_review: false,
+      next_review_date: "",
       notes: "",
     },
   });
@@ -346,7 +512,7 @@ export default function NewDrugPage() {
                     }
                     placeholder=""
                     rows={2}
-                    className="border-gray-300"
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
                   <Plus 
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
@@ -359,7 +525,7 @@ export default function NewDrugPage() {
                         });
                       }
                     }}
-                  />
+                    />
                 </div>
               </div>
               <div className="space-y-2">
@@ -376,7 +542,7 @@ export default function NewDrugPage() {
                     }
                     placeholder=""
                     rows={2}
-                    className="border-gray-300"
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
                   <Plus 
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
@@ -391,7 +557,7 @@ export default function NewDrugPage() {
                     }}
                   />
                 </div>
-              </div>
+                      </div>
               <div className="space-y-2">
                 <Label htmlFor="other_name" className="text-sm font-medium text-gray-700">Other Name</Label>
                 <div className="relative">
@@ -406,7 +572,7 @@ export default function NewDrugPage() {
                     }
                     placeholder=""
                     rows={2}
-                    className="border-gray-300"
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
                   <Plus 
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
@@ -440,6 +606,7 @@ export default function NewDrugPage() {
                   placeholder="Select primary name"
                   searchPlaceholder="Search primary name..."
                   emptyMessage="No primary name found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
               <div className="space-y-2">
@@ -456,6 +623,7 @@ export default function NewDrugPage() {
                   placeholder="Select global status"
                   searchPlaceholder="Search global status..."
                   emptyMessage="No global status found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
               <div className="space-y-2">
@@ -472,6 +640,7 @@ export default function NewDrugPage() {
                   placeholder="Select development status"
                   searchPlaceholder="Search development status..."
                   emptyMessage="No development status found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
             </div>
@@ -491,7 +660,7 @@ export default function NewDrugPage() {
                   }
                   placeholder=""
                   rows={4}
-                  className="min-h-[120px] border-gray-300"
+                  className="min-h-[120px] border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
             </div>
@@ -500,7 +669,7 @@ export default function NewDrugPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="originator" className="text-sm font-medium text-gray-700">Originator</Label>
-                <SearchableSelect
+                      <SearchableSelect
                   options={originatorOptions}
                   value={content.overview.originator}
                   onValueChange={(value) =>
@@ -512,11 +681,12 @@ export default function NewDrugPage() {
                   placeholder="Select originator"
                   searchPlaceholder="Search originator..."
                   emptyMessage="No originator found."
-                />
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="other_active_companies" className="text-sm font-medium text-gray-700">Other Active Companies</Label>
-                <SearchableSelect
+                      <SearchableSelect
                   options={otherActiveCompaniesOptions}
                   value={content.overview.other_active_companies}
                   onValueChange={(value) =>
@@ -528,7 +698,8 @@ export default function NewDrugPage() {
                   placeholder="Select other active companies"
                   searchPlaceholder="Search other active companies..."
                   emptyMessage="No other active companies found."
-                />
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
               </div>
             </div>
 
@@ -536,7 +707,7 @@ export default function NewDrugPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="therapeutic_area" className="text-sm font-medium text-gray-700">Clinical Trials Area</Label>
-                <SearchableSelect
+                      <SearchableSelect
                   options={therapeuticAreaOptions}
                   value={content.overview.therapeutic_area}
                   onValueChange={(value) =>
@@ -545,14 +716,15 @@ export default function NewDrugPage() {
                       therapeutic_area: value,
                     })
                   }
-                  placeholder="Select therapeutic area"
-                  searchPlaceholder="Search therapeutic area..."
+                  placeholder="therapeutic area"
+                  searchPlaceholder="therapeutic area..."
                   emptyMessage="No therapeutic area found."
-                />
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="disease_type" className="text-sm font-medium text-gray-700">Disease Type</Label>
-                <SearchableSelect
+                      <SearchableSelect
                   options={diseaseTypeOptions}
                   value={content.overview.disease_type}
                   onValueChange={(value) =>
@@ -564,11 +736,12 @@ export default function NewDrugPage() {
                   placeholder="Select disease type"
                   searchPlaceholder="Search disease type..."
                   emptyMessage="No disease type found."
-                />
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="regulatory_designations" className="text-sm font-medium text-gray-700">Regulatory Designations</Label>
-                <SearchableSelect
+                      <SearchableSelect
                   options={regulatoryDesignationsOptions}
                   value={content.overview.regulatory_designations}
                   onValueChange={(value) =>
@@ -580,9 +753,289 @@ export default function NewDrugPage() {
                   placeholder="Select regulatory designations"
                   searchPlaceholder="Search regulatory designations..."
                   emptyMessage="No regulatory designations found."
-                />
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
               </div>
-            </div>
+
+            {/* Drug Development Status Section */}
+            <Card className="border border-gray-200 rounded-lg shadow-sm bg-white">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Drug Development Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* First Row: 6 Dropdown Fields */}
+                <div className="grid grid-cols-6 gap-4">
+              <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Disease Type</Label>
+                      <SearchableSelect
+                      options={diseaseTypeOptions}
+                      value={content.overview.drug_development_status_rows?.[0]?.disease_type || ""}
+                      onValueChange={(value) => {
+                        const updatedRows = [...(content.overview.drug_development_status_rows || [])];
+                        if (updatedRows.length === 0) {
+                          updatedRows.push({
+                            disease_type: "",
+                            therapeutic_class: "",
+                            company: "",
+                            company_type: "",
+                            country: "",
+                            development_status: "",
+                            reference: "",
+                          });
+                        }
+                        updatedRows[0].disease_type = value;
+                        updateContent("overview", {
+                          ...content.overview,
+                          drug_development_status_rows: updatedRows,
+                        });
+                      }}
+                      placeholder="disease type"
+                        emptyMessage="No disease type found."
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+              </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Therapeutic Class</Label>
+                    <SearchableSelect
+                      options={THERAPEUTIC_CLASS_OPTIONS}
+                      value={content.overview.drug_development_status_rows?.[0]?.therapeutic_class || ""}
+                      onValueChange={(value) => {
+                        const updatedRows = [...(content.overview.drug_development_status_rows || [])];
+                        if (updatedRows.length === 0) {
+                          updatedRows.push({
+                            disease_type: "",
+                            therapeutic_class: "",
+                            company: "",
+                            company_type: "",
+                            country: "",
+                            development_status: "",
+                            reference: "",
+                          });
+                        }
+                        updatedRows[0].therapeutic_class = value;
+                        updateContent("overview", {
+                          ...content.overview,
+                          drug_development_status_rows: updatedRows,
+                        });
+                      }}
+                      placeholder="therapeutic class"
+                      searchPlaceholder="therapeutic class..."
+                      emptyMessage="No therapeutic class found."
+                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                    />
+                  </div>
+              <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Company</Label>
+                      <SearchableSelect
+                      options={COMPANY_OPTIONS}
+                      value={content.overview.drug_development_status_rows?.[0]?.company || ""}
+                      onValueChange={(value) => {
+                        const updatedRows = [...(content.overview.drug_development_status_rows || [])];
+                        if (updatedRows.length === 0) {
+                          updatedRows.push({
+                            disease_type: "",
+                            therapeutic_class: "",
+                            company: "",
+                            company_type: "",
+                            country: "",
+                            development_status: "",
+                            reference: "",
+                          });
+                        }
+                        updatedRows[0].company = value;
+                        updateContent("overview", {
+                          ...content.overview,
+                          drug_development_status_rows: updatedRows,
+                        });
+                      }}
+                        placeholder="Select company"
+                        searchPlaceholder="Search company..."
+                        emptyMessage="No company found."
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+              </div>
+              <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Company Type</Label>
+                      <SearchableSelect
+                      options={COMPANY_TYPE_OPTIONS}
+                      value={content.overview.drug_development_status_rows?.[0]?.company_type || ""}
+                      onValueChange={(value) => {
+                        const updatedRows = [...(content.overview.drug_development_status_rows || [])];
+                        if (updatedRows.length === 0) {
+                          updatedRows.push({
+                            disease_type: "",
+                            therapeutic_class: "",
+                            company: "",
+                            company_type: "",
+                            country: "",
+                            development_status: "",
+                            reference: "",
+                          });
+                        }
+                        updatedRows[0].company_type = value;
+                        updateContent("overview", {
+                          ...content.overview,
+                          drug_development_status_rows: updatedRows,
+                        });
+                      }}
+                      placeholder="company type"
+                      searchPlaceholder="company type..."
+                        emptyMessage="No company type found."
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+              </div>
+              <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Country</Label>
+                      <SearchableSelect
+                      options={COUNTRY_OPTIONS}
+                      value={content.overview.drug_development_status_rows?.[0]?.country || ""}
+                      onValueChange={(value) => {
+                        const updatedRows = [...(content.overview.drug_development_status_rows || [])];
+                        if (updatedRows.length === 0) {
+                          updatedRows.push({
+                            disease_type: "",
+                            therapeutic_class: "",
+                            company: "",
+                            company_type: "",
+                            country: "",
+                            development_status: "",
+                            reference: "",
+                          });
+                        }
+                        updatedRows[0].country = value;
+                        updateContent("overview", {
+                          ...content.overview,
+                          drug_development_status_rows: updatedRows,
+                        });
+                      }}
+                        placeholder="Select country"
+                        searchPlaceholder="Search country..."
+                        emptyMessage="No country found."
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+              </div>
+              <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <SearchableSelect
+                      options={DEVELOPMENT_STATUS_OPTIONS_DETAILED}
+                      value={content.overview.drug_development_status_rows?.[0]?.development_status || ""}
+                      onValueChange={(value) => {
+                        const updatedRows = [...(content.overview.drug_development_status_rows || [])];
+                        if (updatedRows.length === 0) {
+                          updatedRows.push({
+                            disease_type: "",
+                            therapeutic_class: "",
+                            company: "",
+                            company_type: "",
+                            country: "",
+                            development_status: "",
+                            reference: "",
+                          });
+                        }
+                        updatedRows[0].development_status = value;
+                        updateContent("overview", {
+                          ...content.overview,
+                          drug_development_status_rows: updatedRows,
+                        });
+                      }}
+                        placeholder="Select status"
+                        searchPlaceholder="Search status..."
+                        emptyMessage="No status found."
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                </div>
+
+                {/* Reference Section with Add Attachments and Add Links inside */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Reference</Label>
+                  <div className="relative">
+                    <Textarea
+                      value={content.overview.drug_development_status_rows?.[0]?.reference || ""}
+                      onChange={(e) => {
+                        const updatedRows = [...(content.overview.drug_development_status_rows || [])];
+                        if (updatedRows.length === 0) {
+                          updatedRows.push({
+                            disease_type: "",
+                            therapeutic_class: "",
+                            company: "",
+                            company_type: "",
+                            country: "",
+                            development_status: "",
+                            reference: "",
+                          });
+                        }
+                        updatedRows[0].reference = e.target.value;
+                        updateContent("overview", {
+                          ...content.overview,
+                          drug_development_status_rows: updatedRows,
+                        });
+                      }}
+                      placeholder="Enter reference information"
+                      rows={3}
+                      className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-20"
+                    />
+                    {/* Add Attachments and Add Links positioned inside the textarea */}
+                    <div className="absolute bottom-2 left-2 flex gap-2">
+                      <div className="relative">
+                        <Input
+                          placeholder="Add attachments"
+                          className="w-32 h-8 text-xs border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-8"
+                        />
+                      <Button
+                        type="button"
+                        size="icon"
+                          className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-gray-600 hover:bg-gray-700"
+                      >
+                          <Plus className="h-3 w-3 text-white" />
+                      </Button>
+              </div>
+                      <div className="relative">
+                  <Input
+                          placeholder="Add links"
+                          className="w-32 h-8 text-xs border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-8"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                          className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-gray-600 hover:bg-gray-700"
+                    >
+                          <Plus className="h-3 w-3 text-white" />
+                    </Button>
+                </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add Row Button */}
+                <div className="flex justify-end">
+                <Button
+                  type="button"
+                    onClick={() => {
+                      const newRow = {
+                        disease_type: "",
+                        therapeutic_class: "",
+                        company: "",
+                        company_type: "",
+                        country: "",
+                        development_status: "",
+                        reference: "",
+                      };
+                      updateContent("overview", {
+                        ...content.overview,
+                        drug_development_status_rows: [...(content.overview.drug_development_status_rows || []), newRow],
+                      });
+                    }}
+                    className="text-white"
+                  style={{ backgroundColor: '#204B73' }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                    Add Row
+                </Button>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Bottom Row: Source Links, Drug Record Status */}
             <div className="grid grid-cols-2 gap-4">
@@ -600,14 +1053,14 @@ export default function NewDrugPage() {
                     }
                     placeholder=""
                     rows={2}
-                    className="border-gray-300"
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
                   <Plus className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="drug_record_status" className="text-sm font-medium text-gray-700">Drug Record Status</Label>
-                <SearchableSelect
+              <SearchableSelect
                   options={drugRecordStatusOptions}
                   value={content.overview.drug_record_status}
                   onValueChange={(value) =>
@@ -616,10 +1069,11 @@ export default function NewDrugPage() {
                       drug_record_status: value,
                     })
                   }
-                  placeholder="Select drug record status"
-                  searchPlaceholder="Search drug record status..."
-                  emptyMessage="No drug record status found."
-                />
+                placeholder="Select drug record status"
+                searchPlaceholder="Search drug record status..."
+                emptyMessage="No drug record status found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
               </div>
             </div>
           </div>
@@ -642,48 +1096,49 @@ export default function NewDrugPage() {
                 Save Changes
               </Button>
             </div>
+
             {/* First Row: Mechanism of Action, Biological Target */}
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="mechanism_of_action" className="text-sm font-medium text-gray-700">Mechanism of action</Label>
-                <Textarea
-                  id="mechanism_of_action"
+                <Label className="text-sm font-medium text-gray-700">Mechanism of action</Label>
+                <SearchableSelect
+                  options={mechanismOfActionOptions}
                   value={content.drugActivity.mechanism_of_action}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     updateContent("drugActivity", {
                       ...content.drugActivity,
-                      mechanism_of_action: e.target.value,
+                      mechanism_of_action: value,
                     })
                   }
-                  placeholder=""
-                  rows={4}
-                  className="min-h-[120px] border-gray-300"
+                  placeholder="Select mechanism of action"
+                  searchPlaceholder="Search mechanism of action..."
+                  emptyMessage="No mechanism of action found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="biological_target" className="text-sm font-medium text-gray-700">Biological target</Label>
-                <Textarea
-                  id="biological_target"
+                <Label className="text-sm font-medium text-gray-700">Biological target</Label>
+                <SearchableSelect
+                  options={biologicalTargetOptions}
                   value={content.drugActivity.biological_target}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     updateContent("drugActivity", {
                       ...content.drugActivity,
-                      biological_target: e.target.value,
+                      biological_target: value,
                     })
                   }
-                  placeholder=""
-                  rows={4}
-                  className="min-h-[120px] border-gray-300"
+                  placeholder="Select biological target"
+                  searchPlaceholder="Search biological target..."
+                  emptyMessage="No biological target found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
             </div>
 
             {/* Full Width: Drug Technology */}
             <div className="space-y-2">
-              <Label htmlFor="drug_technology" className="text-sm font-medium text-gray-700">Drug Technology</Label>
+              <Label className="text-sm font-medium text-gray-700">Drug Technology</Label>
               <Textarea
-                id="drug_technology"
                 value={content.drugActivity.drug_technology}
                 onChange={(e) =>
                   updateContent("drugActivity", {
@@ -691,67 +1146,71 @@ export default function NewDrugPage() {
                     drug_technology: e.target.value,
                   })
                 }
-                placeholder=""
-                rows={6}
-                className="min-h-[150px] border-gray-300"
+                placeholder="Enter unique technology used in the drug"
+                rows={4}
+                className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
 
             {/* Second Row: Delivery Route, Delivery Medium */}
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="delivery_route" className="text-sm font-medium text-gray-700">Delivery Route</Label>
-                <Textarea
-                  id="delivery_route"
+                <Label className="text-sm font-medium text-gray-700">Delivery Route</Label>
+                <SearchableSelect
+                  options={deliveryRouteOptions}
                   value={content.drugActivity.delivery_route}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     updateContent("drugActivity", {
                       ...content.drugActivity,
-                      delivery_route: e.target.value,
+                      delivery_route: value,
                     })
                   }
-                  placeholder=""
-                  rows={4}
-                  className="min-h-[120px] border-gray-300"
+                  placeholder="Select delivery route"
+                  searchPlaceholder="Search delivery route..."
+                  emptyMessage="No delivery route found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="delivery_medium" className="text-sm font-medium text-gray-700">Delivery Medium</Label>
-                <Textarea
-                  id="delivery_medium"
+                <Label className="text-sm font-medium text-gray-700">Delivery Medium</Label>
+                <SearchableSelect
+                  options={deliveryMediumOptions}
                   value={content.drugActivity.delivery_medium}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     updateContent("drugActivity", {
                       ...content.drugActivity,
-                      delivery_medium: e.target.value,
+                      delivery_medium: value,
                     })
                   }
-                  placeholder=""
-                  rows={4}
-                  className="min-h-[120px] border-gray-300"
+                  placeholder="Select delivery medium"
+                  searchPlaceholder="Search delivery medium..."
+                  emptyMessage="No delivery medium found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
             </div>
-          </div>
+
+            {/* Therapeutic Class and its Development Section */}
+            
+                    </div>
         );
 
       case 3: // Development Tab
         return (
           <div className="space-y-6 p-6 border border-gray-200 rounded-lg bg-white">
             <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
+                      <Button
+                        variant="outline"
                 onClick={() => router.push("/admin/drugs")}
-              >
+                      >
                 Cancel
-              </Button>
-              <Button
+                      </Button>
+                <Button
                 className="text-white font-medium px-6 py-2"
-                style={{ backgroundColor: '#204B73' }}
-              >
+                  style={{ backgroundColor: '#204B73' }}
+                >
                 Save Changes
-              </Button>
+                </Button>
             </div>
             <h3 className="font-semibold text-lg text-gray-800 mb-4">Development</h3>
 
@@ -765,16 +1224,16 @@ export default function NewDrugPage() {
                   <Plus className="h-5 w-5 text-gray-400 cursor-pointer" />
                 </button>
               </div>
-              <Textarea
+                  <Textarea
                 value={content.development.reference || ''}
                 onChange={(e) => updateContent("development", {
-                  ...content.development,
+                        ...content.development,
                   reference: e.target.value,
                 })}
                 rows={2}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+                      className="w-full border border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-800"
+                  />
+                </div>
 
             {/* Clinical Section */}
             <div className="space-y-4">
@@ -788,16 +1247,16 @@ export default function NewDrugPage() {
                 <div className="grid grid-cols-5 bg-gray-50 border-b border-gray-300">
                   <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
                     Trial ID
-                  </div>
+                        </div>
                   <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
                     Title
-                  </div>
+                      </div>
                   <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
                     Primary Drugs
                   </div>
                   <div className="p-3 text-sm font-medium text-gray-700 border-r border-gray-300">
                     Status
-                  </div>
+                </div>
                   <div className="p-3 text-sm font-medium text-gray-700">Sponsor</div>
                 </div>
 
@@ -811,9 +1270,9 @@ export default function NewDrugPage() {
                         disease_type: e.target.value,
                       })}
                       rows={2}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
+                      className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+                      />
+                    </div>
                   <div className="p-3 border-r border-gray-300">
                     <Textarea
                       value={content.development.therapeutic_class || ''}
@@ -822,9 +1281,9 @@ export default function NewDrugPage() {
                         therapeutic_class: e.target.value,
                       })}
                       rows={2}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
+                      className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+                      />
+                    </div>
                   <div className="p-3 border-r border-gray-300">
                     <Textarea
                       value={content.development.company || ''}
@@ -833,9 +1292,9 @@ export default function NewDrugPage() {
                         company: e.target.value,
                       })}
                       rows={2}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
+                      className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+                      />
+                    </div>
                   <div className="p-3 border-r border-gray-300">
                     <Textarea
                       value={content.development.company_type || ''}
@@ -844,9 +1303,9 @@ export default function NewDrugPage() {
                         company_type: e.target.value,
                       })}
                       rows={2}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
+                      className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+                      />
+                    </div>
                   <div className="p-3">
                     <Textarea
                       value={content.development.status || ''}
@@ -855,11 +1314,11 @@ export default function NewDrugPage() {
                         status: e.target.value,
                       })}
                       rows={2}
-                      className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
+                      className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-gray-800"
+                      />
+                    </div>
+                    </div>
                   </div>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -882,59 +1341,135 @@ export default function NewDrugPage() {
                 Save Changes
               </Button>
             </div>
-            {/* Pipeline Data */}
-            <div className="space-y-2">
-              <Label htmlFor="pipeline_data" className="text-sm font-medium text-gray-700">Pipeline Data</Label>
-              <Textarea
-                id="pipeline_data"
-                value={content.otherSources.pipelineData}
-                onChange={(e) =>
-                  updateContent("otherSources", {
-                    ...content.otherSources,
-                    pipelineData: e.target.value,
-                  })
-                }
-                placeholder="Enter pipeline data information..."
-                rows={4}
-                className="min-h-[120px] border-gray-300"
-              />
-            </div>
 
-            {/* Press Releases */}
-            <div className="space-y-2">
-              <Label htmlFor="press_releases" className="text-sm font-medium text-gray-700">Press Releases</Label>
-              <Textarea
-                id="press_releases"
-                value={content.otherSources.pressReleases}
-                onChange={(e) =>
-                  updateContent("otherSources", {
-                    ...content.otherSources,
-                    pressReleases: e.target.value,
-                  })
-                }
-                placeholder="Enter press release information..."
-                rows={4}
-                className="min-h-[120px] border-gray-300"
-              />
-            </div>
+            {/* Other Sources Card with Tabs */}
+            <Card className="border rounded-lg shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">Other sources</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {/* Tab Navigation */}
+                <div className="flex">
+                  <button
+                    onClick={() => setActiveTab("pipeline_data")}
+                    className={`px-6 py-3 text-sm font-medium transition-all ${
+                      activeTab === "pipeline_data"
+                        ? "text-white"
+                        : "text-gray-600 bg-gray-200 hover:bg-gray-300"
+                    }`}
+                    style={activeTab === "pipeline_data" ? { backgroundColor: '#204B73' } : {}}
+                  >
+                    Pipeline Data
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("press_releases")}
+                    className={`px-6 py-3 text-sm font-medium transition-all ${
+                      activeTab === "press_releases"
+                        ? "text-white"
+                        : "text-gray-600 bg-gray-200 hover:bg-gray-300"
+                    }`}
+                    style={activeTab === "press_releases" ? { backgroundColor: '#204B73' } : {}}
+                  >
+                    Press Releases
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("publications")}
+                    className={`px-6 py-3 text-sm font-medium transition-all ${
+                      activeTab === "publications"
+                        ? "text-white"
+                        : "text-gray-600 bg-gray-200 hover:bg-gray-300"
+                    }`}
+                    style={activeTab === "publications" ? { backgroundColor: '#204B73' } : {}}
+                  >
+                    Publications
+                  </button>
+                </div>
 
-            {/* Publications */}
-            <div className="space-y-2">
-              <Label htmlFor="publications" className="text-sm font-medium text-gray-700">Publications</Label>
-              <Textarea
-                id="publications"
-                value={content.otherSources.publications}
-                onChange={(e) =>
-                  updateContent("otherSources", {
-                    ...content.otherSources,
-                    publications: e.target.value,
-                  })
-                }
-                placeholder="Enter publication information..."
-                rows={4}
-                className="min-h-[120px] border-gray-300"
-              />
-            </div>
+                {/* Tab Content */}
+                <div className="p-6">
+                  {activeTab === "pipeline_data" && (
+                <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Pipeline Data</Label>
+                      <div className="relative">
+                  <Textarea
+                          value={content.otherSources.pipelineData}
+                    onChange={(e) =>
+                            updateContent("otherSources", {
+                              ...content.otherSources,
+                              pipelineData: e.target.value,
+                            })
+                          }
+                          placeholder="Enter pipeline data information..."
+                          rows={6}
+                          className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
+                        >
+                          <Plus className="h-4 w-4 text-white" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === "press_releases" && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Press Release</Label>
+                      <div className="relative">
+                        <Textarea
+                          value={content.otherSources.pressReleases}
+                          onChange={(e) =>
+                            updateContent("otherSources", {
+                              ...content.otherSources,
+                              pressReleases: e.target.value,
+                            })
+                          }
+                          placeholder="Enter press release information..."
+                          rows={6}
+                          className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                        />
+                    <Button
+                      type="button"
+                          size="icon"
+                          className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
+                        >
+                          <Plus className="h-4 w-4 text-white" />
+                    </Button>
+                  </div>
+                </div>
+                  )}
+
+                  {activeTab === "publications" && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Publications</Label>
+                      <div className="relative">
+                        <Textarea
+                          value={content.otherSources.publications}
+                          onChange={(e) =>
+                            updateContent("otherSources", {
+                              ...content.otherSources,
+                              publications: e.target.value,
+                            })
+                          }
+                          placeholder="Enter publication information..."
+                          rows={6}
+                          className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                        />
+                      <Button
+                        type="button"
+                        size="icon"
+                          className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
+                      >
+                          <Plus className="h-4 w-4 text-white" />
+                      </Button>
+                    </div>
+                  </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         );
 
@@ -956,56 +1491,170 @@ export default function NewDrugPage() {
                 Save Changes
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="agreement">Agreement Type</Label>
-                <SearchableSelect
-                  options={drugTechnologyOptions}
-                  value={content.licensingMarketing.agreement}
-                  onValueChange={(value) =>
-                    updateContent("licensingMarketing", {
-                      ...content.licensingMarketing,
-                      agreement: value,
-                    })
-                  }
-                  placeholder="Select drug technology"
-                  searchPlaceholder="Search drug technology..."
-                  emptyMessage="No drug technology found."
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="licensing_availability">Licensing Availability</Label>
-                <Textarea
-                  id="licensing_availability"
-                  value={content.licensingMarketing.licensing_availability}
-                  onChange={(e) =>
-                    updateContent("licensingMarketing", {
-                      ...content.licensingMarketing,
-                      licensing_availability: e.target.value,
-                    })
-                  }
-                  placeholder=""
-                  rows={2}
-                />
-              </div>
+            {/* Agreement */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Agreement</Label>
+              {content.licensingMarketing.agreement_rows?.map((row, index) => (
+                <div key={index} className="relative">
+                  <Textarea
+                    value={row}
+                    onChange={(e) => {
+                      const updatedRows = [...(content.licensingMarketing.agreement_rows || [])];
+                      updatedRows[index] = e.target.value;
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        agreement_rows: updatedRows,
+                      });
+                    }}
+                    placeholder="Enter agreement information"
+                    rows={4}
+                    className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
+                    onClick={() => {
+                      const updatedRows = [...(content.licensingMarketing.agreement_rows || [])];
+                      updatedRows.splice(index + 1, 0, "");
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        agreement_rows: updatedRows,
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 text-white" />
+                  </Button>
+                  {content.licensingMarketing.agreement_rows && content.licensingMarketing.agreement_rows.length > 1 && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="absolute bottom-2 right-12 h-8 w-8 rounded-full bg-red-600 hover:bg-red-700"
+                      onClick={() => {
+                        const updatedRows = [...(content.licensingMarketing.agreement_rows || [])];
+                        updatedRows.splice(index, 1);
+                        updateContent("licensingMarketing", {
+                          ...content.licensingMarketing,
+                          agreement_rows: updatedRows,
+                        });
+                      }}
+                    >
+                      <X className="h-4 w-4 text-white" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
 
+            {/* Licensing Availability */}
             <div className="space-y-2">
-              <Label htmlFor="marketing_approvals">Marketing Approvals</Label>
-              <Textarea
-                id="marketing_approvals"
-                value={content.licensingMarketing.marketing_approvals}
-                onChange={(e) =>
-                  updateContent("licensingMarketing", {
-                    ...content.licensingMarketing,
-                    marketing_approvals: e.target.value,
-                  })
-                }
-                placeholder=""
-                rows={4}
-                className="min-h-[120px]"
-              />
+              <Label className="text-sm font-medium text-gray-700">Licensing Availability</Label>
+              {content.licensingMarketing.licensing_availability_rows?.map((row, index) => (
+                <div key={index} className="relative">
+                  <Textarea
+                    value={row}
+                    onChange={(e) => {
+                      const updatedRows = [...(content.licensingMarketing.licensing_availability_rows || [])];
+                      updatedRows[index] = e.target.value;
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        licensing_availability_rows: updatedRows,
+                      });
+                    }}
+                    placeholder="Enter licensing availability information"
+                    rows={4}
+                    className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
+                    onClick={() => {
+                      const updatedRows = [...(content.licensingMarketing.licensing_availability_rows || [])];
+                      updatedRows.splice(index + 1, 0, "");
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        licensing_availability_rows: updatedRows,
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 text-white" />
+                  </Button>
+                  {content.licensingMarketing.licensing_availability_rows && content.licensingMarketing.licensing_availability_rows.length > 1 && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="absolute bottom-2 right-12 h-8 w-8 rounded-full bg-red-600 hover:bg-red-700"
+                      onClick={() => {
+                        const updatedRows = [...(content.licensingMarketing.licensing_availability_rows || [])];
+                        updatedRows.splice(index, 1);
+                        updateContent("licensingMarketing", {
+                          ...content.licensingMarketing,
+                          licensing_availability_rows: updatedRows,
+                        });
+                      }}
+                    >
+                      <X className="h-4 w-4 text-white" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Marketing Approvals */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Marketing Approvals</Label>
+              {content.licensingMarketing.marketing_approvals_rows?.map((row, index) => (
+                <div key={index} className="relative">
+                  <Textarea
+                    value={row}
+                    onChange={(e) => {
+                      const updatedRows = [...(content.licensingMarketing.marketing_approvals_rows || [])];
+                      updatedRows[index] = e.target.value;
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        marketing_approvals_rows: updatedRows,
+                      });
+                    }}
+                    placeholder="Enter marketing approvals information"
+                    rows={4}
+                    className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
+                    onClick={() => {
+                      const updatedRows = [...(content.licensingMarketing.marketing_approvals_rows || [])];
+                      updatedRows.splice(index + 1, 0, "");
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        marketing_approvals_rows: updatedRows,
+                      });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 text-white" />
+                  </Button>
+                  {content.licensingMarketing.marketing_approvals_rows && content.licensingMarketing.marketing_approvals_rows.length > 1 && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="absolute bottom-2 right-12 h-8 w-8 rounded-full bg-red-600 hover:bg-red-700"
+                      onClick={() => {
+                        const updatedRows = [...(content.licensingMarketing.marketing_approvals_rows || [])];
+                        updatedRows.splice(index, 1);
+                        updateContent("licensingMarketing", {
+                          ...content.licensingMarketing,
+                          marketing_approvals_rows: updatedRows,
+                        });
+                      }}
+                    >
+                      <X className="h-4 w-4 text-white" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         );
@@ -1027,37 +1676,131 @@ export default function NewDrugPage() {
                 Save Changes
               </Button>
             </div>
+
+            {/* Drug Changes Log */}
             <div className="space-y-2">
-              <Label htmlFor="drug_changes_log">Drug Changes Log</Label>
-              <Textarea
-                id="drug_changes_log"
-                value={content.logs.drug_changes_log}
+              <Label className="text-sm font-medium text-gray-700">Drug Changes Log</Label>
+              <Input
+                value={content.logs?.drug_changes_log || ""}
                 onChange={(e) =>
                   updateContent("logs", {
                     ...content.logs,
                     drug_changes_log: e.target.value,
                   })
                 }
-                placeholder=""
-                rows={4}
-                className="min-h-[120px]"
+                placeholder="Enter drug changes log"
+                className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
 
+            {/* First Row: Created Date, Last Modified Date, Last Modified User */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Created Date</Label>
+                <Input
+                  type="date"
+                  value={content.logs?.drug_added_date || ""}
+                  onChange={(e) =>
+                    updateContent("logs", {
+                      ...content.logs,
+                      drug_added_date: e.target.value,
+                    })
+                  }
+                  className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Last Modified Date</Label>
+                <Input
+                  type="date"
+                  value={content.logs?.last_modified_date || ""}
+                  onChange={(e) =>
+                    updateContent("logs", {
+                      ...content.logs,
+                      last_modified_date: e.target.value,
+                    })
+                  }
+                  className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Last Modified User</Label>
+                <Input
+                  value={content.logs?.last_modified_user || ""}
+                  onChange={(e) =>
+                    updateContent("logs", {
+                      ...content.logs,
+                      last_modified_user: e.target.value,
+                    })
+                  }
+                  placeholder="Enter user ID"
+                  className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+            </div>
+
+            {/* Second Row: Full Review User, Full Review, Next Review Date */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Full Review User</Label>
+                <Input
+                  value={content.logs?.full_review_user || ""}
+                  onChange={(e) =>
+                    updateContent("logs", {
+                      ...content.logs,
+                      full_review_user: e.target.value,
+                    })
+                  }
+                  placeholder="Enter user ID"
+                  className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Full Review</Label>
+                <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="full_review"
+                    checked={content.logs?.full_review || false}
+                  onCheckedChange={(checked) =>
+                    updateContent("logs", {
+                      ...content.logs,
+                      full_review: checked as boolean,
+                    })
+                  }
+                />
+                <Label htmlFor="full_review" className="text-sm font-medium text-gray-700">Full Review</Label>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Next Review Date</Label>
+                <Input
+                  type="date"
+                  value={content.logs?.next_review_date || ""}
+                  onChange={(e) =>
+                    updateContent("logs", {
+                      ...content.logs,
+                      next_review_date: e.target.value,
+                    })
+                  }
+                  className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+            </div>
+
+            {/* Notes */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label className="text-sm font-medium text-gray-700">Notes</Label>
               <Textarea
-                id="notes"
-                value={content.logs.notes}
+                value={content.logs?.notes || ""}
                 onChange={(e) =>
                   updateContent("logs", {
                     ...content.logs,
                     notes: e.target.value,
                   })
                 }
-                placeholder=""
+                placeholder="Enter running documentation"
                 rows={4}
-                className="min-h-[120px]"
+                className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
           </div>

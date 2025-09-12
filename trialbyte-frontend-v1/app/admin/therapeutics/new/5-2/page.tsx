@@ -70,6 +70,7 @@ export default function TherapeuticsStep5_2() {
                   }
                   placeholder="Describe the primary purpose of this clinical trial..."
                   rows={3}
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
 
@@ -83,6 +84,7 @@ export default function TherapeuticsStep5_2() {
                   }
                   placeholder="Provide a brief summary of the trial..."
                   rows={4}
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
 
@@ -97,6 +99,7 @@ export default function TherapeuticsStep5_2() {
                         onChange={(e) => updatePrimaryOutcome(idx, e.target.value)}
                         placeholder="e.g., Overall Survival, Progression-Free Survival"
                         rows={2}
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                       />
                       {idx === 0 ? (
                         <Button
@@ -131,6 +134,7 @@ export default function TherapeuticsStep5_2() {
                         onChange={(e) => updateOtherOutcome(idx, e.target.value)}
                         placeholder="e.g., Quality of Life, Safety Measures"
                         rows={2}
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                       />
                       {idx === 0 ? (
                         <Button
@@ -154,30 +158,33 @@ export default function TherapeuticsStep5_2() {
                 </div>
               </div>
 
-              {/* Study Design Keywords */}
-              <div className="space-y-2">
-                <Label>Study Design Keywords</Label>
-                <Textarea
-                  value={form.study_design_keywords}
-                  onChange={(e) =>
-                    updateField("step5_2", "study_design_keywords", e.target.value)
-                  }
-                  placeholder="e.g., Randomized, Double-blind, Placebo-controlled"
-                  rows={2}
-                />
-              </div>
+              {/* Study Design Keywords and Study Design - Side by Side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Study Design Keywords</Label>
+                  <Textarea
+                    value={form.study_design_keywords}
+                    onChange={(e) =>
+                      updateField("step5_2", "study_design_keywords", e.target.value)
+                    }
+                    placeholder="e.g., Randomized, Double-blind, Placebo-controlled"
+                    rows={8}
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                  />
+                </div>
 
-              {/* Study Design */}
-              <div className="space-y-2">
-                <Label>Study Design</Label>
-                <Textarea
-                  value={form.study_design}
-                  onChange={(e) =>
-                    updateField("step5_2", "study_design", e.target.value)
-                  }
-                  placeholder="Describe the study design in detail..."
-                  rows={3}
-                />
+                <div className="space-y-2">
+                  <Label>Study Design</Label>
+                  <Textarea
+                    value={form.study_design}
+                    onChange={(e) =>
+                      updateField("step5_2", "study_design", e.target.value)
+                    }
+                    placeholder="Describe the study design in detail..."
+                    rows={8}
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                  />
+                </div>
               </div>
 
               {/* Treatment Regimen */}
@@ -190,6 +197,7 @@ export default function TherapeuticsStep5_2() {
                   }
                   placeholder="Describe the treatment regimen..."
                   rows={3}
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
 
@@ -203,6 +211,7 @@ export default function TherapeuticsStep5_2() {
                   }
                   placeholder="e.g., 2"
                   rows={2}
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
 

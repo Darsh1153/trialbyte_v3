@@ -172,9 +172,6 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
         <DialogHeader className="px-6 py-4 border-b bg-blue-50">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">Advanced Therapeutic Search</DialogTitle>
-            <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-6 w-6 p-0">
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 

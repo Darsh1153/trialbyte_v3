@@ -17,13 +17,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { drugsApi } from "../../lib/api";
 import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock } from "lucide-react";
@@ -133,8 +126,6 @@ export default function DrugsDashboardPage() {
   const [drugs, setDrugs] = useState<DrugData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDrug, setSelectedDrug] = useState<DrugData | null>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [deletingDrugs, setDeletingDrugs] = useState<Record<string, boolean>>(
     {}
   );
@@ -629,89 +620,13 @@ export default function DrugsDashboardPage() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       {/* View Details */}
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedDrug(drug);
-                              setIsViewDialogOpen(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>
-                              Drug Details - {drug.overview.drug_name}
-                            </DialogTitle>
-                          </DialogHeader>
-                          {selectedDrug && (
-                            <div className="space-y-4">
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle>Basic Information</CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                                  <div>
-                                    <Label className="font-semibold">
-                                      Name:
-                                    </Label>
-                                    <p>
-                                      {selectedDrug.overview.drug_name || ""}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <Label className="font-semibold">
-                                      Generic Name:
-                                    </Label>
-                                    <p>
-                                      {selectedDrug.overview.generic_name || ""}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <Label className="font-semibold">
-                                      Therapeutic Area:
-                                    </Label>
-                                    <p>
-                                      {selectedDrug.overview.therapeutic_area ||
-                                        ""}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <Label className="font-semibold">
-                                      Disease Type:
-                                    </Label>
-                                    <p>
-                                      {selectedDrug.overview.disease_type || ""}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <Label className="font-semibold">
-                                      Status:
-                                    </Label>
-                                    <p>
-                                      {selectedDrug.overview.is_approved
-                                        ? "Approved"
-                                        : "Pending"}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <Label className="font-semibold">
-                                      Originator:
-                                    </Label>
-                                    <p>
-                                      {selectedDrug.overview.originator || ""}
-                                    </p>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => router.push(`/admin/drugs/${drug.drug_over_id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
 
 
                       {/* Delete Drug */}
@@ -762,7 +677,7 @@ export default function DrugsDashboardPage() {
       <SaveQueryModal
         open={saveQueryModalOpen}
         onOpenChange={setSaveQueryModalOpen}
-        currentFilters={appliedFilters}
+        currentFilters={appliedFilters as any}
         currentSearchCriteria={advancedSearchCriteria}
         searchTerm={searchTerm}
       />

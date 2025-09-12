@@ -2,167 +2,103 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2 } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 
 export default function TherapeuticsStep5_6() {
-  const {
-    formData,
-    updateField,
-    addArrayItem,
-    removeArrayItem,
-    updateArrayItem,
-  } = useTherapeuticForm();
+  const { formData, updateField } = useTherapeuticForm();
   const form = formData.step5_6;
 
-  const addInterimAnalysisDate = () =>
-    addArrayItem("step5_6", "interim_analysis_dates");
-  const removeInterimAnalysisDate = (index: number) =>
-    removeArrayItem("step5_6", "interim_analysis_dates", index);
-  const updateInterimAnalysisDate = (index: number, value: string) =>
-    updateArrayItem("step5_6", "interim_analysis_dates", index, value);
+  // Use interim_analysis_dates as notes array, default with one empty string
+  const notes = form.interim_analysis_dates && form.interim_analysis_dates.length > 0 ? form.interim_analysis_dates : [""];
+
+  const addNote = () => {
+    const updated = [...notes, ""];
+    updateField("step5_6", "interim_analysis_dates", updated);
+  };
+
+  const updateNote = (index: number, value: string) => {
+    const updated = [...notes];
+    updated[index] = value;
+    updateField("step5_6", "interim_analysis_dates", updated);
+  };
+
+  const removeNote = (index: number) => {
+    const updated = notes.filter((_: string, i: number) => i !== index);
+    // Always keep at least one note box
+    updateField("step5_6", "interim_analysis_dates", updated.length > 0 ? updated : [""]);
+  };
 
   return (
     <div className="space-y-4">
       <FormProgress currentStep={6} />
 
-      <div className="flex justify-end w-full gap-3">
-        <Button
-          variant="outline"
-          asChild
-        >
-          <Link href="/admin/therapeutics">Cancel</Link>
-        </Button>
-        <Button
-          className="text-white font-medium px-6 py-2"
-          style={{ backgroundColor: '#204B73' }}
-        >
-          Save Changes
-        </Button>
-      </div>
-
       <Card>
         <CardContent className="space-y-6">
-          {/* Study Start Date */}
-          <div className="space-y-2">
-            <Label>Study Start Date</Label>
+          {/* Total No of Sites */}
+          <div className="space-y-2 mt-4">
+            <Label>Total No of Sites</Label>
             <Input
-              type="date"
-              value={form.study_start_date}
+              type="number"
+              value={form.study_start_date || ""}
               onChange={(e) =>
                 updateField("step5_6", "study_start_date", e.target.value)
               }
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
 
-          {/* Patient Enrollment Dates */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>First Patient In</Label>
-              <Input
-                type="date"
-                value={form.first_patient_in}
-                onChange={(e) =>
-                  updateField("step5_6", "first_patient_in", e.target.value)
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Last Patient In</Label>
-              <Input
-                type="date"
-                value={form.last_patient_in}
-                onChange={(e) =>
-                  updateField("step5_6", "last_patient_in", e.target.value)
-                }
-              />
-            </div>
-          </div>
-
-          {/* Study End Date */}
+          {/* Notes */}
           <div className="space-y-2">
-            <Label>Study End Date</Label>
-            <Input
-              type="date"
-              value={form.study_end_date}
-              onChange={(e) =>
-                updateField("step5_6", "study_end_date", e.target.value)
-              }
-            />
+            <div className="flex items-center justify-between">
+              <Label>Notes</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={addNote}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+
+             <div className="space-y-4">
+               {notes.map((note: string, index: number) => (
+                 <div
+                   key={index}
+                   className="relative border-2 border-gray-600 rounded-lg p-3 bg-gray-50"
+                 >
+                   <Textarea
+                     rows={4}
+                     value={note}
+                     onChange={(e) => updateNote(index, e.target.value)}
+                     placeholder="Enter locations and contacts related information..."
+                     className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 bg-white"
+                   />
+                   {notes.length > 1 && (
+                     <Button
+                       type="button"
+                       variant="ghost"
+                       size="icon"
+                       className="absolute right-2 top-2 text-red-500"
+                       onClick={() => removeNote(index)}
+                     >
+                       <Trash2 className="h-5 w-5" />
+                     </Button>
+                   )}
+                 </div>
+               ))}
+             </div>
           </div>
 
-          {/* Interim Analysis Dates */}
-          <div className="space-y-2">
-            <Label>Interim Analysis Dates</Label>
-            <div className="space-y-2">
-              {form.interim_analysis_dates.map((date, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <Input
-                    type="date"
-                    value={date}
-                    onChange={(e) =>
-                      updateInterimAnalysisDate(idx, e.target.value)
-                    }
-                  />
-                  {idx === 0 ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addInterimAnalysisDate}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => removeInterimAnalysisDate(idx)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Analysis Dates */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Final Analysis Date</Label>
-              <Input
-                type="date"
-                value={form.final_analysis_date}
-                onChange={(e) =>
-                  updateField("step5_6", "final_analysis_date", e.target.value)
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Regulatory Submission Date</Label>
-              <Input
-                type="date"
-                value={form.regulatory_submission_date}
-                onChange={(e) =>
-                  updateField(
-                    "step5_6",
-                    "regulatory_submission_date",
-                    e.target.value
-                  )
-                }
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-between">
-            <Button variant="ghost" asChild>
-              <Link href="/admin/therapeutics/new/5-5">Previous</Link>
-            </Button>
-            <Button asChild>
+          {/* Next Button */}
+          <div className="flex justify-end">
+            <Button asChild className="px-8 bg-[#204B73] text-white">
               <Link href="/admin/therapeutics/new/5-7">Next</Link>
             </Button>
           </div>

@@ -96,13 +96,10 @@ export function AddUserModal({ open, onOpenChange }: AddUserModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="flex flex-row items-center justify-between">
+        <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-primary">
             Add User Id
           </DialogTitle>
-          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

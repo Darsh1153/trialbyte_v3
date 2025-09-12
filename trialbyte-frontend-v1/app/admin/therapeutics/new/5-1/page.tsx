@@ -32,24 +32,40 @@ export default function TherapeuticsStep5_1() {
 
   // Options for searchable dropdowns
   const therapeuticAreaOptions: SearchableSelectOption[] = [
-    { value: "Oncology", label: "Oncology" },
-    { value: "Cardiology", label: "Cardiology" },
-    { value: "Neurology", label: "Neurology" },
+    { value: "autoimmune", label: "Autoimmune" },
+    { value: "cardiovascular", label: "Cardiovascular" },
+    { value: "endocrinology", label: "Endocrinology" },
+    { value: "gastrointestinal", label: "Gastrointestinal" },
+    { value: "infectious", label: "Infectious" },
+    { value: "oncology", label: "Oncology" },
+    { value: "gastroenterology", label: "Gastroenterology" },
+    { value: "dermatology", label: "Dermatology" },
+    { value: "vaccines", label: "Vaccines" },
+    { value: "cns_neurology", label: "CNS/Neurology" },
+    { value: "ophthalmology", label: "Ophthalmology" },
+    { value: "immunology", label: "Immunology" },
+    { value: "rheumatology", label: "Rheumatology" },
+    { value: "haematology", label: "Haematology" },
+    { value: "nephrology", label: "Nephrology" },
+    { value: "urology", label: "Urology" },
   ];
 
   const trialPhaseOptions: SearchableSelectOption[] = [
-    { value: "I", label: "Phase I" },
-    { value: "II", label: "Phase II" },
-    { value: "III", label: "Phase III" },
-    { value: "IV", label: "Phase IV" },
+    { value: "phase_i", label: "Phase I" },
+    { value: "phase_i_ii", label: "Phase I/II" },
+    { value: "phase_ii", label: "Phase II" },
+    { value: "phase_ii_iii", label: "Phase II/III" },
+    { value: "phase_iii", label: "Phase III" },
+    { value: "phase_iii_iv", label: "Phase III/IV" },
+    { value: "phase_iv", label: "Phase IV" },
   ];
 
   const statusOptions: SearchableSelectOption[] = [
-    { value: "Planned", label: "Planned" },
-    { value: "Open", label: "Open" },
-    { value: "Closed", label: "Closed" },
-    { value: "Completed", label: "Completed" },
-    { value: "Terminated", label: "Terminated" },
+    { value: "planned", label: "Planned" },
+    { value: "open", label: "Open" },
+    { value: "closed", label: "Closed" },
+    { value: "completed", label: "Completed" },
+    { value: "terminated", label: "Terminated" },
   ];
 
   const primaryDrugsOptions: SearchableSelectOption[] = [
@@ -66,26 +82,116 @@ export default function TherapeuticsStep5_1() {
   ];
 
   const diseaseTypeOptions: SearchableSelectOption[] = [
-    { value: "Lung Cancer", label: "Lung Cancer" },
-    { value: "Breast Cancer", label: "Breast Cancer" },
+    { value: "acute_lymphocytic_leukemia", label: "Acute Lymphocytic Leukemia" },
+    { value: "acute_myelogenous_leukemia", label: "Acute Myelogenous Leukemia" },
+    { value: "anal", label: "Anal" },
+    { value: "appendiceal", label: "Appendiceal" },
+    { value: "basal_skin_cell_carcinoma", label: "Basal Skin Cell Carcinoma" },
+    { value: "bladder", label: "Bladder" },
+    { value: "breast", label: "Breast" },
+    { value: "cervical", label: "Cervical" },
+    { value: "cholangiocarcinoma", label: "Cholangiocarcinoma (Bile duct)" },
+    { value: "chronic_lymphocytic_leukemia", label: "Chronic Lymphocytic Leukemia" },
+    { value: "chronic_myelomonositic_leukemia", label: "Chronic Myelomonositic Leukemia" },
+    { value: "astrocytoma", label: "Astrocytoma" },
+    { value: "brain_stem_glioma", label: "Brain Stem Giloma" },
+    { value: "craniopharyngioma", label: "Carniopharyngioma" },
+    { value: "choroid_plexus_tumors", label: "Choroid Plexus Tumors" },
+    { value: "embryonal_tumors", label: "Embryonal Tumors" },
+    { value: "epedymoma", label: "Epedymoma" },
+    { value: "germ_cell_tumors", label: "Germ Cell Tumors" },
+    { value: "glioblastoma", label: "Giloblastoma" },
+    { value: "hemangioblastoma", label: "Hemangioblastoma" },
+    { value: "medulloblastoma", label: "Medulloblastoma" },
+    { value: "meningioma", label: "Meningioma" },
+    { value: "oligodendroglioma", label: "Oligodendrogiloma" },
+    { value: "pineal_tumor", label: "Pineal Tumor" },
+    { value: "pituitary_tumor", label: "Pituatory Tumor" },
+    { value: "colorectal", label: "Colorectal" },
+    { value: "endometrial", label: "Endometrial" },
+    { value: "esophageal", label: "Esophageal" },
+    { value: "fallopian_tube", label: "Fallopian Tube" },
+    { value: "gall_bladder", label: "Gall Bladder" },
+    { value: "gastric", label: "Gastirc" },
+    { value: "gist", label: "GIST" },
+    { value: "head_neck", label: "Head/Neck" },
+    { value: "hodgkins_lymphoma", label: "Hodgkin's Lymphoma" },
+    { value: "leukemia_chronic_myelogenous", label: "Leukemia, Chronic Myelogenous" },
+    { value: "liver", label: "Liver" },
+    { value: "lung_non_small_cell", label: "Lung Non-small cell" },
+    { value: "lung_small_cell", label: "Lung Small Cell" },
+    { value: "melanoma", label: "Melanoma" },
+    { value: "mesothelioma", label: "Mesothelioma" },
+    { value: "metastatic_cancer", label: "Metastatic Cancer" },
+    { value: "multiple_myeloma", label: "Multiple Myeloma" },
+    { value: "myelodysplastic_syndrome", label: "Myelodysplastic Syndrome" },
+    { value: "myeloproliferative_neoplasms", label: "Myeloproliferative Neoplasms" },
+    { value: "neuroblastoma", label: "Neuroblastoma" },
+    { value: "neuroendocrine", label: "Neuroendocrine" },
+    { value: "non_hodgkins_lymphoma", label: "Non-Hodgkin's Lymphoma" },
+    { value: "osteosarcoma", label: "Osteosarcoma" },
+    { value: "ovarian", label: "Ovarian" },
+    { value: "pancreas", label: "Pancreas" },
+    { value: "penile", label: "Penile" },
+    { value: "primary_peritoneal", label: "Primary Peritoneal" },
+    { value: "prostate", label: "Prostate" },
+    { value: "renal", label: "Renal" },
+    { value: "small_intestine", label: "Small Intestine" },
+    { value: "soft_tissue_carcinoma", label: "Soft Tissue Carcinoma" },
+    { value: "solid_tumor_unspecified", label: "Solid Tumor, Unspecified" },
+    { value: "squamous_skin_cell_carcinoma", label: "Squamous Skin Cell Carcinoma" },
+    { value: "supportive_care", label: "Supportive care" },
+    { value: "tenosynovial_giant_cell_tumor", label: "Tenosynovial Giant Cell Tumor" },
+    { value: "testicular", label: "Testicular" },
+    { value: "thymus", label: "Thymus" },
+    { value: "thyroid", label: "Thyroid" },
+    { value: "unspecified_cancer", label: "Unspecified Cancer" },
+    { value: "unspecified_haematological_cancer", label: "Unspecified Haematological Cancer" },
+    { value: "vaginal", label: "Vaginal" },
+    { value: "vulvar", label: "Vulvar" },
   ];
 
   const patientSegmentOptions: SearchableSelectOption[] = [
-    { value: "Adult", label: "Adult" },
-    { value: "Pediatric", label: "Pediatric" },
-    { value: "Elderly", label: "Elderly" },
+    { value: "children", label: "Children" },
+    { value: "adults", label: "Adults" },
+    { value: "healthy_volunteers", label: "Healthy Volunteers" },
+    { value: "unknown", label: "Unknown" },
+    { value: "first_line", label: "First Line" },
+    { value: "second_line", label: "Second Line" },
+    { value: "adjuvant", label: "Adjuvant" },
   ];
 
   const lineOfTherapyOptions: SearchableSelectOption[] = [
-    { value: "First Line", label: "First Line" },
-    { value: "Second Line", label: "Second Line" },
-    { value: "Maintenance", label: "Maintenance" },
+    { value: "second_line", label: "2 – Second Line" },
+    { value: "unknown", label: "Unknown" },
+    { value: "first_line", label: "1 – First Line" },
+    { value: "at_least_second_line", label: "2+ - At least second line" },
+    { value: "at_least_third_line", label: "3+ - At least third line" },
+    { value: "neo_adjuvant", label: "Neo-Adjuvant" },
+    { value: "adjuvant", label: "Adjuvant" },
+    { value: "maintenance_consolidation", label: "Maintenance/Consolidation" },
+    { value: "at_least_first_line", label: "1+ - At least first line" },
   ];
 
   const trialTagsOptions: SearchableSelectOption[] = [
-    { value: "Immunotherapy", label: "Immunotherapy" },
-    { value: "Targeted", label: "Targeted" },
-    { value: "Chemotherapy", label: "Chemotherapy" },
+    { value: "biomarker_efficacy", label: "Biomarker-Efficacy" },
+    { value: "biomarker_toxicity", label: "Biomarker-Toxicity" },
+    { value: "expanded_access", label: "Expanded Access" },
+    { value: "expanded_indication", label: "Expanded Indication" },
+    { value: "first_in_human", label: "First in Human" },
+    { value: "investigator_initiated", label: "Investigator-Initiated" },
+    { value: "io_cytotoxic_combination", label: "IO/Cytotoxic Combination" },
+    { value: "io_hormonal_combination", label: "IO/Hormonal Combination" },
+    { value: "io_io_combination", label: "IO/IO Combination" },
+    { value: "io_other_combination", label: "IO/Other Combination" },
+    { value: "io_radiotherapy_combination", label: "IO/Radiotherapy Combination" },
+    { value: "io_targeted_combination", label: "IO/Targeted Combination" },
+    { value: "microdosing", label: "Microdosing" },
+    { value: "pgx_biomarker_identification", label: "PGX-Biomarker Identification/Evaluation" },
+    { value: "pgx_pathogen", label: "PGX-Pathogen" },
+    { value: "pgx_patient_preselection", label: "PGX-Patient Preselection/Stratification" },
+    { value: "post_marketing_commitment", label: "Post-Marketing Commitment" },
+    { value: "registration", label: "Registration" },
   ];
 
   const sponsorOptions: SearchableSelectOption[] = [
@@ -95,9 +201,11 @@ export default function TherapeuticsStep5_1() {
   ];
 
   const sponsorFieldOptions: SearchableSelectOption[] = [
-    { value: "Pharma", label: "Pharma" },
-    { value: "Biotech", label: "Biotech" },
-    { value: "Academic", label: "Academic" },
+    { value: "pharmaceutical_company", label: "Pharmaceutical Company" },
+    { value: "university_academy", label: "University/Academy" },
+    { value: "investigator", label: "Investigator" },
+    { value: "cro", label: "CRO" },
+    { value: "hospital", label: "Hospital" },
   ];
 
   const croOptions: SearchableSelectOption[] = [
@@ -107,21 +215,41 @@ export default function TherapeuticsStep5_1() {
   ];
 
   const countriesOptions: SearchableSelectOption[] = [
-    { value: "United States", label: "United States" },
-    { value: "Canada", label: "Canada" },
-    { value: "United Kingdom", label: "United Kingdom" },
+    { value: "united_states", label: "United States" },
+    { value: "canada", label: "Canada" },
+    { value: "united_kingdom", label: "United Kingdom" },
+    { value: "germany", label: "Germany" },
+    { value: "france", label: "France" },
+    { value: "italy", label: "Italy" },
+    { value: "spain", label: "Spain" },
+    { value: "japan", label: "Japan" },
+    { value: "china", label: "China" },
+    { value: "india", label: "India" },
+    { value: "australia", label: "Australia" },
+    { value: "brazil", label: "Brazil" },
+    { value: "mexico", label: "Mexico" },
+    { value: "south_korea", label: "South Korea" },
+    { value: "switzerland", label: "Switzerland" },
+    { value: "netherlands", label: "Netherlands" },
+    { value: "belgium", label: "Belgium" },
+    { value: "sweden", label: "Sweden" },
+    { value: "norway", label: "Norway" },
+    { value: "denmark", label: "Denmark" },
   ];
 
   const regionOptions: SearchableSelectOption[] = [
-    { value: "West Coast", label: "West Coast" },
-    { value: "East Coast", label: "East Coast" },
-    { value: "EMEA", label: "EMEA" },
+    { value: "north_america", label: "North America" },
+    { value: "europe", label: "Europe" },
+    { value: "asia_pacific", label: "Asia Pacific" },
+    { value: "latin_america", label: "Latin America" },
+    { value: "africa", label: "Africa" },
+    { value: "middle_east", label: "Middle East" },
   ];
 
   const trialRecordStatusOptions: SearchableSelectOption[] = [
-    { value: "Draft", label: "Draft" },
-    { value: "Active", label: "Active" },
-    { value: "Archived", label: "Archived" },
+    { value: "development_in_progress", label: "Development In Progress (DIP)" },
+    { value: "in_production", label: "In Production (IP)" },
+    { value: "update_in_progress", label: "Update In Progress (UIP)" },
   ];
 
   // Helpers for multi-input fields
@@ -174,6 +302,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select Clinical Trials"
                 searchPlaceholder="Search therapeutic areas..."
                 emptyMessage="No therapeutic area found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -188,6 +317,7 @@ export default function TherapeuticsStep5_1() {
                       }
                       placeholder="#807996"
                       rows={2}
+                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                     />
                     {idx === 0 ? (
                       <Button
@@ -219,6 +349,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select Phase"
                 searchPlaceholder="Search trial phases..."
                 emptyMessage="No trial phase found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
           </div>
@@ -234,6 +365,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select status"
                 searchPlaceholder="Search status..."
                 emptyMessage="No status found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -247,6 +379,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select primary drug"
                 searchPlaceholder="Search primary drugs..."
                 emptyMessage="No primary drug found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -258,6 +391,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select other drug"
                 searchPlaceholder="Search other drugs..."
                 emptyMessage="No other drug found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
           </div>
@@ -268,7 +402,7 @@ export default function TherapeuticsStep5_1() {
             <Textarea
               value={form.title}
               onChange={(e) => updateField("step5_1", "title", e.target.value)}
-              className="resize-y min-h-[40px]"
+              className="resize-y min-h-[40px] border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
 
@@ -284,6 +418,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select disease type"
                 searchPlaceholder="Search disease types..."
                 emptyMessage="No disease type found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -297,6 +432,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select segment"
                 searchPlaceholder="Search patient segments..."
                 emptyMessage="No patient segment found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -310,6 +446,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select line of therapy"
                 searchPlaceholder="Search lines of therapy..."
                 emptyMessage="No line of therapy found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
           </div>
@@ -326,6 +463,7 @@ export default function TherapeuticsStep5_1() {
                       onChange={(e) => updateReferenceLink(idx, e.target.value)}
                       placeholder="https://..."
                       rows={2}
+                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                     />
                     {idx === 0 ? (
                       <Button
@@ -357,6 +495,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select trial tag"
                 searchPlaceholder="Search trial tags..."
                 emptyMessage="No trial tag found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
           </div>
@@ -374,6 +513,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select sponsor"
                 searchPlaceholder="Search sponsors..."
                 emptyMessage="No sponsor found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -387,6 +527,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select field"
                 searchPlaceholder="Search sponsor fields..."
                 emptyMessage="No sponsor field found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -400,6 +541,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select CRO"
                 searchPlaceholder="Search CROs..."
                 emptyMessage="No CRO found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
           </div>
@@ -415,6 +557,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select countries"
                 searchPlaceholder="Search countries..."
                 emptyMessage="No country found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -426,6 +569,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select region"
                 searchPlaceholder="Search regions..."
                 emptyMessage="No region found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
             <div className="space-y-2">
@@ -439,6 +583,7 @@ export default function TherapeuticsStep5_1() {
                 placeholder="Select status"
                 searchPlaceholder="Search trial record status..."
                 emptyMessage="No trial record status found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
           </div>

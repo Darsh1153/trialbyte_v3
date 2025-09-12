@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,13 +19,6 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit } from "lucide-react";
 import { TherapeuticAdvancedSearchModal, TherapeuticSearchCriteria } from "@/components/therapeutic-advanced-search-modal";
@@ -137,6 +131,7 @@ interface ApiResponse {
 }
 
 export default function AdminTherapeuticsPage() {
+  const router = useRouter();
   const [trials, setTrials] = useState<TherapeuticTrial[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -730,137 +725,13 @@ export default function AdminTherapeuticsPage() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       {/* View Details */}
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Trial Details</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            {/* Overview */}
-                            <Card>
-                              <CardHeader>
-                                <CardTitle>Overview</CardTitle>
-                              </CardHeader>
-                              <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <Label className="font-semibold">
-                                    Title:
-                                  </Label>
-                                  <p>{trial.overview.title || "N/A"}</p>
-                                </div>
-                                <div>
-                                  <Label className="font-semibold">
-                                    Clinical Trials:
-                                  </Label>
-                                  <p>
-                                    {trial.overview.therapeutic_area || "N/A"}
-                                  </p>
-                                </div>
-                                <div>
-                                  <Label className="font-semibold">
-                                    Disease Type:
-                                  </Label>
-                                  <p>{trial.overview.disease_type || "N/A"}</p>
-                                </div>
-                                <div>
-                                  <Label className="font-semibold">
-                                    Status:
-                                  </Label>
-                                  <p>{trial.overview.status || "N/A"}</p>
-                                </div>
-                                <div>
-                                  <Label className="font-semibold">
-                                    Phase:
-                                  </Label>
-                                  <p>{trial.overview.trial_phase || "N/A"}</p>
-                                </div>
-                                <div>
-                                  <Label className="font-semibold">
-                                    Sponsor:
-                                  </Label>
-                                  <p>
-                                    {trial.overview.sponsor_collaborators ||
-                                      "N/A"}
-                                  </p>
-                                </div>
-                              </CardContent>
-                            </Card>
-
-                            {/* Outcomes */}
-                            {trial.outcomes.length > 0 && (
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle>Outcomes</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <p>
-                                    <strong>Purpose:</strong>{" "}
-                                    {trial.outcomes[0].purpose_of_trial ||
-                                      "N/A"}
-                                  </p>
-                                  <p>
-                                    <strong>Summary:</strong>{" "}
-                                    {trial.outcomes[0].summary || "N/A"}
-                                  </p>
-                                  <p>
-                                    <strong>Design:</strong>{" "}
-                                    {trial.outcomes[0].study_design || "N/A"}
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            )}
-
-                            {/* Criteria */}
-                            {trial.criteria.length > 0 && (
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle>Eligibility Criteria</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <p>
-                                    <strong>Age Range:</strong>{" "}
-                                    {trial.criteria[0].age_from || "N/A"} -{" "}
-                                    {trial.criteria[0].age_to || "N/A"}
-                                  </p>
-                                  <p>
-                                    <strong>Sex:</strong>{" "}
-                                    {trial.criteria[0].sex || "N/A"}
-                                  </p>
-                                  <p>
-                                    <strong>Inclusion:</strong>{" "}
-                                    {trial.criteria[0].inclusion_criteria ||
-                                      "N/A"}
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            )}
-
-                            {/* Sites */}
-                            {trial.sites.length > 0 && (
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle>Study Sites</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <p>
-                                    <strong>Total Sites:</strong>{" "}
-                                    {trial.sites[0].total || "N/A"}
-                                  </p>
-                                  <p>
-                                    <strong>Notes:</strong>{" "}
-                                    {trial.sites[0].notes || "N/A"}
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            )}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
 
                       {/* Edit Trial */}
                       <Button
