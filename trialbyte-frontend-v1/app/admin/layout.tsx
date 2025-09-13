@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import {
   SidebarInset,
   SidebarProvider,
@@ -7,6 +10,23 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  
+  // Hide sidebar on therapeutic and drug detail pages (but show on edit pages and new pages)
+  const isDetailPage = (pathname.includes("/admin/therapeutics/") || pathname.includes("/admin/drugs/")) && 
+                       pathname !== "/admin/therapeutics" && 
+                       pathname !== "/admin/drugs" && 
+                       !pathname.includes("/edit/") &&
+                       !pathname.includes("/new/");
+  
+  if (isDetailPage) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {children}
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

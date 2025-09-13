@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { drugsApi } from "../../lib/api";
-import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock } from "lucide-react";
+import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit } from "lucide-react";
 import { DrugAdvancedSearchModal, DrugSearchCriteria } from "@/components/drug-advanced-search-modal";
 import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal";
 import { SaveQueryModal } from "@/components/save-query-modal";
@@ -45,6 +45,8 @@ interface DrugOverview {
   is_approved: boolean;
   created_at: string;
   updated_at: string;
+  original_drug_id?: string;
+  is_updated_version?: boolean;
 }
 
 interface DevStatus {
@@ -152,6 +154,27 @@ export default function DrugsDashboardPage() {
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
 
+  // Filter function to show only the latest version of each record
+  const filterLatestVersions = (drugs: DrugData[]) => {
+    const drugMap = new Map<string, DrugData>();
+    
+    drugs.forEach(drug => {
+      const key = drug.overview?.drug_name || drug.drug_over_id;
+      
+      // If this drug has an original_drug_id, it's an updated version
+      if (drug.overview?.original_drug_id) {
+        // This is an updated version, replace the original
+        drugMap.set(key, drug);
+      } else if (!drugMap.has(key)) {
+        // This is an original version, add it if we don't have a newer version
+        drugMap.set(key, drug);
+      }
+      // If we already have a newer version, skip this old one
+    });
+    
+    return Array.from(drugMap.values());
+  };
+
   // Fetch drugs data
   const fetchDrugs = async () => {
     try {
@@ -160,7 +183,11 @@ export default function DrugsDashboardPage() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`
       );
       const data: ApiResponse = await response.json();
-      setDrugs(data.drugs);
+      const allDrugs = data.drugs || [];
+      
+      // Filter out old versions and only show the latest version of each record
+      const filteredDrugs = filterLatestVersions(allDrugs);
+      setDrugs(filteredDrugs);
     } catch (error) {
       console.error("Error fetching drugs:", error);
       toast({
@@ -171,6 +198,11 @@ export default function DrugsDashboardPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle edit click
+  const handleEditClick = (drugId: string) => {
+    router.push(`/admin/drugs/edit/${drugId}`);
   };
 
   // Delete drug
@@ -628,6 +660,14 @@ export default function DrugsDashboardPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
 
+                      {/* Edit Drug */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditClick(drug.drug_over_id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
 
                       {/* Delete Drug */}
                       <Button

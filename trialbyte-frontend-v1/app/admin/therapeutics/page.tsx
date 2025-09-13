@@ -51,6 +51,8 @@ interface TherapeuticTrial {
     trial_record_status: string;
     created_at: string;
     updated_at: string;
+    original_trial_id?: string;
+    is_updated_version?: boolean;
   };
   outcomes: Array<{
     id: string;
@@ -165,9 +167,50 @@ export default function AdminTherapeuticsPage() {
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
 
   // Fetch trials data
+  // Filter function to show only the latest version of each record
+  const filterLatestVersions = (trials: TherapeuticTrial[]) => {
+    const trialMap = new Map<string, TherapeuticTrial>();
+
+    trials.forEach(trial => {
+      const key = trial.overview?.title || trial.trial_id;
+
+      // If this trial has an original_trial_id, it's an updated version
+      if (trial.overview?.original_trial_id) {
+        // This is an updated version, replace the original
+        trialMap.set(key, trial);
+      } else if (!trialMap.has(key)) {
+        // This is an original version, add it if we don't have a newer version
+        trialMap.set(key, trial);
+      }
+      // If we already have a newer version, skip this old one
+    });
+
+    return Array.from(trialMap.values());
+  };
+
+  // Clean up old versions (optional - can be called manually)
+  const cleanupOldVersions = () => {
+    const mappings = JSON.parse(localStorage.getItem('trialUpdateMappings') || '[]');
+    if (mappings.length > 0) {
+      console.log('Found trial update mappings:', mappings);
+      console.log('Old versions can be cleaned up from the database if needed');
+      // In a real scenario, you might want to call an API to delete old versions
+    }
+  };
+
   const fetchTrials = async () => {
     try {
       setLoading(true);
+      
+      // First try to get data from localStorage (for immediate updates)
+      const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
+      if (localTrials.length > 0) {
+        console.log('Using cached trials data from localStorage');
+        setTrials(localTrials);
+        setLoading(false);
+      }
+
+      // Then fetch fresh data from API
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
         {
@@ -184,14 +227,44 @@ export default function AdminTherapeuticsPage() {
       }
 
       const data: ApiResponse = await response.json();
-      setTrials(data.trials || []);
+      const allTrials = data.trials || [];
+
+      // Filter out old versions and only show the latest version of each record
+      const filteredTrials = filterLatestVersions(allTrials);
+      
+      // Merge with localStorage data (localStorage takes precedence for updated trials)
+      const mergedTrials = [...filteredTrials];
+      localTrials.forEach((localTrial: any) => {
+        const existingIndex = mergedTrials.findIndex(t => t.trial_id === localTrial.trial_id);
+        if (existingIndex >= 0) {
+          // Replace with localStorage version (has latest updates)
+          mergedTrials[existingIndex] = localTrial;
+        } else {
+          // Add new trial from localStorage
+          mergedTrials.push(localTrial);
+        }
+      });
+
+      setTrials(mergedTrials);
+      
+      // Update localStorage with fresh API data
+      localStorage.setItem('therapeuticTrials', JSON.stringify(mergedTrials));
+      
     } catch (error) {
       console.error("Error fetching trials:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch trials data",
-        variant: "destructive",
-      });
+      
+      // If API fails, try to use localStorage data
+      const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
+      if (localTrials.length > 0) {
+        console.log('API failed, using localStorage data');
+        setTrials(localTrials);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch trials data",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -249,12 +322,8 @@ export default function AdminTherapeuticsPage() {
   };
 
   // Handle edit button click
-  const handleEditClick = () => {
-    toast({
-      title: "Contact Required",
-      description: "Please contact the Manager for editing this trial",
-      variant: "default",
-    });
+  const handleEditClick = (trialId: string) => {
+    router.push(`/admin/therapeutics/edit/${trialId}`);
   };
 
   // Handle advanced search
@@ -600,7 +669,7 @@ export default function AdminTherapeuticsPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 ml-5">
           <Button
             variant="outline"
             onClick={() => setQueryHistoryModalOpen(true)}
@@ -677,7 +746,8 @@ export default function AdminTherapeuticsPage() {
       </div>
 
       <div className="rounded-xl border bg-card">
-        <div className="overflow-x-auto">
+        {/* Desktop / larger screens → normal table */}
+        <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
@@ -698,16 +768,11 @@ export default function AdminTherapeuticsPage() {
                   <TableCell className="font-mono text-sm">
                     {trial.trial_id.slice(0, 8)}...
                   </TableCell>
-                  <TableCell
-                    className="max-w-[200px] truncate"
-                    title={trial.overview.title}
-                  >
+                  <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
                     {trial.overview.title || "Untitled"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
-                      {trial.overview.therapeutic_area || "N/A"}
-                    </Badge>
+                    <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
                   </TableCell>
                   <TableCell>{trial.overview.disease_type || "N/A"}</TableCell>
                   <TableCell>
@@ -719,30 +784,15 @@ export default function AdminTherapeuticsPage() {
                   <TableCell className="max-w-[150px] truncate">
                     {trial.overview.sponsor_collaborators || "N/A"}
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {formatDate(trial.overview.created_at)}
-                  </TableCell>
+                  <TableCell className="text-sm">{formatDate(trial.overview.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
-                      {/* View Details */}
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-
-                      {/* Edit Trial */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleEditClick}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-
-                      {/* Delete Trial */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -768,6 +818,45 @@ export default function AdminTherapeuticsPage() {
               Showing {filteredTrials.length} of {trials.length} Clinical Trials
             </TableCaption>
           </Table>
+        </div>
+
+        {/* Mobile / small screens → cards */}
+        <div className="block md:hidden space-y-4 p-2">
+          {filteredTrials.map((trial) => (
+            <Card key={trial.trial_id} className="shadow-sm">
+              <CardContent className="p-4 space-y-2">
+                <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">{trial.trial_id.slice(0, 8)}...</span></p>
+                <p className="font-semibold">{trial.overview.title || "Untitled"}</p>
+                <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
+                <p className="text-sm">Disease: {trial.overview.disease_type || "N/A"}</p>
+                <p className="text-sm">Status: <span className={getStatusColor(trial.overview.status)}>{trial.overview.status || "Unknown"}</span></p>
+                <p className="text-sm">Phase: {trial.overview.trial_phase || "N/A"}</p>
+                <p className="text-sm">Sponsor: {trial.overview.sponsor_collaborators || "N/A"}</p>
+                <p className="text-sm">Created: {formatDate(trial.overview.created_at)}</p>
+                <div className="flex items-center justify-end space-x-2 pt-2">
+                  <Button variant="outline" size="sm" onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}>
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deleteTrial(trial.trial_id)}
+                    disabled={deletingTrials[trial.trial_id]}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    {deletingTrials[trial.trial_id] ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
 

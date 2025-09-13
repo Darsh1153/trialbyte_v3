@@ -681,7 +681,7 @@ function ClinicalTrialsPage() {
 
   return (
     <div
-      className={`min-h-screen bg-gray-50 ${
+      className={`min-h-screen bg-gray-50 overflow-x-hidden ${
         isMaximized ? "fixed inset-0 z-50 overflow-auto" : ""
       }`}
     >
@@ -1007,7 +1007,7 @@ function ClinicalTrialsPage() {
             }`}
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1 overflow-x-auto flex-1">
+              <div className="flex items-center space-x-1 flex-1 flex-wrap">
                 {trials.map((trial, index) => (
                   <div key={trial.trial_id} className="flex items-center">
                     <div className="relative flex items-center">
@@ -1031,7 +1031,7 @@ function ClinicalTrialsPage() {
                         }`}
                       >
                         <span>
-                          {trial.overview.trial_identifier[0] || trial.trial_id}
+                          {trial.overview.trial_identifier?.[0] || trial.trial_id}
                         </span>
                       </Button>
                       {index === currentTrialIndex && (
@@ -1129,7 +1129,7 @@ function ClinicalTrialsPage() {
           </div>
 
           {/* Trial Content */}
-          <div className={`${isMinimized ? "p-2" : "p-6"}`} data-export-content>
+          <div className={`${isMinimized ? "p-2" : "p-6"} overflow-x-hidden`} data-export-content>
             {/* Trial Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-t-lg p-6">
               <div className="flex items-start space-x-4">
@@ -1211,7 +1211,7 @@ function ClinicalTrialsPage() {
                         Trial Identifier :
                       </span>
                       <div className="flex flex-wrap gap-2">
-                        {currentTrial.overview.trial_identifier.map(
+                        {(currentTrial.overview.trial_identifier || []).map(
                           (identifier, index) => (
                             <Badge
                               key={index}
@@ -1257,7 +1257,7 @@ function ClinicalTrialsPage() {
                       </h3>
                       <div className="space-y-3">
                         <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[120px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Disease Type :
                           </span>
                           <span className="text-sm text-gray-700 text-right">
@@ -1265,7 +1265,7 @@ function ClinicalTrialsPage() {
                           </span>
                         </div>
                         <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[120px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Patient Segment :
                           </span>
                           <span className="text-sm text-gray-700 text-right">
@@ -1273,7 +1273,7 @@ function ClinicalTrialsPage() {
                           </span>
                         </div>
                         <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[120px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Primary Drug :
                           </span>
                           <span className="text-sm text-gray-700 text-right">
@@ -1281,7 +1281,7 @@ function ClinicalTrialsPage() {
                           </span>
                         </div>
                         <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[120px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Secondary Drug :
                           </span>
                           <span className="text-sm text-gray-700 text-right">
@@ -1289,7 +1289,7 @@ function ClinicalTrialsPage() {
                           </span>
                         </div>
                         <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[120px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Trial Phase :
                           </span>
                           <Badge className="bg-green-600 text-white">
@@ -1666,7 +1666,7 @@ function ClinicalTrialsPage() {
                       </h3>
                       <div className="space-y-3">
                         <div className="flex items-start">
-                          <span className="text-sm font-medium text-gray-600 min-w-[140px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Study Design :
                           </span>
                           <span className="text-sm text-gray-700">
@@ -1674,7 +1674,7 @@ function ClinicalTrialsPage() {
                           </span>
                         </div>
                         <div className="flex items-start">
-                          <span className="text-sm font-medium text-gray-600 min-w-[140px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Keywords :
                           </span>
                           <span className="text-sm text-gray-700">
@@ -1683,7 +1683,7 @@ function ClinicalTrialsPage() {
                           </span>
                         </div>
                         <div className="flex items-start">
-                          <span className="text-sm font-medium text-gray-600 min-w-[140px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Number of Arms :
                           </span>
                           <span className="text-sm text-gray-700">
@@ -1858,8 +1858,8 @@ function ClinicalTrialsPage() {
                 <CardContent className="p-6">
                   <div className="space-y-8">
                     {/* Timing Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
+                    <div className="overflow-hidden">
+                      <table className="w-full border-collapse table-auto">
                         <thead>
                           <tr className="bg-slate-600 text-white">
                             <th className="border border-slate-400 px-4 py-3 text-left text-sm font-medium">
@@ -2016,7 +2016,7 @@ function ClinicalTrialsPage() {
                       {/* Study Details */}
                       <div className="space-y-2 mb-4">
                         <div className="flex items-start">
-                          <span className="text-sm font-medium text-gray-600 min-w-[200px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[150px] flex-shrink-0">
                             Study Start (Actual) :
                           </span>
                           <span className="text-sm text-gray-700">
@@ -2028,7 +2028,7 @@ function ClinicalTrialsPage() {
                           </span>
                         </div>
                         <div className="flex items-start">
-                          <span className="text-sm font-medium text-gray-600 min-w-[200px]">
+                          <span className="text-sm font-medium text-gray-600 min-w-[150px] flex-shrink-0">
                             Study Completion (Actual) :
                           </span>
                           <span className="text-sm text-gray-700">
