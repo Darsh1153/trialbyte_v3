@@ -613,7 +613,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               className="text-gray-600"
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
-              Back to Therapeutics
+              Back to Clinical Trials
             </Button>
             <Button className="bg-blue-600 hover:bg-blue-700 text-white">
               <FileText className="h-4 w-4 mr-2" />
