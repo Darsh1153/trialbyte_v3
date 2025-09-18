@@ -12,13 +12,24 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import { useToast } from "@/hooks/use-toast";
 import FormProgress from "../components/form-progress";
+import { Plus, X, Eye, EyeOff } from "lucide-react";
 
 export default function TherapeuticsStep5_8() {
-  const { formData, updateField, getFormData } = useTherapeuticForm();
+  const { 
+    formData, 
+    updateField, 
+    getFormData, 
+    saveTrial,
+    addNote,
+    updateNote,
+    removeNote,
+    toggleNoteVisibility
+  } = useTherapeuticForm();
   const form = formData.step5_8;
   const router = useRouter();
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Helper functions
   const ensureString = (value: any): string => {
@@ -153,6 +164,34 @@ export default function TherapeuticsStep5_8() {
     }
   };
 
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      const result = await saveTrial();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save trial. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <FormProgress currentStep={8} />
@@ -198,8 +237,8 @@ export default function TherapeuticsStep5_8() {
               <Input 
                 type="date" 
                 placeholder="" 
-                value={form.notes}
-                onChange={(e) => updateField("step5_8", "notes", e.target.value)}
+                value={form.date_type}
+                onChange={(e) => updateField("step5_8", "date_type", e.target.value)}
                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
@@ -235,16 +274,125 @@ export default function TherapeuticsStep5_8() {
             </div>
           </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea 
-              rows={4} 
-              placeholder="" 
-              value={form.notes}
-              onChange={(e) => updateField("step5_8", "notes", e.target.value)}
-              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-            />
+          {/* Notes Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="font-semibold">Notes</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addNote("step5_8", "notes")}
+                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Note
+              </Button>
+            </div>
+
+            {/* Notes List */}
+            <div className="space-y-3">
+              {form.notes.map((note, index) => (
+                <div
+                  key={note.id}
+                  className={`p-4 border rounded-lg ${
+                    note.isVisible 
+                      ? "border-gray-200 bg-white" 
+                      : "border-gray-300 bg-gray-50 opacity-60"
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Note Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-600">
+                          Note {index + 1}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleNoteVisibility("step5_8", "notes", index)}
+                          className={
+                            note.isVisible
+                              ? "text-green-600 hover:text-green-700 hover:bg-green-50"
+                              : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                          }
+                        >
+                          {note.isVisible ? (
+                            <Eye className="h-4 w-4 mr-1" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 mr-1" />
+                          )}
+                          {note.isVisible ? "Visible" : "Hidden"}
+                        </Button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeNote("step5_8", "notes", index)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Note Content */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm">Date</Label>
+                        <Input
+                          type="date"
+                          value={note.date}
+                          onChange={(e) =>
+                            updateNote("step5_8", "notes", index, {
+                              date: e.target.value,
+                            })
+                          }
+                          className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm">Link (Optional)</Label>
+                        <Input
+                          placeholder="https://..."
+                          value={note.link}
+                          onChange={(e) =>
+                            updateNote("step5_8", "notes", index, {
+                              link: e.target.value,
+                            })
+                          }
+                          className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm">Note Content</Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Enter note content..."
+                        value={note.content}
+                        onChange={(e) =>
+                          updateNote("step5_8", "notes", index, {
+                            content: e.target.value,
+                          })
+                        }
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {form.notes.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No notes added yet.</p>
+                  <p className="text-sm">Click "Add Note" to create your first note.</p>
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

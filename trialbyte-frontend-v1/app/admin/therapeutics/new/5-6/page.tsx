@@ -1,18 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TherapeuticsStep5_6() {
-  const { formData, updateField } = useTherapeuticForm();
+  const { formData, updateField, saveTrial } = useTherapeuticForm();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_6;
+  const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set([0]));
 
   // Use interim_analysis_dates as notes array, default with one empty string
   const notes = form.interim_analysis_dates && form.interim_analysis_dates.length > 0 ? form.interim_analysis_dates : [""];
@@ -20,6 +25,8 @@ export default function TherapeuticsStep5_6() {
   const addNote = () => {
     const updated = [...notes, ""];
     updateField("step5_6", "interim_analysis_dates", updated);
+    // Add the new note to expanded state
+    setExpandedNotes(prev => new Set([...prev, updated.length - 1]));
   };
 
   const updateNote = (index: number, value: string) => {
@@ -28,10 +35,44 @@ export default function TherapeuticsStep5_6() {
     updateField("step5_6", "interim_analysis_dates", updated);
   };
 
-  const removeNote = (index: number) => {
-    const updated = notes.filter((_: string, i: number) => i !== index);
-    // Always keep at least one note box
-    updateField("step5_6", "interim_analysis_dates", updated.length > 0 ? updated : [""]);
+  const toggleNoteExpansion = (index: number) => {
+    setExpandedNotes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      const result = await saveTrial();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save trial. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -49,7 +90,7 @@ export default function TherapeuticsStep5_6() {
               onChange={(e) =>
                 updateField("step5_6", "study_start_date", e.target.value)
               }
-              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 w-32"
             />
           </div>
 
@@ -71,25 +112,36 @@ export default function TherapeuticsStep5_6() {
                {notes.map((note: string, index: number) => (
                  <div
                    key={index}
-                   className="relative border-2 border-gray-600 rounded-lg p-3 bg-gray-50"
+                   className="border-2 border-gray-600 rounded-lg bg-gray-50"
                  >
-                   <Textarea
-                     rows={4}
-                     value={note}
-                     onChange={(e) => updateNote(index, e.target.value)}
-                     placeholder="Enter locations and contacts related information..."
-                     className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 bg-white"
-                   />
-                   {notes.length > 1 && (
+                   <div className="flex items-center justify-between p-3 border-b border-gray-300">
+                     <span className="text-sm font-medium text-gray-700">
+                       Note {index + 1}
+                     </span>
                      <Button
                        type="button"
                        variant="ghost"
                        size="icon"
-                       className="absolute right-2 top-2 text-red-500"
-                       onClick={() => removeNote(index)}
+                       onClick={() => toggleNoteExpansion(index)}
+                       className="text-gray-600 hover:text-gray-800"
                      >
-                       <Trash2 className="h-5 w-5" />
+                       {expandedNotes.has(index) ? (
+                         <ChevronUp className="h-4 w-4" />
+                       ) : (
+                         <ChevronDown className="h-4 w-4" />
+                       )}
                      </Button>
+                   </div>
+                   {expandedNotes.has(index) && (
+                     <div className="p-3">
+                       <Textarea
+                         rows={4}
+                         value={note}
+                         onChange={(e) => updateNote(index, e.target.value)}
+                         placeholder="Enter locations and contacts related information..."
+                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 bg-white"
+                       />
+                     </div>
                    )}
                  </div>
                ))}

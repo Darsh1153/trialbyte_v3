@@ -17,7 +17,7 @@ import {
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowRight, Check, Loader2, Plus, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Plus, X, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useContent } from "@/hooks/use-content";
 import { useDrugNames } from "@/hooks/use-drug-names";
@@ -78,9 +78,9 @@ interface DrugFormData {
     agreement: string;
     marketing_approvals: string;
     licensing_availability: string;
-    agreement_rows: string[];
-    licensing_availability_rows: string[];
-    marketing_approvals_rows: string[];
+    agreement_rows: Array<{ value: string; enabled: boolean }>;
+    licensing_availability_rows: Array<{ value: string; enabled: boolean }>;
+    marketing_approvals_rows: Array<{ value: string; enabled: boolean }>;
   };
   logs: {
     drug_changes_log: string;
@@ -366,9 +366,9 @@ export default function NewDrugPage() {
       agreement: "",
       marketing_approvals: "",
       licensing_availability: "",
-      agreement_rows: [""],
-      licensing_availability_rows: [""],
-      marketing_approvals_rows: [""],
+      agreement_rows: [{ value: "", enabled: true }],
+      licensing_availability_rows: [{ value: "", enabled: true }],
+      marketing_approvals_rows: [{ value: "", enabled: true }],
     },
     logs: {
       drug_changes_log: "Initial creation",
@@ -1498,10 +1498,10 @@ export default function NewDrugPage() {
               {content.licensingMarketing.agreement_rows?.map((row, index) => (
                 <div key={index} className="relative">
                   <Textarea
-                    value={row}
+                    value={row.value}
                     onChange={(e) => {
                       const updatedRows = [...(content.licensingMarketing.agreement_rows || [])];
-                      updatedRows[index] = e.target.value;
+                      updatedRows[index] = { ...updatedRows[index], value: e.target.value };
                       updateContent("licensingMarketing", {
                         ...content.licensingMarketing,
                         agreement_rows: updatedRows,
@@ -1509,7 +1509,8 @@ export default function NewDrugPage() {
                     }}
                     placeholder="Enter agreement information"
                     rows={4}
-                    className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                    className={`w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-20 ${!row.enabled ? 'opacity-50 bg-gray-100' : ''}`}
+                    disabled={!row.enabled}
                   />
                   <Button
                     type="button"
@@ -1517,7 +1518,7 @@ export default function NewDrugPage() {
                     className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
                     onClick={() => {
                       const updatedRows = [...(content.licensingMarketing.agreement_rows || [])];
-                      updatedRows.splice(index + 1, 0, "");
+                      updatedRows.splice(index + 1, 0, { value: "", enabled: true });
                       updateContent("licensingMarketing", {
                         ...content.licensingMarketing,
                         agreement_rows: updatedRows,
@@ -1526,23 +1527,22 @@ export default function NewDrugPage() {
                   >
                     <Plus className="h-4 w-4 text-white" />
                   </Button>
-                  {content.licensingMarketing.agreement_rows && content.licensingMarketing.agreement_rows.length > 1 && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      className="absolute bottom-2 right-12 h-8 w-8 rounded-full bg-red-600 hover:bg-red-700"
-                      onClick={() => {
-                        const updatedRows = [...(content.licensingMarketing.agreement_rows || [])];
-                        updatedRows.splice(index, 1);
-                        updateContent("licensingMarketing", {
-                          ...content.licensingMarketing,
-                          agreement_rows: updatedRows,
-                        });
-                      }}
-                    >
-                      <X className="h-4 w-4 text-white" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="icon"
+                    className={`absolute bottom-2 right-12 h-8 w-8 rounded-full ${row.enabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+                    onClick={() => {
+                      const updatedRows = [...(content.licensingMarketing.agreement_rows || [])];
+                      updatedRows[index] = { ...updatedRows[index], enabled: !updatedRows[index].enabled };
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        agreement_rows: updatedRows,
+                      });
+                    }}
+                    title={row.enabled ? "Disable this row" : "Enable this row"}
+                  >
+                    {row.enabled ? <Eye className="h-4 w-4 text-white" /> : <EyeOff className="h-4 w-4 text-white" />}
+                  </Button>
                 </div>
               ))}
             </div>
@@ -1553,10 +1553,10 @@ export default function NewDrugPage() {
               {content.licensingMarketing.licensing_availability_rows?.map((row, index) => (
                 <div key={index} className="relative">
                   <Textarea
-                    value={row}
+                    value={row.value}
                     onChange={(e) => {
                       const updatedRows = [...(content.licensingMarketing.licensing_availability_rows || [])];
-                      updatedRows[index] = e.target.value;
+                      updatedRows[index] = { ...updatedRows[index], value: e.target.value };
                       updateContent("licensingMarketing", {
                         ...content.licensingMarketing,
                         licensing_availability_rows: updatedRows,
@@ -1564,7 +1564,8 @@ export default function NewDrugPage() {
                     }}
                     placeholder="Enter licensing availability information"
                     rows={4}
-                    className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                    className={`w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-20 ${!row.enabled ? 'opacity-50 bg-gray-100' : ''}`}
+                    disabled={!row.enabled}
                   />
                   <Button
                     type="button"
@@ -1572,7 +1573,7 @@ export default function NewDrugPage() {
                     className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
                     onClick={() => {
                       const updatedRows = [...(content.licensingMarketing.licensing_availability_rows || [])];
-                      updatedRows.splice(index + 1, 0, "");
+                      updatedRows.splice(index + 1, 0, { value: "", enabled: true });
                       updateContent("licensingMarketing", {
                         ...content.licensingMarketing,
                         licensing_availability_rows: updatedRows,
@@ -1581,23 +1582,22 @@ export default function NewDrugPage() {
                   >
                     <Plus className="h-4 w-4 text-white" />
                   </Button>
-                  {content.licensingMarketing.licensing_availability_rows && content.licensingMarketing.licensing_availability_rows.length > 1 && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      className="absolute bottom-2 right-12 h-8 w-8 rounded-full bg-red-600 hover:bg-red-700"
-                      onClick={() => {
-                        const updatedRows = [...(content.licensingMarketing.licensing_availability_rows || [])];
-                        updatedRows.splice(index, 1);
-                        updateContent("licensingMarketing", {
-                          ...content.licensingMarketing,
-                          licensing_availability_rows: updatedRows,
-                        });
-                      }}
-                    >
-                      <X className="h-4 w-4 text-white" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="icon"
+                    className={`absolute bottom-2 right-12 h-8 w-8 rounded-full ${row.enabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+                    onClick={() => {
+                      const updatedRows = [...(content.licensingMarketing.licensing_availability_rows || [])];
+                      updatedRows[index] = { ...updatedRows[index], enabled: !updatedRows[index].enabled };
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        licensing_availability_rows: updatedRows,
+                      });
+                    }}
+                    title={row.enabled ? "Disable this row" : "Enable this row"}
+                  >
+                    {row.enabled ? <Eye className="h-4 w-4 text-white" /> : <EyeOff className="h-4 w-4 text-white" />}
+                  </Button>
                 </div>
               ))}
             </div>
@@ -1608,10 +1608,10 @@ export default function NewDrugPage() {
               {content.licensingMarketing.marketing_approvals_rows?.map((row, index) => (
                 <div key={index} className="relative">
                   <Textarea
-                    value={row}
+                    value={row.value}
                     onChange={(e) => {
                       const updatedRows = [...(content.licensingMarketing.marketing_approvals_rows || [])];
-                      updatedRows[index] = e.target.value;
+                      updatedRows[index] = { ...updatedRows[index], value: e.target.value };
                       updateContent("licensingMarketing", {
                         ...content.licensingMarketing,
                         marketing_approvals_rows: updatedRows,
@@ -1619,7 +1619,8 @@ export default function NewDrugPage() {
                     }}
                     placeholder="Enter marketing approvals information"
                     rows={4}
-                    className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                    className={`w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-20 ${!row.enabled ? 'opacity-50 bg-gray-100' : ''}`}
+                    disabled={!row.enabled}
                   />
                   <Button
                     type="button"
@@ -1627,7 +1628,7 @@ export default function NewDrugPage() {
                     className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
                     onClick={() => {
                       const updatedRows = [...(content.licensingMarketing.marketing_approvals_rows || [])];
-                      updatedRows.splice(index + 1, 0, "");
+                      updatedRows.splice(index + 1, 0, { value: "", enabled: true });
                       updateContent("licensingMarketing", {
                         ...content.licensingMarketing,
                         marketing_approvals_rows: updatedRows,
@@ -1636,23 +1637,22 @@ export default function NewDrugPage() {
                   >
                     <Plus className="h-4 w-4 text-white" />
                   </Button>
-                  {content.licensingMarketing.marketing_approvals_rows && content.licensingMarketing.marketing_approvals_rows.length > 1 && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      className="absolute bottom-2 right-12 h-8 w-8 rounded-full bg-red-600 hover:bg-red-700"
-                      onClick={() => {
-                        const updatedRows = [...(content.licensingMarketing.marketing_approvals_rows || [])];
-                        updatedRows.splice(index, 1);
-                        updateContent("licensingMarketing", {
-                          ...content.licensingMarketing,
-                          marketing_approvals_rows: updatedRows,
-                        });
-                      }}
-                    >
-                      <X className="h-4 w-4 text-white" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="icon"
+                    className={`absolute bottom-2 right-12 h-8 w-8 rounded-full ${row.enabled ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 hover:bg-gray-500'}`}
+                    onClick={() => {
+                      const updatedRows = [...(content.licensingMarketing.marketing_approvals_rows || [])];
+                      updatedRows[index] = { ...updatedRows[index], enabled: !updatedRows[index].enabled };
+                      updateContent("licensingMarketing", {
+                        ...content.licensingMarketing,
+                        marketing_approvals_rows: updatedRows,
+                      });
+                    }}
+                    title={row.enabled ? "Disable this row" : "Enable this row"}
+                  >
+                    {row.enabled ? <Eye className="h-4 w-4 text-white" /> : <EyeOff className="h-4 w-4 text-white" />}
+                  </Button>
                 </div>
               ))}
             </div>

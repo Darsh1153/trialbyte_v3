@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Plus, X } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function TherapeuticsStep5_2() {
   const {
@@ -17,7 +19,10 @@ export default function TherapeuticsStep5_2() {
     addArrayItem,
     removeArrayItem,
     updateArrayItem,
+    saveTrial,
   } = useTherapeuticForm();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_2;
 
   const addPrimaryOutcome = () =>
@@ -32,6 +37,34 @@ export default function TherapeuticsStep5_2() {
     updateArrayItem("step5_2", "otherOutcomeMeasures", index, value);
   const removeOtherOutcome = (index: number) =>
     removeArrayItem("step5_2", "otherOutcomeMeasures", index);
+
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      const result = await saveTrial();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save trial. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,8 +83,10 @@ export default function TherapeuticsStep5_2() {
             <Button 
               className="text-white font-medium px-6 py-2"
               style={{ backgroundColor: '#204B73' }}
+              onClick={handleSaveChanges}
+              disabled={isSaving}
             >
-              Save Changes
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>
@@ -204,14 +239,15 @@ export default function TherapeuticsStep5_2() {
               {/* Number of Arms */}
               <div className="space-y-2">
                 <Label>Number of Arms</Label>
-                <Textarea
+                <Input
+                  type="number"
                   value={form.number_of_arms}
                   onChange={(e) =>
                     updateField("step5_2", "number_of_arms", e.target.value)
                   }
                   placeholder="e.g., 2"
-                  rows={2}
-                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                  min="1"
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 w-32"
                 />
               </div>
 

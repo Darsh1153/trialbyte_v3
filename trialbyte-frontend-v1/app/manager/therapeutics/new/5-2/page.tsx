@@ -195,6 +195,7 @@ export default function TherapeuticsStep5_2() {
               }
               placeholder="e.g., 2"
               min="1"
+              className="w-32"
             />
           </div>
 
