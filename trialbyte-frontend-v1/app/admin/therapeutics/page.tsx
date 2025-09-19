@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -20,11 +20,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit } from "lucide-react";
+import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, ChevronDown, Settings } from "lucide-react";
 import { TherapeuticAdvancedSearchModal, TherapeuticSearchCriteria } from "@/components/therapeutic-advanced-search-modal";
 import { TherapeuticFilterModal, TherapeuticFilterState } from "@/components/therapeutic-filter-modal";
 import { SaveQueryModal } from "@/components/save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
+import { CustomizeColumnModal, ColumnSettings, DEFAULT_COLUMN_SETTINGS } from "@/components/customize-column-modal";
 
 // Types based on the API response
 interface TherapeuticTrial {
@@ -165,6 +166,16 @@ export default function AdminTherapeuticsPage() {
   });
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Column customization state
+  const [customizeColumnModalOpen, setCustomizeColumnModalOpen] = useState(false);
+  const [columnSettings, setColumnSettings] = useState<ColumnSettings>(DEFAULT_COLUMN_SETTINGS);
 
   // Fetch trials data
   // Filter function to show only the latest version of each record
@@ -188,6 +199,53 @@ export default function AdminTherapeuticsPage() {
     return Array.from(trialMap.values());
   };
 
+  // Apply localStorage updates to trials data
+  const applyLocalStorageUpdates = (trials: TherapeuticTrial[]) => {
+    try {
+      // Get the main trials list from localStorage
+      const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
+      
+      if (localTrials.length === 0) {
+        return trials;
+      }
+
+      // Create a map of local trials for quick lookup
+      const localTrialMap = new Map<string, TherapeuticTrial>();
+      localTrials.forEach((trial: TherapeuticTrial) => {
+        localTrialMap.set(trial.trial_id, trial);
+      });
+
+      // Apply local updates to API trials
+      const updatedTrials = trials.map(trial => {
+        const localTrial = localTrialMap.get(trial.trial_id);
+        
+        if (localTrial && localTrial.overview) {
+          // Check if local trial has more recent updates or if it was recently updated
+          const localUpdatedAt = new Date(localTrial.overview.updated_at || 0);
+          const apiUpdatedAt = new Date(trial.overview.updated_at || 0);
+          const recentlyUpdated = localStorage.getItem(`trial_updated_${trial.trial_id}`);
+          
+          if (localUpdatedAt > apiUpdatedAt || recentlyUpdated) {
+            console.log('Applying localStorage update for trial:', trial.trial_id);
+            // Clear the update flag after applying
+            if (recentlyUpdated) {
+              localStorage.removeItem(`trial_updated_${trial.trial_id}`);
+            }
+            return localTrial;
+          }
+        }
+        
+        return trial;
+      });
+
+      return updatedTrials;
+    } catch (error) {
+      console.error('Error applying localStorage updates:', error);
+      return trials;
+    }
+  };
+
+
   // Clean up old versions (optional - can be called manually)
   const cleanupOldVersions = () => {
     const mappings = JSON.parse(localStorage.getItem('trialUpdateMappings') || '[]');
@@ -198,16 +256,20 @@ export default function AdminTherapeuticsPage() {
     }
   };
 
-  const fetchTrials = async () => {
+  const fetchTrials = async (forceRefresh = false) => {
     try {
       setLoading(true);
       
-      // First try to get data from localStorage (for immediate updates)
-      const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
-      if (localTrials.length > 0) {
-        console.log('Using cached trials data from localStorage');
-        setTrials(localTrials);
-        setLoading(false);
+      // Only use localStorage cache if not forcing refresh
+      if (!forceRefresh) {
+        const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
+        if (localTrials.length > 0) {
+          console.log('Using cached trials data from localStorage');
+          // Apply localStorage updates to cached data
+          const trialsWithLocalUpdates = applyLocalStorageUpdates(localTrials);
+          setTrials(trialsWithLocalUpdates);
+          setLoading(false);
+        }
       }
 
       // Then fetch fresh data from API
@@ -232,23 +294,14 @@ export default function AdminTherapeuticsPage() {
       // Filter out old versions and only show the latest version of each record
       const filteredTrials = filterLatestVersions(allTrials);
       
-      // Merge with localStorage data (localStorage takes precedence for updated trials)
-      const mergedTrials = [...filteredTrials];
-      localTrials.forEach((localTrial: any) => {
-        const existingIndex = mergedTrials.findIndex(t => t.trial_id === localTrial.trial_id);
-        if (existingIndex >= 0) {
-          // Replace with localStorage version (has latest updates)
-          mergedTrials[existingIndex] = localTrial;
-        } else {
-          // Add new trial from localStorage
-          mergedTrials.push(localTrial);
-        }
-      });
-
-      setTrials(mergedTrials);
+      // Apply localStorage updates to show the latest edited values
+      const trialsWithLocalUpdates = applyLocalStorageUpdates(filteredTrials);
       
-      // Update localStorage with fresh API data
-      localStorage.setItem('therapeuticTrials', JSON.stringify(mergedTrials));
+      // Use the updated data (API + localStorage updates) as the source of truth
+      setTrials(trialsWithLocalUpdates);
+      
+      // Update localStorage with the combined data (API + local updates)
+      localStorage.setItem('therapeuticTrials', JSON.stringify(trialsWithLocalUpdates));
       
     } catch (error) {
       console.error("Error fetching trials:", error);
@@ -257,7 +310,9 @@ export default function AdminTherapeuticsPage() {
       const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
       if (localTrials.length > 0) {
         console.log('API failed, using localStorage data');
-        setTrials(localTrials);
+        // Apply localStorage updates to cached data as well
+        const trialsWithLocalUpdates = applyLocalStorageUpdates(localTrials);
+        setTrials(trialsWithLocalUpdates);
       } else {
         toast({
           title: "Error",
@@ -269,6 +324,12 @@ export default function AdminTherapeuticsPage() {
       setLoading(false);
     }
   };
+
+  // Clear cache function
+  const clearCache = () => {
+    localStorage.removeItem('therapeuticTrials');
+  };
+
 
   // Delete trial
   const deleteTrial = async (trialId: string) => {
@@ -291,16 +352,24 @@ export default function AdminTherapeuticsPage() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trial/${trialId}/${currentUserId}/delete-all`,
         {
           method: "DELETE",
+          credentials: "include",
         }
       );
 
       if (response.ok) {
+        // Clear localStorage cache to prevent stale data
+        clearCache();
+        
+        // Optimistically remove the trial from the current state
+        setTrials(prevTrials => prevTrials.filter(trial => trial.trial_id !== trialId));
+        
         toast({
           title: "Success",
           description: "Trial deleted successfully",
         });
-        // Refresh the list
-        fetchTrials();
+        
+        // Refresh the list to ensure consistency (force refresh from API)
+        await fetchTrials(true);
       } else {
         const errorData = await response.json();
         toast({
@@ -562,6 +631,38 @@ export default function AdminTherapeuticsPage() {
     return finalResult;
   };
 
+  // Sorting functions
+  const getSortValue = (trial: TherapeuticTrial, field: string): string | number => {
+    switch (field) {
+      case "trial_id": return trial.trial_id;
+      case "therapeutic_area": return trial.overview.therapeutic_area;
+      case "disease_type": return trial.overview.disease_type;
+      case "primary_drug": return trial.overview.primary_drugs;
+      case "trial_status": return trial.overview.status;
+      case "sponsor": return trial.overview.sponsor_collaborators;
+      case "phase": return trial.overview.trial_phase;
+      case "enrollment": return trial.criteria[0]?.target_no_volunteers?.toString() || "0";
+      default: return "";
+    }
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle sort direction if same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new field and default to ascending
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const handleColumnSettingsChange = (newSettings: ColumnSettings) => {
+    setColumnSettings(newSettings);
+    // Save to localStorage
+    localStorage.setItem('adminTrialColumnSettings', JSON.stringify(newSettings));
+  };
+
   // Filter trials based on search term, advanced search criteria, and filters
   const filteredTrials = trials.filter((trial) => {
     // Basic search term filter
@@ -609,10 +710,81 @@ export default function AdminTherapeuticsPage() {
     );
 
     return matchesSearchTerm && matchesAdvancedSearch && matchesFilters;
+  }).sort((a, b) => {
+    if (!sortField) return 0; // No sorting if no field selected
+
+    const aValue = getSortValue(a, sortField);
+    const bValue = getSortValue(b, sortField);
+
+    // Handle string comparisons
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const comparison = aValue.toLowerCase().localeCompare(bValue.toLowerCase());
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+
+    // Handle numeric comparisons
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+
+    // Mixed types - convert to string
+    const aStr = String(aValue).toLowerCase();
+    const bStr = String(bValue).toLowerCase();
+    const comparison = aStr.localeCompare(bStr);
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   useEffect(() => {
     fetchTrials();
+    
+    // Load column settings from localStorage
+    const savedSettings = localStorage.getItem('adminTrialColumnSettings');
+    if (savedSettings) {
+      try {
+        setColumnSettings(JSON.parse(savedSettings));
+      } catch (error) {
+        console.error('Error loading column settings:', error);
+      }
+    }
+  }, []);
+
+  // Refresh data when page becomes visible (e.g., returning from edit page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, refreshing data...');
+        fetchTrials(true); // Force refresh to get latest data
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh when window gains focus (alternative to visibility change)
+    const handleFocus = () => {
+      console.log('Window gained focus, refreshing data...');
+      fetchTrials(true);
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Close sort dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setSortDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   // Format date for display
@@ -672,6 +844,14 @@ export default function AdminTherapeuticsPage() {
         <div className="flex items-center space-x-2 ml-5">
           <Button
             variant="outline"
+            onClick={() => setSaveQueryModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Save Query
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setQueryHistoryModalOpen(true)}
             className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
           >
@@ -697,7 +877,7 @@ export default function AdminTherapeuticsPage() {
           <Button asChild>
             <Link href="/admin/therapeutics/new/5-1">
               <Plus className="h-4 w-4 mr-2" />
-              Clinical Trials
+              Add New Trials
             </Link>
           </Button>
         </div>
@@ -745,19 +925,209 @@ export default function AdminTherapeuticsPage() {
         )}
       </div>
 
+      {/* Sort By Dropdown */}
+      <div className="flex items-center space-x-2">
+        <div className="relative" ref={sortDropdownRef}>
+          <Button
+            variant="outline"
+            onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+            className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+          >
+            <ChevronDown className="h-4 w-4 mr-2" />
+            Sort By
+            {sortField && (
+              <span className="ml-2 text-xs">
+                {sortDirection === "asc" ? "↑" : "↓"}
+              </span>
+            )}
+          </Button>
+          {sortDropdownOpen && (
+            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+              <div className="py-1">
+                <button
+                  onClick={() => {
+                    handleSort("trial_id");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "trial_id" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Trial ID</span>
+                    {sortField === "trial_id" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("therapeutic_area");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "therapeutic_area" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Therapeutic Area</span>
+                    {sortField === "therapeutic_area" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("disease_type");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "disease_type" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Disease Type</span>
+                    {sortField === "disease_type" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("primary_drug");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "primary_drug" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Primary Drug</span>
+                    {sortField === "primary_drug" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("trial_status");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "trial_status" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Trial Status</span>
+                    {sortField === "trial_status" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("sponsor");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "sponsor" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Sponsor</span>
+                    {sortField === "sponsor" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("phase");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "phase" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Phase</span>
+                    {sortField === "phase" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("enrollment");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "enrollment" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Enrollment</span>
+                    {sortField === "enrollment" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        {sortField && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSortField("");
+              setSortDirection("asc");
+            }}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            Clear Sort
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          onClick={() => setCustomizeColumnModalOpen(true)}
+          className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Customize Columns
+        </Button>
+      </div>
+
       <div className="rounded-xl border bg-card">
         {/* Desktop / larger screens → normal table */}
         <div className="hidden md:block">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead>Trial ID</TableHead>
+                {columnSettings.trialId && <TableHead>Trial ID</TableHead>}
                 <TableHead>Title</TableHead>
-                <TableHead>Clinical Trials</TableHead>
-                <TableHead>Disease Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Phase</TableHead>
-                <TableHead>Sponsor</TableHead>
+                {columnSettings.therapeuticArea && <TableHead>Clinical Trials</TableHead>}
+                {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
+                {columnSettings.trialStatus && <TableHead>Status</TableHead>}
+                {columnSettings.phase && <TableHead>Phase</TableHead>}
+                {columnSettings.sponsor && <TableHead>Sponsor</TableHead>}
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -765,25 +1135,37 @@ export default function AdminTherapeuticsPage() {
             <TableBody>
               {filteredTrials.map((trial) => (
                 <TableRow key={trial.trial_id} className="hover:bg-muted/40">
-                  <TableCell className="font-mono text-sm">
-                    {trial.trial_id.slice(0, 8)}...
-                  </TableCell>
+                  {columnSettings.trialId && (
+                    <TableCell className="font-mono text-sm">
+                      {trial.trial_id.slice(0, 8)}...
+                    </TableCell>
+                  )}
                   <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
                     {trial.overview.title || "Untitled"}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
-                  </TableCell>
-                  <TableCell>{trial.overview.disease_type || "N/A"}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(trial.overview.status)}>
-                      {trial.overview.status || "Unknown"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{trial.overview.trial_phase || "N/A"}</TableCell>
-                  <TableCell className="max-w-[150px] truncate">
-                    {trial.overview.sponsor_collaborators || "N/A"}
-                  </TableCell>
+                  {columnSettings.therapeuticArea && (
+                    <TableCell>
+                      <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
+                    </TableCell>
+                  )}
+                  {columnSettings.diseaseType && (
+                    <TableCell>{trial.overview.disease_type || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialStatus && (
+                    <TableCell>
+                      <Badge className={getStatusColor(trial.overview.status)}>
+                        {trial.overview.status || "Unknown"}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {columnSettings.phase && (
+                    <TableCell>{trial.overview.trial_phase || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.sponsor && (
+                    <TableCell className="max-w-[150px] truncate">
+                      {trial.overview.sponsor_collaborators || "N/A"}
+                    </TableCell>
+                  )}
                   <TableCell className="text-sm">{formatDate(trial.overview.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
@@ -889,6 +1271,14 @@ export default function AdminTherapeuticsPage() {
         open={queryHistoryModalOpen}
         onOpenChange={setQueryHistoryModalOpen}
         onLoadQuery={handleLoadQuery}
+      />
+
+      {/* Customize Column Modal */}
+      <CustomizeColumnModal
+        open={customizeColumnModalOpen}
+        onOpenChange={setCustomizeColumnModalOpen}
+        columnSettings={columnSettings}
+        onColumnSettingsChange={handleColumnSettingsChange}
       />
     </div>
   );

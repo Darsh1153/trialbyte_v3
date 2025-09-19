@@ -22,7 +22,7 @@ import { drugsApi } from "../../lib/api";
 import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit } from "lucide-react";
 import { DrugAdvancedSearchModal, DrugSearchCriteria } from "@/components/drug-advanced-search-modal";
 import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal";
-import { SaveQueryModal } from "@/components/save-query-modal";
+import { DrugSaveQueryModal } from "@/components/drug-save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
 
 // Types based on the new API response
@@ -263,12 +263,18 @@ export default function DrugsDashboardPage() {
   };
 
   // Handle load query from history
-  const handleLoadQuery = (query: any) => {
-    if (query.criteria) {
-      setAdvancedSearchCriteria(query.criteria);
+  const handleLoadQuery = (queryData: any) => {
+    if (queryData.searchCriteria && Array.isArray(queryData.searchCriteria)) {
+      setAdvancedSearchCriteria(queryData.searchCriteria);
       toast({
         title: "Query Loaded",
-        description: `Loaded query: ${query.name}`,
+        description: `Loaded query with ${queryData.searchCriteria.length} criteria`,
+      });
+    } else if (queryData.criteria && Array.isArray(queryData.criteria)) {
+      setAdvancedSearchCriteria(queryData.criteria);
+      toast({
+        title: "Query Loaded",
+        description: `Loaded query with ${queryData.criteria.length} criteria`,
       });
     }
   };
@@ -340,34 +346,91 @@ export default function DrugsDashboardPage() {
           fieldValue = drug.overview.is_approved ? "true" : "false";
           break;
         case "mechanism_of_action":
-          fieldValue = drug.activity.length > 0 ? (drug.activity[0].mechanism_of_action || "") : "";
+          fieldValue = drug.activity.map(a => a.mechanism_of_action).filter(Boolean).join(" ");
           break;
         case "biological_target":
-          fieldValue = drug.activity.length > 0 ? (drug.activity[0].biological_target || "") : "";
+          fieldValue = drug.activity.map(a => a.biological_target).filter(Boolean).join(" ");
           break;
         case "drug_technology":
-          fieldValue = drug.activity.length > 0 ? (drug.activity[0].drug_technology || "") : "";
+          fieldValue = drug.activity.map(a => a.drug_technology).filter(Boolean).join(" ");
           break;
         case "delivery_route":
-          fieldValue = drug.activity.length > 0 ? (drug.activity[0].delivery_route || "") : "";
+          fieldValue = drug.activity.map(a => a.delivery_route).filter(Boolean).join(" ");
           break;
         case "delivery_medium":
-          fieldValue = drug.activity.length > 0 ? (drug.activity[0].delivery_medium || "") : "";
+          fieldValue = drug.activity.map(a => a.delivery_medium).filter(Boolean).join(" ");
           break;
         case "company":
-          fieldValue = drug.devStatus.length > 0 ? (drug.devStatus[0].company || "") : "";
+          fieldValue = drug.devStatus.map(d => d.company).filter(Boolean).join(" ");
           break;
         case "company_type":
-          fieldValue = drug.devStatus.length > 0 ? (drug.devStatus[0].company_type || "") : "";
+          fieldValue = drug.devStatus.map(d => d.company_type).filter(Boolean).join(" ");
           break;
         case "status":
-          fieldValue = drug.devStatus.length > 0 ? (drug.devStatus[0].status || "") : "";
+          fieldValue = drug.devStatus.map(d => d.status).filter(Boolean).join(" ");
           break;
         case "created_at":
           fieldValue = drug.overview.created_at || "";
           break;
         case "updated_at":
           fieldValue = drug.overview.updated_at || "";
+          break;
+        case "drug_summary":
+          fieldValue = drug.overview.drug_summary || "";
+          break;
+        case "source_link":
+          fieldValue = drug.overview.source_link || "";
+          break;
+        case "agreement":
+          fieldValue = drug.licencesMarketing.map(l => l.agreement).filter(Boolean).join(" ");
+          break;
+        case "licensing_availability":
+          fieldValue = drug.licencesMarketing.map(l => l.licensing_availability).filter(Boolean).join(" ");
+          break;
+        case "marketing_approvals":
+          fieldValue = drug.licencesMarketing.map(l => l.marketing_approvals).filter(Boolean).join(" ");
+          break;
+        case "drug_changes_log":
+          fieldValue = drug.logs.map(l => l.drug_changes_log).filter(Boolean).join(" ");
+          break;
+        case "last_modified_user":
+          fieldValue = drug.logs.map(l => l.last_modified_user).filter(Boolean).join(" ");
+          break;
+        case "next_review_date":
+          fieldValue = drug.logs.map(l => l.next_review_date).filter(Boolean).join(" ");
+          break;
+        case "notes":
+          fieldValue = drug.logs.map(l => l.notes).filter(Boolean).join(" ");
+          break;
+        case "preclinical":
+          fieldValue = drug.development.map(d => d.preclinical).filter(Boolean).join(" ");
+          break;
+        case "trial_id":
+          fieldValue = drug.development.map(d => d.trial_id).filter(Boolean).join(" ");
+          break;
+        case "title":
+          fieldValue = drug.development.map(d => d.title).filter(Boolean).join(" ");
+          break;
+        case "primary_drugs":
+          fieldValue = drug.development.map(d => d.primary_drugs).filter(Boolean).join(" ");
+          break;
+        case "sponsor":
+          fieldValue = drug.development.map(d => d.sponsor).filter(Boolean).join(" ");
+          break;
+        case "therapeutic_class":
+          fieldValue = drug.devStatus.map(d => d.therapeutic_class).filter(Boolean).join(" ");
+          break;
+        case "reference":
+          fieldValue = drug.devStatus.map(d => d.reference).filter(Boolean).join(" ");
+          break;
+        case "data":
+          fieldValue = drug.otherSources.map(o => o.data).filter(Boolean).join(" ");
+          break;
+        case "full_review_user":
+          fieldValue = drug.logs.map(l => l.full_review_user).filter(Boolean).join(" ");
+          break;
+        case "created_date":
+          fieldValue = drug.logs.map(l => l.created_date).filter(Boolean).join(" ");
           break;
         default:
           fieldValue = "";
@@ -394,8 +457,12 @@ export default function DrugsDashboardPage() {
           return targetValue !== searchValue;
         case "greater_than":
           return parseFloat(fieldValue) > parseFloat(value);
+        case "greater_than_or_equal":
+          return parseFloat(fieldValue) >= parseFloat(value);
         case "less_than":
           return parseFloat(fieldValue) < parseFloat(value);
+        case "less_than_or_equal":
+          return parseFloat(fieldValue) <= parseFloat(value);
         default:
           return true;
       }
@@ -531,6 +598,14 @@ export default function DrugsDashboardPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setSaveQueryModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Save Query
+          </Button>
           <Button
             variant="outline"
             onClick={() => setQueryHistoryModalOpen(true)}
@@ -714,10 +789,10 @@ export default function DrugsDashboardPage() {
       />
 
       {/* Save Query Modal */}
-      <SaveQueryModal
+      <DrugSaveQueryModal
         open={saveQueryModalOpen}
         onOpenChange={setSaveQueryModalOpen}
-        currentFilters={appliedFilters as any}
+        currentFilters={appliedFilters}
         currentSearchCriteria={advancedSearchCriteria}
         searchTerm={searchTerm}
       />

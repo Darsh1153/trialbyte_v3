@@ -69,6 +69,9 @@ export interface TherapeuticFormData {
     site_countries: string[];
     site_regions: string[];
     site_contact_info: string[];
+    results_available: boolean;
+    endpoints_met: boolean;
+    adverse_events_reported: boolean;
   };
 
   // Step 5-6: Timeline & Milestones
@@ -91,17 +94,58 @@ export interface TherapeuticFormData {
     statistical_significance: string;
     adverse_events: string[];
     conclusion: string;
-    pipeline_data: string[];
-    press_releases: string[];
-    publications: string[];
-    trial_registries: string[];
-    associated_studies: string[];
+    pipeline_data: Array<{
+      id: string;
+      date: string;
+      information: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    press_releases: Array<{
+      id: string;
+      date: string;
+      title: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    publications: Array<{
+      id: string;
+      type: string;
+      title: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    trial_registries: Array<{
+      id: string;
+      registry: string;
+      identifier: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    associated_studies: Array<{
+      id: string;
+      type: string;
+      title: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
   };
 
   // Step 5-8: Notes & Documentation
   step5_8: {
     date_type: string;
-    notes: string;
+    notes: Array<{
+      id: string;
+      date: string;
+      content: string;
+      link: string;
+      isVisible: boolean;
+    }>;
     link: string;
   };
 }
@@ -164,6 +208,9 @@ const initialFormState: TherapeuticFormData = {
     site_countries: [""],
     site_regions: [""],
     site_contact_info: [""],
+    results_available: false,
+    endpoints_met: false,
+    adverse_events_reported: false,
   },
   step5_6: {
     study_start_date: "",
@@ -182,15 +229,50 @@ const initialFormState: TherapeuticFormData = {
     statistical_significance: "",
     adverse_events: [""],
     conclusion: "",
-    pipeline_data: [""],
-    press_releases: [""],
-    publications: [""],
-    trial_registries: [""],
-    associated_studies: [""],
+    pipeline_data: [{
+      id: "1",
+      date: "",
+      information: "",
+      url: "",
+      file: "",
+      isVisible: true,
+    }],
+    press_releases: [{
+      id: "1",
+      date: "",
+      title: "",
+      url: "",
+      file: "",
+      isVisible: true,
+    }],
+    publications: [{
+      id: "1",
+      type: "",
+      title: "",
+      url: "",
+      file: "",
+      isVisible: true,
+    }],
+    trial_registries: [{
+      id: "1",
+      registry: "",
+      identifier: "",
+      url: "",
+      file: "",
+      isVisible: true,
+    }],
+    associated_studies: [{
+      id: "1",
+      type: "",
+      title: "",
+      url: "",
+      file: "",
+      isVisible: true,
+    }],
   },
   step5_8: {
     date_type: "",
-    notes: "",
+    notes: [],
     link: "",
   },
 };
@@ -324,9 +406,35 @@ interface TherapeuticFormContextType {
     index: number,
     value: string
   ) => void;
+  addComplexArrayItem: (step: keyof TherapeuticFormData, field: string, template: any) => void;
+  updateComplexArrayItem: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: any
+  ) => void;
+  toggleArrayItemVisibility: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => void;
+  addNote: (step: keyof TherapeuticFormData, field: string) => void;
+  updateNote: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => void;
+  removeNote: (step: keyof TherapeuticFormData, field: string, index: number) => void;
+  toggleNoteVisibility: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => void;
   resetForm: () => void;
   loadForm: (data: TherapeuticFormData) => void;
   getFormData: () => TherapeuticFormData;
+  saveTrial: () => Promise<{ success: boolean; message: string; trialId?: string }>;
 }
 
 // Create the context
@@ -374,6 +482,127 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value });
   };
 
+  const addComplexArrayItem = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    template: any
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newItem = {
+      ...template,
+      id: Date.now().toString(),
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newItem],
+    });
+  };
+
+  const updateComplexArrayItem = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: any
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleArrayItemVisibility = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  // Note management functions
+  const addNote = (step: keyof TherapeuticFormData, field: string) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newNote = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split("T")[0],
+      content: "",
+      link: "",
+      isVisible: true,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newNote],
+    });
+  };
+
+  const updateNote = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const removeNote = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.filter((_, idx) => idx !== index);
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleNoteVisibility = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
   const resetForm = () => {
     dispatch({ type: "RESET_FORM" });
   };
@@ -384,6 +613,177 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
 
   const getFormData = () => formData;
 
+  // Helper functions for data transformation
+  const ensureString = (value: any): string => {
+    return value ? String(value).trim() : "";
+  };
+
+  const ensureNumber = (value: any, defaultValue: number = 0): number => {
+    const num = parseInt(String(value));
+    return isNaN(num) ? defaultValue : num;
+  };
+
+  const saveTrial = async (): Promise<{ success: boolean; message: string; trialId?: string }> => {
+    try {
+      const allFormData = getFormData();
+      
+      // Check if API base URL is configured
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      if (!apiBaseUrl) {
+        throw new Error("API base URL is not configured. Please check your environment variables.");
+      }
+      
+      console.log("API Base URL:", apiBaseUrl);
+      
+      // Transform the form data to match the API structure
+      const therapeuticPayload = {
+        user_id: "admin", // Admin user ID
+        overview: {
+          therapeutic_area: ensureString(allFormData.step5_1.therapeutic_area),
+          trial_identifier: allFormData.step5_1.trial_identifier.filter(Boolean),
+          trial_phase: ensureString(allFormData.step5_1.trial_phase),
+          status: ensureString(allFormData.step5_1.status),
+          primary_drugs: ensureString(allFormData.step5_1.primary_drugs),
+          other_drugs: ensureString(allFormData.step5_1.other_drugs),
+          title: ensureString(allFormData.step5_1.title),
+          disease_type: ensureString(allFormData.step5_1.disease_type),
+          patient_segment: ensureString(allFormData.step5_1.patient_segment),
+          line_of_therapy: ensureString(allFormData.step5_1.line_of_therapy),
+          reference_links: allFormData.step5_1.reference_links.filter(Boolean),
+          trial_tags: ensureString(allFormData.step5_1.trial_tags),
+          sponsor_collaborators: ensureString(allFormData.step5_1.sponsor_collaborators),
+          sponsor_field_activity: ensureString(allFormData.step5_1.sponsor_field_activity),
+          associated_cro: ensureString(allFormData.step5_1.associated_cro),
+          countries: ensureString(allFormData.step5_1.countries),
+          region: ensureString(allFormData.step5_1.region),
+          trial_record_status: ensureString(allFormData.step5_1.trial_record_status),
+        },
+        outcome: {
+          purpose_of_trial: ensureString(allFormData.step5_2.purpose_of_trial),
+          summary: ensureString(allFormData.step5_2.summary),
+          primary_outcome_measure: allFormData.step5_2.primaryOutcomeMeasures.filter(Boolean).join(", ") || "",
+          other_outcome_measure: allFormData.step5_2.otherOutcomeMeasures.filter(Boolean).join(", ") || "",
+          study_design_keywords: ensureString(allFormData.step5_2.study_design_keywords),
+          study_design: ensureString(allFormData.step5_2.study_design),
+          treatment_regimen: ensureString(allFormData.step5_2.treatment_regimen),
+          number_of_arms: ensureNumber(allFormData.step5_2.number_of_arms, 1),
+        },
+        criteria: {
+          inclusion_criteria: allFormData.step5_3.inclusion_criteria.filter(Boolean).join("; ") || "",
+          exclusion_criteria: allFormData.step5_3.exclusion_criteria.filter(Boolean).join("; ") || "",
+          age_from: ensureString(allFormData.step5_3.age_min),
+          age_to: ensureString(allFormData.step5_3.age_max),
+          sex: ensureString(allFormData.step5_3.gender),
+          healthy_volunteers: allFormData.step5_3.biomarker_requirements[0] || "",
+          subject_type: allFormData.step5_3.prior_treatments[0] || "",
+          target_no_volunteers: ensureNumber(allFormData.step5_4.estimated_enrollment, 0),
+          actual_enrolled_volunteers: ensureNumber(allFormData.step5_4.actual_enrollment, 0),
+        },
+        population: {
+          estimated_enrollment: ensureString(allFormData.step5_4.estimated_enrollment),
+          actual_enrollment: ensureString(allFormData.step5_4.actual_enrollment),
+          enrollment_status: ensureString(allFormData.step5_4.enrollment_status),
+          recruitment_period: ensureString(allFormData.step5_4.recruitment_period),
+          study_completion_date: ensureString(allFormData.step5_4.study_completion_date),
+          primary_completion_date: ensureString(allFormData.step5_4.primary_completion_date),
+          population_description: ensureString(allFormData.step5_4.population_description),
+        },
+        sites: {
+          study_sites: allFormData.step5_5.study_sites.filter(Boolean),
+          principal_investigators: allFormData.step5_5.principal_investigators.filter(Boolean),
+          site_status: ensureString(allFormData.step5_5.site_status),
+          site_countries: allFormData.step5_5.site_countries.filter(Boolean),
+          site_regions: allFormData.step5_5.site_regions.filter(Boolean),
+          site_contact_info: allFormData.step5_5.site_contact_info.filter(Boolean),
+          results_available: allFormData.step5_5.results_available || false,
+          endpoints_met: allFormData.step5_5.endpoints_met || false,
+          adverse_events_reported: allFormData.step5_5.adverse_events_reported || false,
+        },
+        timing: {
+          study_start_date: ensureString(allFormData.step5_6.study_start_date),
+          first_patient_in: ensureString(allFormData.step5_6.first_patient_in),
+          last_patient_in: ensureString(allFormData.step5_6.last_patient_in),
+          study_end_date: ensureString(allFormData.step5_6.study_end_date),
+          interim_analysis_dates: allFormData.step5_6.interim_analysis_dates.filter(Boolean),
+          final_analysis_date: ensureString(allFormData.step5_6.final_analysis_date),
+          regulatory_submission_date: ensureString(allFormData.step5_6.regulatory_submission_date),
+        },
+        results: {
+          primary_endpoint_results: ensureString(allFormData.step5_7.primary_endpoint_results),
+          secondary_endpoint_results: allFormData.step5_7.secondary_endpoint_results.filter(Boolean),
+          safety_results: ensureString(allFormData.step5_7.safety_results),
+          efficacy_results: ensureString(allFormData.step5_7.efficacy_results),
+          statistical_significance: ensureString(allFormData.step5_7.statistical_significance),
+          adverse_events: allFormData.step5_7.adverse_events.filter(Boolean),
+          conclusion: ensureString(allFormData.step5_7.conclusion),
+        },
+        other_sources: {
+          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information)),
+          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title)),
+          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.type || item.title)),
+          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.registry || item.identifier)),
+          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.type || item.title)),
+        },
+        notes: {
+          date_type: ensureString(allFormData.step5_8.date_type),
+          notes: allFormData.step5_8.notes.filter(note => note.isVisible && note.content).map(note => ({
+            date: note.date,
+            content: note.content,
+            link: note.link
+          })),
+          link: ensureString(allFormData.step5_8.link),
+        },
+      };
+
+      const fullUrl = `${apiBaseUrl}/api/v1/therapeutic/create-therapeutic`;
+      console.log("Making request to:", fullUrl);
+      console.log("Payload:", therapeuticPayload);
+      
+      const response = await fetch(fullUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(therapeuticPayload),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Failed to create therapeutic trial";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (jsonError) {
+          // If response is not JSON (e.g., HTML error page), get text
+          const errorText = await response.text();
+          console.error("Non-JSON error response:", errorText);
+          errorMessage = `Server error (${response.status}): ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        console.error("Failed to parse JSON response:", jsonError);
+        throw new Error("Invalid response format from server");
+      }
+
+      return {
+        success: true,
+        message: "Therapeutic trial created successfully!",
+        trialId: result.trial_id,
+      };
+    } catch (error) {
+      console.error("Error creating trial:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to create therapeutic trial",
+      };
+    }
+  };
+
   const value: TherapeuticFormContextType = {
     formData,
     updateStep,
@@ -391,9 +791,17 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     addArrayItem,
     removeArrayItem,
     updateArrayItem,
+    addComplexArrayItem,
+    updateComplexArrayItem,
+    toggleArrayItemVisibility,
+    addNote,
+    updateNote,
+    removeNote,
+    toggleNoteVisibility,
     resetForm,
     loadForm,
     getFormData,
+    saveTrial,
   };
 
   return (

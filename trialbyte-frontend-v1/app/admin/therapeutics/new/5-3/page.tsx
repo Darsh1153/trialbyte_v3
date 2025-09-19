@@ -9,9 +9,13 @@ import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function TherapeuticsStep5_3() {
-  const { formData, updateField } = useTherapeuticForm();
+  const { formData, updateField, saveTrial } = useTherapeuticForm();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_3;
 
   // Age From/To Options (0-150)
@@ -42,6 +46,34 @@ export default function TherapeuticsStep5_3() {
     { value: "no_information", label: "No Information" },
   ];
 
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      const result = await saveTrial();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save trial. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <FormProgress currentStep={3} />
@@ -54,8 +86,10 @@ export default function TherapeuticsStep5_3() {
         <Button
           className="text-white font-medium px-6 py-2"
           style={{ backgroundColor: "#204B73" }}
+          onClick={handleSaveChanges}
+          disabled={isSaving}
         >
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 

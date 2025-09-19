@@ -18,6 +18,8 @@ import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useDrugNames } from "@/hooks/use-drug-names";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function TherapeuticsStep5_1() {
   const {
@@ -26,9 +28,203 @@ export default function TherapeuticsStep5_1() {
     addArrayItem,
     removeArrayItem,
     updateArrayItem,
+    saveTrial,
   } = useTherapeuticForm();
   const { getPrimaryDrugsOptions } = useDrugNames();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_1;
+
+  // Helper functions for hierarchical dropdowns
+  const getDiseaseTypeOptions = (): SearchableSelectOption[] => {
+    if (!form.therapeutic_area) {
+      return diseaseTypeOptions; // Return all options if no therapeutic area selected
+    }
+    
+    const therapeuticAreaData = hierarchicalData[form.therapeutic_area as keyof typeof hierarchicalData];
+    if (therapeuticAreaData?.diseaseTypes) {
+      return therapeuticAreaData.diseaseTypes;
+    }
+    
+    return diseaseTypeOptions; // Fallback to all options
+  };
+
+  const getPatientSegmentOptions = (): SearchableSelectOption[] => {
+    if (!form.therapeutic_area) {
+      return patientSegmentOptions; // Return all options if no therapeutic area selected
+    }
+    
+    const therapeuticAreaData = hierarchicalData[form.therapeutic_area as keyof typeof hierarchicalData];
+    if (!therapeuticAreaData?.patientSegments) {
+      return patientSegmentOptions; // Fallback to all options
+    }
+    
+    if (!form.disease_type) {
+      return therapeuticAreaData.patientSegments.default || patientSegmentOptions;
+    }
+    
+    const diseaseTypeSegments = therapeuticAreaData.patientSegments[form.disease_type as keyof typeof therapeuticAreaData.patientSegments];
+    if (diseaseTypeSegments) {
+      return diseaseTypeSegments;
+    }
+    
+    return therapeuticAreaData.patientSegments.default || patientSegmentOptions;
+  };
+
+  // Handle therapeutic area change
+  const handleTherapeuticAreaChange = (value: string) => {
+    updateField("step5_1", "therapeutic_area", value);
+    // Clear dependent fields when therapeutic area changes
+    updateField("step5_1", "disease_type", "");
+    updateField("step5_1", "patient_segment", "");
+  };
+
+  // Handle disease type change
+  const handleDiseaseTypeChange = (value: string) => {
+    updateField("step5_1", "disease_type", value);
+    // Clear patient segment when disease type changes
+    updateField("step5_1", "patient_segment", "");
+  };
+
+  // Hierarchical data structure for cascading dropdowns
+  const hierarchicalData = {
+    oncology: {
+      diseaseTypes: [
+        { value: "breast", label: "Breast" },
+        { value: "lung_non_small_cell", label: "Lung Non-small cell" },
+        { value: "lung_small_cell", label: "Lung Small Cell" },
+        { value: "colorectal", label: "Colorectal" },
+        { value: "prostate", label: "Prostate" },
+        { value: "ovarian", label: "Ovarian" },
+        { value: "pancreas", label: "Pancreas" },
+        { value: "liver", label: "Liver" },
+        { value: "gastric", label: "Gastric" },
+        { value: "bladder", label: "Bladder" },
+        { value: "renal", label: "Renal" },
+        { value: "melanoma", label: "Melanoma" },
+        { value: "cervical", label: "Cervical" },
+        { value: "endometrial", label: "Endometrial" },
+        { value: "head_neck", label: "Head/Neck" },
+        { value: "thyroid", label: "Thyroid" },
+        { value: "brain_tumors", label: "Brain Tumors" },
+        { value: "leukemia", label: "Leukemia" },
+        { value: "lymphoma", label: "Lymphoma" },
+        { value: "multiple_myeloma", label: "Multiple Myeloma" },
+      ],
+      patientSegments: {
+        breast: [
+          { value: "early_stage", label: "Early Stage" },
+          { value: "locally_advanced", label: "Locally Advanced" },
+          { value: "metastatic", label: "Metastatic" },
+          { value: "triple_negative", label: "Triple Negative" },
+          { value: "her2_positive", label: "HER2 Positive" },
+          { value: "hormone_receptor_positive", label: "Hormone Receptor Positive" },
+        ],
+        lung_non_small_cell: [
+          { value: "stage_i", label: "Stage I" },
+          { value: "stage_ii", label: "Stage II" },
+          { value: "stage_iii", label: "Stage III" },
+          { value: "stage_iv", label: "Stage IV" },
+          { value: "squamous", label: "Squamous" },
+          { value: "adenocarcinoma", label: "Adenocarcinoma" },
+        ],
+        colorectal: [
+          { value: "stage_i", label: "Stage I" },
+          { value: "stage_ii", label: "Stage II" },
+          { value: "stage_iii", label: "Stage III" },
+          { value: "stage_iv", label: "Stage IV" },
+          { value: "msi_high", label: "MSI-High" },
+          { value: "msi_stable", label: "MSI-Stable" },
+        ],
+        prostate: [
+          { value: "localized", label: "Localized" },
+          { value: "locally_advanced", label: "Locally Advanced" },
+          { value: "metastatic", label: "Metastatic" },
+          { value: "castration_sensitive", label: "Castration Sensitive" },
+          { value: "castration_resistant", label: "Castration Resistant" },
+        ],
+        ovarian: [
+          { value: "stage_i", label: "Stage I" },
+          { value: "stage_ii", label: "Stage II" },
+          { value: "stage_iii", label: "Stage III" },
+          { value: "stage_iv", label: "Stage IV" },
+          { value: "platinum_sensitive", label: "Platinum Sensitive" },
+          { value: "platinum_resistant", label: "Platinum Resistant" },
+        ],
+        // Default oncology segments
+        default: [
+          { value: "early_stage", label: "Early Stage" },
+          { value: "locally_advanced", label: "Locally Advanced" },
+          { value: "metastatic", label: "Metastatic" },
+          { value: "first_line", label: "First Line" },
+          { value: "second_line", label: "Second Line" },
+          { value: "adjuvant", label: "Adjuvant" },
+        ],
+      },
+    },
+    cardiovascular: {
+      diseaseTypes: [
+        { value: "heart_failure", label: "Heart Failure" },
+        { value: "coronary_artery_disease", label: "Coronary Artery Disease" },
+        { value: "hypertension", label: "Hypertension" },
+        { value: "atrial_fibrillation", label: "Atrial Fibrillation" },
+        { value: "stroke", label: "Stroke" },
+        { value: "peripheral_artery_disease", label: "Peripheral Artery Disease" },
+      ],
+      patientSegments: {
+        heart_failure: [
+          { value: "hfref", label: "HFrEF (Reduced Ejection Fraction)" },
+          { value: "hfpef", label: "HFpEF (Preserved Ejection Fraction)" },
+          { value: "acute_decompensated", label: "Acute Decompensated" },
+          { value: "chronic_stable", label: "Chronic Stable" },
+        ],
+        coronary_artery_disease: [
+          { value: "stable_angina", label: "Stable Angina" },
+          { value: "unstable_angina", label: "Unstable Angina" },
+          { value: "mi", label: "Myocardial Infarction" },
+          { value: "post_pci", label: "Post-PCI" },
+        ],
+        default: [
+          { value: "mild", label: "Mild" },
+          { value: "moderate", label: "Moderate" },
+          { value: "severe", label: "Severe" },
+          { value: "acute", label: "Acute" },
+          { value: "chronic", label: "Chronic" },
+        ],
+      },
+    },
+    autoimmune: {
+      diseaseTypes: [
+        { value: "rheumatoid_arthritis", label: "Rheumatoid Arthritis" },
+        { value: "lupus", label: "Systemic Lupus Erythematosus" },
+        { value: "crohns", label: "Crohn's Disease" },
+        { value: "ulcerative_colitis", label: "Ulcerative Colitis" },
+        { value: "psoriasis", label: "Psoriasis" },
+        { value: "multiple_sclerosis", label: "Multiple Sclerosis" },
+      ],
+      patientSegments: {
+        rheumatoid_arthritis: [
+          { value: "early_ra", label: "Early RA" },
+          { value: "established_ra", label: "Established RA" },
+          { value: "seropositive", label: "Seropositive" },
+          { value: "seronegative", label: "Seronegative" },
+        ],
+        lupus: [
+          { value: "mild_moderate", label: "Mild-Moderate" },
+          { value: "severe", label: "Severe" },
+          { value: "lupus_nephritis", label: "Lupus Nephritis" },
+          { value: "cutaneous_lupus", label: "Cutaneous Lupus" },
+        ],
+        default: [
+          { value: "mild", label: "Mild" },
+          { value: "moderate", label: "Moderate" },
+          { value: "severe", label: "Severe" },
+          { value: "refractory", label: "Refractory" },
+        ],
+      },
+    },
+    // Add more therapeutic areas as needed
+  };
 
   // Options for searchable dropdowns
   const therapeuticAreaOptions: SearchableSelectOption[] = [
@@ -267,6 +463,34 @@ export default function TherapeuticsStep5_1() {
   const updateReferenceLink = (index: number, value: string) =>
     updateArrayItem("step5_1", "reference_links", index, value);
 
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      const result = await saveTrial();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save trial. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <FormProgress currentStep={1} />
@@ -282,8 +506,10 @@ export default function TherapeuticsStep5_1() {
         <Button 
           className="text-white font-medium px-6 py-2"
           style={{ backgroundColor: '#204B73' }}
+          onClick={handleSaveChanges}
+          disabled={isSaving}
         >
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
@@ -296,9 +522,7 @@ export default function TherapeuticsStep5_1() {
               <SearchableSelect
                 options={therapeuticAreaOptions}
                 value={form.therapeutic_area}
-                onValueChange={(v) =>
-                  updateField("step5_1", "therapeutic_area", v)
-                }
+                onValueChange={handleTherapeuticAreaChange}
                 placeholder="Select Clinical Trials"
                 searchPlaceholder="Search therapeutic areas..."
                 emptyMessage="No therapeutic area found."
@@ -316,8 +540,8 @@ export default function TherapeuticsStep5_1() {
                         updateTrialIdentifier(idx, e.target.value)
                       }
                       placeholder="#807996"
-                      rows={2}
-                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      rows={1}
+                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10"
                     />
                     {idx === 0 ? (
                       <Button
@@ -412,9 +636,9 @@ export default function TherapeuticsStep5_1() {
             <div className="space-y-2">
               <Label>Disease Type</Label>
               <SearchableSelect
-                options={diseaseTypeOptions}
+                options={getDiseaseTypeOptions()}
                 value={form.disease_type}
-                onValueChange={(v) => updateField("step5_1", "disease_type", v)}
+                onValueChange={handleDiseaseTypeChange}
                 placeholder="Select disease type"
                 searchPlaceholder="Search disease types..."
                 emptyMessage="No disease type found."
@@ -424,7 +648,7 @@ export default function TherapeuticsStep5_1() {
             <div className="space-y-2">
               <Label>Patient Segment</Label>
               <SearchableSelect
-                options={patientSegmentOptions}
+                options={getPatientSegmentOptions()}
                 value={form.patient_segment}
                 onValueChange={(v) =>
                   updateField("step5_1", "patient_segment", v)
@@ -462,8 +686,8 @@ export default function TherapeuticsStep5_1() {
                       value={val}
                       onChange={(e) => updateReferenceLink(idx, e.target.value)}
                       placeholder="https://..."
-                      rows={2}
-                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      rows={1}
+                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10"
                     />
                     {idx === 0 ? (
                       <Button

@@ -30,7 +30,22 @@ export default function FormProgress({ currentStep }: FormProgressProps) {
 
     return Object.values(stepData).some((value) => {
       if (Array.isArray(value)) {
-        return value.some((item) => item && item.trim() !== "");
+        return value.some((item) => {
+          if (typeof item === 'string') {
+            return item && item.trim() !== "";
+          } else if (typeof item === 'object' && item !== null) {
+            // Handle complex objects (like in step5_7)
+            return Object.values(item).some((fieldValue) => {
+              if (typeof fieldValue === 'string') {
+                return fieldValue && fieldValue.trim() !== "";
+              } else if (typeof fieldValue === 'boolean') {
+                return fieldValue; // Include boolean fields like isVisible
+              }
+              return false;
+            });
+          }
+          return false;
+        });
       }
       return value && value.toString().trim() !== "";
     });

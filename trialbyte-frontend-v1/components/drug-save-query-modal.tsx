@@ -8,26 +8,26 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, AlertCircle } from "lucide-react"
-import { TherapeuticFilterState } from "./therapeutic-filter-modal"
-import { TherapeuticSearchCriteria } from "./therapeutic-advanced-search-modal"
+import { DrugFilterState } from "./drug-filter-modal"
+import { DrugSearchCriteria } from "./drug-advanced-search-modal"
 
-interface SaveQueryModalProps {
+interface DrugSaveQueryModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSaveSuccess?: () => void
-  currentFilters: TherapeuticFilterState
-  currentSearchCriteria: TherapeuticSearchCriteria[]
+  currentFilters: DrugFilterState
+  currentSearchCriteria: DrugSearchCriteria[]
   searchTerm?: string
 }
 
-export function SaveQueryModal({ 
+export function DrugSaveQueryModal({ 
   open, 
   onOpenChange, 
   onSaveSuccess,
   currentFilters,
   currentSearchCriteria,
   searchTerm = ""
-}: SaveQueryModalProps) {
+}: DrugSaveQueryModalProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -96,7 +96,7 @@ export function SaveQueryModal({
       const requestBody = {
         title: title.trim(),
         description: description.trim() || null,
-        query_type: "dashboard",
+        query_type: "drug_dashboard",
         query_data: queryData,
         filters: currentFilters
         // user_id and trial_id are now optional for dashboard queries
@@ -138,7 +138,7 @@ export function SaveQueryModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Save Current Query</DialogTitle>
+          <DialogTitle>Save Current Drug Query</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">

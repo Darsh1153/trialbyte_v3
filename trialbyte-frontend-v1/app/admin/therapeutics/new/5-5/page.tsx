@@ -12,11 +12,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export default function TherapeuticsStep5_5() {
-  const { formData, updateField } = useTherapeuticForm();
+  const { formData, updateField, saveTrial } = useTherapeuticForm();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_5;
 
   // Local state for searchable dropdowns
@@ -24,9 +27,52 @@ export default function TherapeuticsStep5_5() {
   const [openAdverseReported, setOpenAdverseReported] = useState(false);
   const [openAdverseType, setOpenAdverseType] = useState(false);
 
-  const outcomes = ["Positive", "Negative", "Neutral"];
+  const outcomes = [
+    "Completed – Primary endpoints met.",
+    "Completed – Primary endpoints not met.",
+    "Completed – Outcome unknown",
+    "Completed – Outcome indeterminate",
+    "Terminated – Safety/adverse effects",
+    "Terminated – Lack of efficacy",
+    "Terminated – Insufficient enrolment",
+    "Terminated – Business Decision, Drug strategy shift",
+    "Terminated - Business Decision, Pipeline Reprioritization",
+    "Terminated - Business Decision, Other",
+    "Terminated – Lack of funding",
+    "Terminated – Planned but never initiated",
+    "Terminated – Other",
+    "Terminated – Unknown"
+  ];
   const adverseReported = ["Yes", "No"];
   const adverseTypes = ["Mild", "Moderate", "Severe"];
+
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      const result = await saveTrial();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save trial. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -40,8 +86,10 @@ export default function TherapeuticsStep5_5() {
         <Button
           className="text-white font-medium px-6 py-2"
           style={{ backgroundColor: "#204B73" }}
+          onClick={handleSaveChanges}
+          disabled={isSaving}
         >
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
@@ -52,27 +100,27 @@ export default function TherapeuticsStep5_5() {
             <div className="flex items-center gap-2">
               <Label>Results Available</Label>
               <Switch
-                checked={form.site_status === "available" || false}
+                checked={form.results_available || false}
                 onCheckedChange={(val) =>
-                  updateField("step5_5", "site_status", val ? "available" : "unavailable")
+                  updateField("step5_5", "results_available", val)
                 }
               />
             </div>
             <div className="flex items-center gap-2">
               <Label>Endpoints met</Label>
               <Switch
-                checked={form.site_status === "endpoints_met" || false}
+                checked={form.endpoints_met || false}
                 onCheckedChange={(val) =>
-                  updateField("step5_5", "site_status", val ? "endpoints_met" : "not_met")
+                  updateField("step5_5", "endpoints_met", val)
                 }
               />
             </div>
             <div className="flex items-center gap-2">
               <Label>Adverse Events Reported</Label>
               <Switch
-                checked={form.site_status === "adverse_reported" || false}
+                checked={form.adverse_events_reported || false}
                 onCheckedChange={(val) =>
-                  updateField("step5_5", "site_status", val ? "adverse_reported" : "no_adverse")
+                  updateField("step5_5", "adverse_events_reported", val)
                 }
               />
             </div>
