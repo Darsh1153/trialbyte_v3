@@ -17,9 +17,24 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { drugsApi } from "../../lib/api";
-import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit } from "lucide-react";
+import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, RefreshCw } from "lucide-react";
 import { DrugAdvancedSearchModal, DrugSearchCriteria } from "@/components/drug-advanced-search-modal";
 import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal";
 import { DrugSaveQueryModal } from "@/components/drug-save-query-modal";
@@ -127,6 +142,7 @@ export default function DrugsDashboardPage() {
   const router = useRouter();
   const [drugs, setDrugs] = useState<DrugData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [deletingDrugs, setDeletingDrugs] = useState<Record<string, boolean>>(
     {}
@@ -153,6 +169,10 @@ export default function DrugsDashboardPage() {
   });
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Filter function to show only the latest version of each record
   const filterLatestVersions = (drugs: DrugData[]) => {
@@ -176,18 +196,30 @@ export default function DrugsDashboardPage() {
   };
 
   // Fetch drugs data
-  const fetchDrugs = async () => {
+  const fetchDrugs = async (isRefresh = false) => {
     try {
-      setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`
-      );
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      
+      // Add cache-busting parameter for refresh
+      const url = isRefresh 
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data?t=${Date.now()}`
+        : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`;
+        
+      const response = await fetch(url);
       const data: ApiResponse = await response.json();
       const allDrugs = data.drugs || [];
       
       // Filter out old versions and only show the latest version of each record
       const filteredDrugs = filterLatestVersions(allDrugs);
       setDrugs(filteredDrugs);
+      
+      if (isRefresh) {
+        console.log('Drugs data refreshed successfully');
+      }
     } catch (error) {
       console.error("Error fetching drugs:", error);
       toast({
@@ -197,6 +229,26 @@ export default function DrugsDashboardPage() {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Check for updated drugs and refresh if needed
+  const checkForUpdates = () => {
+    const updatedDrugs = localStorage.getItem('updatedDrugs');
+    if (updatedDrugs) {
+      try {
+        const updatedDrugIds = JSON.parse(updatedDrugs);
+        if (updatedDrugIds.length > 0) {
+          console.log('Found updated drugs, refreshing table:', updatedDrugIds);
+          fetchDrugs(true); // Use refresh mode
+          // Clear the updated drugs list
+          localStorage.removeItem('updatedDrugs');
+        }
+      } catch (error) {
+        console.error('Error parsing updated drugs:', error);
+        localStorage.removeItem('updatedDrugs');
+      }
     }
   };
 
@@ -533,8 +585,80 @@ export default function DrugsDashboardPage() {
     return matchesSearchTerm && matchesAdvancedSearch && matchesFilters;
   });
 
+  // Pagination logic
+  const totalItems = filteredDrugs.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDrugs = filteredDrugs.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, advancedSearchCriteria, appliedFilters, itemsPerPage]);
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
   useEffect(() => {
     fetchDrugs();
+  }, []);
+
+  // Check for URL refresh parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refresh') === 'true') {
+      console.log('Refresh parameter detected, refreshing data...');
+      fetchDrugs(true);
+      // Remove the refresh parameter from URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
+
+  // Check for updates when component mounts or when user returns to page
+  useEffect(() => {
+    checkForUpdates();
+  }, []);
+
+  // Also check for updates when the page becomes visible (user returns from edit page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        checkForUpdates();
+      }
+    };
+
+    const handleFocus = () => {
+      checkForUpdates();
+    };
+
+    const handleDrugUpdated = (event: CustomEvent) => {
+      console.log('Drug updated event received:', event.detail);
+      fetchDrugs(true);
+      toast({
+        title: "Data Refreshed",
+        description: "Drug data has been updated and refreshed.",
+        duration: 3000,
+      });
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('drugUpdated', handleDrugUpdated as EventListener);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('drugUpdated', handleDrugUpdated as EventListener);
+    };
   }, []);
 
   // Format date for display
@@ -630,6 +754,19 @@ export default function DrugsDashboardPage() {
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => fetchDrugs(true)}
+            disabled={loading || refreshing}
+            className="flex items-center gap-2"
+          >
+            {refreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            Refresh
+          </Button>
           <Button onClick={() => router.push("/admin/drugs/new")}>
             <Plus className="h-4 w-4 mr-2" />
             New Drug
@@ -680,23 +817,28 @@ export default function DrugsDashboardPage() {
       </div>
 
       <div className="rounded-xl border bg-card">
+        {refreshing && (
+          <div className="flex items-center justify-center py-2 bg-blue-50 border-b">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <span className="text-sm text-blue-600">Refreshing data...</span>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead>Drug ID</TableHead>
                 <TableHead>Drug Name</TableHead>
-                <TableHead>Global Status</TableHead>
-                <TableHead>Originator</TableHead>
+                <TableHead>Generic Name</TableHead>
+                <TableHead>Therapeutic Area</TableHead>
                 <TableHead>Disease Type</TableHead>
-                <TableHead>Development Status</TableHead>
-
+                <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDrugs.map((drug) => (
+              {paginatedDrugs.map((drug) => (
                 <TableRow key={drug.drug_over_id} className="hover:bg-muted/40">
                   <TableCell className="font-mono text-sm">
                     {drug.drug_over_id?.slice(0, 8)}...
@@ -767,11 +909,85 @@ export default function DrugsDashboardPage() {
               ))}
             </TableBody>
             <TableCaption>
-              Showing {filteredDrugs.length} of {drugs.length} drugs
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} drugs
             </TableCaption>
           </Table>
         </div>
       </div>
+
+      {/* Pagination Controls */}
+      {totalItems > 0 && (
+        <div className="flex items-center justify-between px-4 py-4 border-t">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="items-per-page" className="text-sm font-medium">
+                Results per page:
+              </Label>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
+            </div>
+          </div>
+          
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(pageNum)}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
+      )}
 
       {/* Advanced Search Modal */}
       <DrugAdvancedSearchModal

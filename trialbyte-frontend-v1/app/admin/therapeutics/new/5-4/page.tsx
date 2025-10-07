@@ -6,14 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 export default function TherapeuticsStep5_4() {
-  const { formData, updateField, saveTrial } = useTherapeuticForm();
+  const { formData, updateField, addArrayItem, removeArrayItem, updateArrayItem, saveTrial } = useTherapeuticForm();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_4;
@@ -43,15 +43,26 @@ export default function TherapeuticsStep5_4() {
   // Rows (labels at the start)
   const rows = ["Actual", "Benchmark", "Estimated"];
 
+  // Helper functions for references
+  const addReference = () => addArrayItem("step5_4", "references");
+  const removeReference = (index: number) => removeArrayItem("step5_4", "references", index);
+  const updateReference = (index: number, value: string) => updateArrayItem("step5_4", "references", index, value);
+
   const handleSaveChanges = async () => {
     try {
       setIsSaving(true);
       const result = await saveTrial();
       
       if (result.success) {
+        // Get the first trial identifier for the success message
+        const trialId = formData.step5_1.trial_identifier && formData.step5_1.trial_identifier.length > 0 
+          ? formData.step5_1.trial_identifier[0] 
+          : "Trial";
+        
         toast({
           title: "Success",
-          description: result.message,
+          description: `${trialId} created successfully`,
+          duration: 5000,
         });
       } else {
         toast({
@@ -159,27 +170,42 @@ export default function TherapeuticsStep5_4() {
             </div>
           </div>
 
-          {/* Reference */}
+          {/* References */}
           <div className="space-y-2">
-            <Label>Reference</Label>
-            <div className="relative">
-              <Textarea
-                rows={3}
-                placeholder="Enter references here..."
-                value={form.population_description || ""}
-                onChange={(e) =>
-                  updateField("step5_4", "population_description", e.target.value)
-                }
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="absolute top-2 right-2 rounded-full"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+            <Label>References</Label>
+            <div className="space-y-2">
+              {form.references.map((reference, index) => (
+                <div key={index} className="flex gap-2">
+                  <Textarea
+                    rows={2}
+                    placeholder="Enter reference here..."
+                    value={reference}
+                    onChange={(e) => updateReference(index, e.target.value)}
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                  />
+                  {index === 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={addReference}
+                      className="rounded-full"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeReference(index)}
+                      className="rounded-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

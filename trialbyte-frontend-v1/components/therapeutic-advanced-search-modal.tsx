@@ -5,7 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { X, Plus, Minus } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { X, Plus, Minus, CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface TherapeuticAdvancedSearchModalProps {
   open: boolean
@@ -247,6 +251,19 @@ const fieldOptions: Record<string, { value: string; label: string }[]> = {
   ]
 }
 
+// Date fields that should show calendar input
+const dateFields = [
+  "created_at",
+  "final_analysis_date", 
+  "interim_analysis_dates",
+  "primary_completion_date",
+  "regulatory_submission_date",
+  "study_completion_date",
+  "study_end_date",
+  "study_start_date",
+  "updated_at"
+]
+
 export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySearch }: TherapeuticAdvancedSearchModalProps) {
   const [criteria, setCriteria] = useState<TherapeuticSearchCriteria[]>([
     {
@@ -263,7 +280,53 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
   // Function to render the appropriate input type based on field
   const renderValueInput = (criterion: TherapeuticSearchCriteria) => {
     const fieldOptionsForField = fieldOptions[criterion.field]
+    const isDateField = dateFields.includes(criterion.field)
     
+    // Date field with calendar
+    if (isDateField) {
+      // Parse the date string correctly to avoid timezone issues
+      const selectedDate = criterion.value ? (() => {
+        const [year, month, day] = criterion.value.split('-').map(Number)
+        return new Date(year, month - 1, day)
+      })() : undefined
+      
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !selectedDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                if (date) {
+                  // Format the date as YYYY-MM-DD without timezone conversion
+                  const year = date.getFullYear()
+                  const month = String(date.getMonth() + 1).padStart(2, '0')
+                  const day = String(date.getDate()).padStart(2, '0')
+                  updateCriteria(criterion.id, "value", `${year}-${month}-${day}`)
+                } else {
+                  updateCriteria(criterion.id, "value", "")
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+      )
+    }
+    
+    // Dropdown for fields with specific options
     if (fieldOptionsForField) {
       return (
         <Select

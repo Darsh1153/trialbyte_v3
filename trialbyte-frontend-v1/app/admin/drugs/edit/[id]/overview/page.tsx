@@ -127,7 +127,8 @@ export default function EditDrugOverview() {
     try {
       setIsSavingStep(true);
       await saveDrug(drugId);
-      router.push("/admin/drugs");
+      // Add refresh parameter to trigger table refresh
+      router.push("/admin/drugs?refresh=true");
     } catch (error) {
       console.error("Error saving drug:", error);
       toast({

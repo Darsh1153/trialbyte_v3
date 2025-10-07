@@ -18,6 +18,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { toast } from "@/hooks/use-toast";
 import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, ChevronDown, Settings } from "lucide-react";
@@ -176,6 +191,10 @@ export default function AdminTherapeuticsPage() {
   // Column customization state
   const [customizeColumnModalOpen, setCustomizeColumnModalOpen] = useState(false);
   const [columnSettings, setColumnSettings] = useState<ColumnSettings>(DEFAULT_COLUMN_SETTINGS);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Fetch trials data
   // Filter function to show only the latest version of each record
@@ -734,6 +753,28 @@ export default function AdminTherapeuticsPage() {
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
+  // Pagination logic
+  const totalItems = filteredTrials.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTrials = filteredTrials.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, advancedSearchCriteria, appliedFilters, itemsPerPage]);
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
   useEffect(() => {
     fetchTrials();
     
@@ -1133,7 +1174,7 @@ export default function AdminTherapeuticsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTrials.map((trial) => (
+              {paginatedTrials.map((trial) => (
                 <TableRow key={trial.trial_id} className="hover:bg-muted/40">
                   {columnSettings.trialId && (
                     <TableCell className="font-mono text-sm">
@@ -1197,14 +1238,14 @@ export default function AdminTherapeuticsPage() {
               ))}
             </TableBody>
             <TableCaption>
-              Showing {filteredTrials.length} of {trials.length} Clinical Trials
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} Clinical Trials
             </TableCaption>
           </Table>
         </div>
 
         {/* Mobile / small screens → cards */}
         <div className="block md:hidden space-y-4 p-2">
-          {filteredTrials.map((trial) => (
+          {paginatedTrials.map((trial) => (
             <Card key={trial.trial_id} className="shadow-sm">
               <CardContent className="p-4 space-y-2">
                 <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">{trial.trial_id.slice(0, 8)}...</span></p>
@@ -1241,6 +1282,80 @@ export default function AdminTherapeuticsPage() {
           ))}
         </div>
       </div>
+
+      {/* Pagination Controls */}
+      {totalItems > 0 && (
+        <div className="flex items-center justify-between px-4 py-4 border-t">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="items-per-page" className="text-sm font-medium">
+                Results per page:
+              </Label>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
+            </div>
+          </div>
+          
+          {totalPages > 1 && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(pageNum)}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
+      )}
 
       {/* Advanced Search Modal */}
       <TherapeuticAdvancedSearchModal

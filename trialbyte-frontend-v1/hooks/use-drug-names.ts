@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 export interface DrugNameOption {
   value: string;
   label: string;
-  source: 'drug_name_lab_code' | 'generic_name' | 'other_name' | 'custom';
+  source: 'drug_name' | 'generic_name' | 'other_name' | 'custom';
 }
 
 export const useDrugNames = () => {

@@ -64,7 +64,7 @@ app.use((err, req, res, next) => {
     .json({ message: "Internal Server Error", error: err.message });
 });
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5002;
 
 const start = async () => {
   try {

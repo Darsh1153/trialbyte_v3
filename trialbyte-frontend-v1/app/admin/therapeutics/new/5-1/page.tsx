@@ -469,9 +469,15 @@ export default function TherapeuticsStep5_1() {
       const result = await saveTrial();
       
       if (result.success) {
+        // Get the first trial identifier for the success message
+        const trialId = form.trial_identifier && form.trial_identifier.length > 0 
+          ? form.trial_identifier[0] 
+          : "Trial";
+        
         toast({
           title: "Success",
-          description: result.message,
+          description: `Trial Identifier with${trialId} created successfully`,
+          duration: 5000,
         });
       } else {
         toast({

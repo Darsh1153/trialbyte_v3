@@ -24,7 +24,7 @@ import { useDrugNames } from "@/hooks/use-drug-names";
 
 interface DrugFormData {
   overview: {
-    drug_name_lab_code: string;
+    drug_name: string;
     generic_name: string;
     other_name: string;
     primary_name: string;
@@ -35,8 +35,8 @@ interface DrugFormData {
     other_active_companies: string;
     therapeutic_area: string;
     disease_type: string;
-    regulatory_designations: string;
-    source_links: string;
+    regulator_designations: string;
+    source_link: string;
     drug_record_status: string;
     drug_development_status_rows: Array<{
     disease_type: string;
@@ -323,7 +323,7 @@ export default function NewDrugPage() {
 
   const { content, updateContent, resetContent } = useContent<DrugFormData>({
     overview: {
-      drug_name_lab_code: "",
+      drug_name: "",
       generic_name: "",
       other_name: "",
       primary_name: "",
@@ -334,8 +334,8 @@ export default function NewDrugPage() {
       other_active_companies: "",
       therapeutic_area: "",
       disease_type: "",
-      regulatory_designations: "",
-      source_links: "",
+      regulator_designations: "",
+      source_link: "",
       drug_record_status: "",
       drug_development_status_rows: [],
     },
@@ -401,7 +401,7 @@ export default function NewDrugPage() {
   const isStepComplete = (step: number) => {
     switch (step) {
       case 1:
-        return content.overview.drug_name_lab_code.trim() !== "";
+        return content.overview.drug_name.trim() !== "";
       case 2:
         return content.drugActivity.mechanism_of_action.trim() !== "";
       case 3:
@@ -492,22 +492,24 @@ export default function NewDrugPage() {
               <Button
                 className="text-white font-medium px-6 py-2"
                 style={{ backgroundColor: '#204B73' }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                Save Changes
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
             {/* First Row: Drug Name, Generic Name, Other Name */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="drug_name_lab_code" className="text-sm font-medium text-gray-700">Drug Name - Lab code</Label>
+                <Label htmlFor="drug_name" className="text-sm font-medium text-gray-700">Drug Name</Label>
                 <div className="relative">
                   <Textarea
-                    id="drug_name_lab_code"
-                    value={content.overview.drug_name_lab_code}
+                    id="drug_name"
+                    value={content.overview.drug_name}
                     onChange={(e) =>
                       updateContent("overview", {
                         ...content.overview,
-                        drug_name_lab_code: e.target.value
+                        drug_name: e.target.value
                       })
                     }
                     placeholder=""
@@ -517,11 +519,11 @@ export default function NewDrugPage() {
                   <Plus 
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
                     onClick={() => {
-                      if (content.overview.drug_name_lab_code.trim()) {
-                        addDrugName(content.overview.drug_name_lab_code, 'drug_name_lab_code');
+                      if (content.overview.drug_name.trim()) {
+                        addDrugName(content.overview.drug_name, 'drug_name');
                         toast({
                           title: "Added to Primary Name",
-                          description: `"${content.overview.drug_name_lab_code}" added to Primary Name dropdown`,
+                          description: `"${content.overview.drug_name}" added to Primary Name dropdown`,
                         });
                       }
                     }}
@@ -706,7 +708,7 @@ export default function NewDrugPage() {
             {/* Fourth Row: Therapeutic Area, Disease Type, Regulatory Designations */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="therapeutic_area" className="text-sm font-medium text-gray-700">Clinical Trials Area</Label>
+                <Label htmlFor="therapeutic_area" className="text-sm font-medium text-gray-700">Therapeutics Area</Label>
                       <SearchableSelect
                   options={therapeuticAreaOptions}
                   value={content.overview.therapeutic_area}
@@ -740,14 +742,14 @@ export default function NewDrugPage() {
                       />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="regulatory_designations" className="text-sm font-medium text-gray-700">Regulatory Designations</Label>
+                <Label htmlFor="regulator_designations" className="text-sm font-medium text-gray-700">Regulator Designations</Label>
                       <SearchableSelect
                   options={regulatoryDesignationsOptions}
-                  value={content.overview.regulatory_designations}
+                  value={content.overview.regulator_designations}
                   onValueChange={(value) =>
                     updateContent("overview", {
                       ...content.overview,
-                      regulatory_designations: value,
+                      regulator_designations: value,
                     })
                   }
                   placeholder="Select regulatory designations"
@@ -1040,15 +1042,15 @@ export default function NewDrugPage() {
             {/* Bottom Row: Source Links, Drug Record Status */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="source_links" className="text-sm font-medium text-gray-700">Source Links</Label>
+                <Label htmlFor="source_link" className="text-sm font-medium text-gray-700">Source Link</Label>
                 <div className="relative">
                   <Textarea
-                    id="source_links"
-                    value={content.overview.source_links}
+                    id="source_link"
+                    value={content.overview.source_link}
                     onChange={(e) =>
                       updateContent("overview", {
                         ...content.overview,
-                        source_links: e.target.value,
+                        source_link: e.target.value,
                       })
                     }
                     placeholder=""
@@ -1092,8 +1094,10 @@ export default function NewDrugPage() {
               <Button
                 className="text-white font-medium px-6 py-2"
                 style={{ backgroundColor: '#204B73' }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                Save Changes
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
 
@@ -1199,18 +1203,20 @@ export default function NewDrugPage() {
         return (
           <div className="space-y-6 p-6 border border-gray-200 rounded-lg bg-white">
             <div className="flex justify-end gap-3">
-                      <Button
-                        variant="outline"
+              <Button
+                variant="outline"
                 onClick={() => router.push("/admin/drugs")}
-                      >
+              >
                 Cancel
-                      </Button>
-                <Button
+              </Button>
+              <Button
                 className="text-white font-medium px-6 py-2"
-                  style={{ backgroundColor: '#204B73' }}
-                >
-                Save Changes
-                </Button>
+                style={{ backgroundColor: '#204B73' }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
             </div>
             <h3 className="font-semibold text-lg text-gray-800 mb-4">Development</h3>
 
@@ -1337,8 +1343,10 @@ export default function NewDrugPage() {
               <Button
                 className="text-white font-medium px-6 py-2"
                 style={{ backgroundColor: '#204B73' }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                Save Changes
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
 
@@ -1487,8 +1495,10 @@ export default function NewDrugPage() {
               <Button
                 className="text-white font-medium px-6 py-2"
                 style={{ backgroundColor: '#204B73' }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                Save Changes
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
 
@@ -1672,8 +1682,10 @@ export default function NewDrugPage() {
               <Button
                 className="text-white font-medium px-6 py-2"
                 style={{ backgroundColor: '#204B73' }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                Save Changes
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
 

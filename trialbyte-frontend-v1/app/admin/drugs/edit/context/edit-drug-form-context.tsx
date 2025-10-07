@@ -18,8 +18,8 @@ export interface EditDrugFormData {
     other_active_companies: string;
     therapeutic_area: string;
     disease_type: string;
-    regulatory_designations: string;
-    source_links: string;
+    regulator_designations: string;
+    source_link: string;
     drug_record_status: string;
     is_approved: boolean;
     attachments: string[];
@@ -102,8 +102,8 @@ const initialFormData: EditDrugFormData = {
     other_active_companies: "",
     therapeutic_area: "",
     disease_type: "",
-    regulatory_designations: "",
-    source_links: "",
+    regulator_designations: "",
+    source_link: "",
     drug_record_status: "",
     is_approved: false,
     attachments: [""],
@@ -309,8 +309,8 @@ export function EditDrugFormProvider({ children, drugId }: { children: ReactNode
             other_active_companies: data.data?.overview?.other_active_companies || "",
             therapeutic_area: data.data?.overview?.therapeutic_area || "",
             disease_type: data.data?.overview?.disease_type || "",
-            regulatory_designations: data.data?.overview?.regulator_designations || "",
-            source_links: data.data?.overview?.source_link || "",
+            regulator_designations: data.data?.overview?.regulator_designations || "",
+            source_link: data.data?.overview?.source_link || "",
             drug_record_status: data.data?.overview?.drug_record_status || "",
             is_approved: data.data?.overview?.is_approved || false,
             attachments: data.data?.overview?.attachments || [""],
@@ -409,16 +409,53 @@ export function EditDrugFormProvider({ children, drugId }: { children: ReactNode
       const apiData = {
         user_id: currentUserId,
         overview: {
-          ...formData.overview,
+          drug_name: formData.overview.drug_name,
+          generic_name: formData.overview.generic_name,
+          other_name: formData.overview.other_name,
+          primary_name: formData.overview.primary_name,
+          global_status: formData.overview.global_status,
+          development_status: formData.overview.development_status,
+          drug_summary: formData.overview.drug_summary,
+          originator: formData.overview.originator,
+          other_active_companies: formData.overview.other_active_companies,
+          therapeutic_area: formData.overview.therapeutic_area,
+          disease_type: formData.overview.disease_type,
+          regulator_designations: formData.overview.regulator_designations,
+          source_link: formData.overview.source_link,
           drug_record_status: formData.overview.drug_record_status || "active",
+          is_approved: formData.overview.is_approved,
+          // Remove attachments and links as they don't exist in the database schema
         },
         devStatus: [formData.devStatus],
         activity: [formData.activity],
-        development: [formData.development],
+        development: [{
+          preclinical: formData.development.preclinical,
+          trial_id: formData.development.trial_id,
+          title: formData.development.title,
+          primary_drugs: formData.development.primary_drugs,
+          status: formData.development.status,
+          sponsor: formData.development.sponsor,
+          // Remove add_attachments, add_links, and reference as they don't exist in the database schema
+        }],
         otherSources: [formData.otherSources],
-        licencesMarketing: [formData.licencesMarketing],
-        logs: [formData.logs],
+        licencesMarketing: [{
+          agreement: formData.licencesMarketing.agreement,
+          licensing_availability: formData.licencesMarketing.licensing_availability,
+          marketing_approvals: formData.licencesMarketing.marketing_approvals,
+          // Remove agreement_rows, licensing_availability_rows, and marketing_approvals_rows as they don't exist in the database schema
+        }],
+        logs: [{
+          drug_changes_log: formData.logs.drug_changes_log,
+          created_date: formData.logs.drug_added_date, // Map drug_added_date to created_date
+          last_modified_user: formData.logs.last_modified_user,
+          full_review_user: formData.logs.full_review_user,
+          next_review_date: formData.logs.next_review_date,
+          notes: formData.logs.notes,
+          // Remove last_modified_date and full_review as they don't exist in the database schema
+        }],
       };
+
+      console.log('Sending API data:', JSON.stringify(apiData, null, 2));
 
       // Try API first
       let apiSuccess = false;
@@ -426,7 +463,7 @@ export function EditDrugFormProvider({ children, drugId }: { children: ReactNode
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
         
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/update-drug/${drugId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/drug/${drugId}/update-all-data`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -442,6 +479,18 @@ export function EditDrugFormProvider({ children, drugId }: { children: ReactNode
           const responseData = await response.json();
           console.log('Drug updated successfully:', responseData);
           apiSuccess = true;
+          
+          // Mark this drug as updated for table refresh
+          const updatedDrugs = JSON.parse(localStorage.getItem('updatedDrugs') || '[]');
+          if (!updatedDrugs.includes(drugId)) {
+            updatedDrugs.push(drugId);
+            localStorage.setItem('updatedDrugs', JSON.stringify(updatedDrugs));
+          }
+          
+          // Dispatch custom event for immediate refresh
+          window.dispatchEvent(new CustomEvent('drugUpdated', { 
+            detail: { drugId, timestamp: Date.now() } 
+          }));
           
           toast({
             title: "Success",
@@ -469,6 +518,18 @@ export function EditDrugFormProvider({ children, drugId }: { children: ReactNode
         filteredUpdates.push(localData);
         localStorage.setItem('pendingDrugUpdates', JSON.stringify(filteredUpdates));
         localStorage.setItem(`drugUpdate_${drugId}`, JSON.stringify(localData));
+        
+        // Mark this drug as updated for table refresh
+        const updatedDrugs = JSON.parse(localStorage.getItem('updatedDrugs') || '[]');
+        if (!updatedDrugs.includes(drugId)) {
+          updatedDrugs.push(drugId);
+          localStorage.setItem('updatedDrugs', JSON.stringify(updatedDrugs));
+        }
+        
+        // Dispatch custom event for immediate refresh
+        window.dispatchEvent(new CustomEvent('drugUpdated', { 
+          detail: { drugId, timestamp: Date.now() } 
+        }));
         
         toast({
           title: "Changes Saved Locally",

@@ -59,6 +59,7 @@ export interface TherapeuticFormData {
     study_completion_date: string;
     primary_completion_date: string;
     population_description: string;
+    references: string[];
   };
 
   // Step 5-5: Study Sites
@@ -200,6 +201,7 @@ const initialFormState: TherapeuticFormData = {
     study_completion_date: "",
     primary_completion_date: "",
     population_description: "",
+    references: [""],
   },
   step5_5: {
     study_sites: [""],
