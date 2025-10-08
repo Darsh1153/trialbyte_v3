@@ -104,7 +104,15 @@ export interface EditTherapeuticFormData {
 
   // Step 5-8: Additional Information
   step5_8: {
-    notes: string[];
+    notes: Array<{
+      id: string;
+      date: string;
+      type: string;
+      content: string;
+      sourceLink?: string;
+      attachments?: string[];
+      isVisible: boolean;
+    }>;
     attachments: string[];
     regulatory_links: string[];
     publication_links: string[];
@@ -266,6 +274,10 @@ interface EditTherapeuticFormContextType {
   addArrayItem: (step: keyof EditTherapeuticFormData, field: string, value: any) => void;
   removeArrayItem: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
   updateArrayItem: (step: keyof EditTherapeuticFormData, field: string, index: number, value: any) => void;
+  addNote: (step: keyof EditTherapeuticFormData, field: string) => void;
+  updateNote: (step: keyof EditTherapeuticFormData, field: string, index: number, updates: Partial<any>) => void;
+  removeNote: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
+  toggleNoteVisibility: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
   saveTrial: (trialId: string) => Promise<void>;
   loadTrialData: (trialId: string) => Promise<void>;
   isLoading: boolean;
@@ -637,12 +649,86 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value });
   };
 
+  // Note management functions
+  const addNote = (step: keyof EditTherapeuticFormData, field: string) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newNote = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split("T")[0],
+      type: "General",
+      content: "",
+      sourceLink: "",
+      attachments: [],
+      isVisible: true,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newNote],
+    });
+  };
+
+  const updateNote = (
+    step: keyof EditTherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const removeNote = (
+    step: keyof EditTherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.filter((_, idx) => idx !== index);
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleNoteVisibility = (
+    step: keyof EditTherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
   const value: EditTherapeuticFormContextType = {
     formData,
     updateField,
     addArrayItem,
     removeArrayItem,
     updateArrayItem,
+    addNote,
+    updateNote,
+    removeNote,
+    toggleNoteVisibility,
     saveTrial: safeSaveTrial,
     loadTrialData,
     isLoading,

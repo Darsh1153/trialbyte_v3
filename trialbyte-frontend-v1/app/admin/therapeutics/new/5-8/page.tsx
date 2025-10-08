@@ -13,6 +13,9 @@ import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import { useToast } from "@/hooks/use-toast";
 import FormProgress from "../components/form-progress";
 import { Plus, X, Eye, EyeOff } from "lucide-react";
+import NotesSection, { NoteItem } from "@/components/notes-section";
+import CustomDateInput from "@/components/ui/custom-date-input";
+import TrialChangesLog from "@/components/trial-changes-log";
 
 export default function TherapeuticsStep5_8() {
   const { 
@@ -222,51 +225,15 @@ export default function TherapeuticsStep5_8() {
         </div>
       </div>
 
-      {/* Logs Section */}
+      {/* Trial Changes Log */}
+      <TrialChangesLog changesLog={form.changesLog} />
+
+      {/* Review and Notes Section */}
       <Card className="border rounded-xl shadow-sm">
         <CardContent className="p-6 space-y-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label className="font-semibold">Trial Changes Log</Label>
-            <Input 
-              placeholder="" 
-              value={form.date_type}
-              onChange={(e) => updateField("step5_8", "date_type", e.target.value)}
-              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-            />
-          </div>
-
-          {/* Trial Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Trial added Date</Label>
-              <Input 
-                type="date" 
-                placeholder="" 
-                value={form.date_type}
-                onChange={(e) => updateField("step5_8", "date_type", e.target.value)}
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Last Modified Date</Label>
-              <Input 
-                type="date" 
-                placeholder="" 
-                value={form.link}
-                onChange={(e) => updateField("step5_8", "link", e.target.value)}
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Last Modified User</Label>
-              <Input placeholder="" className="border-gray-600 focus:border-gray-800 focus:ring-gray-800" />
-            </div>
-          </div>
-
           {/* Full Review Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-            <div className="flex items-center gap-2 mt-6">
+            <div className="flex items-center gap-2">
               <Checkbox id="fullReview" />
               <Label htmlFor="fullReview">Full Review</Label>
             </div>
@@ -276,130 +243,46 @@ export default function TherapeuticsStep5_8() {
             </div>
             <div className="space-y-2">
               <Label>Next Review Date</Label>
-              <Input type="date" placeholder="" className="border-gray-600 focus:border-gray-800 focus:ring-gray-800" />
+              <CustomDateInput 
+                placeholder="Month Day Year"
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
             </div>
           </div>
 
           {/* Notes Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="font-semibold">Notes</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => addNote("step5_8", "notes")}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Note
-              </Button>
-            </div>
-
-            {/* Notes List */}
-            <div className="space-y-3">
-              {form.notes.map((note, index) => (
-                <div
-                  key={note.id}
-                  className={`p-4 border rounded-lg ${
-                    note.isVisible 
-                      ? "border-gray-200 bg-white" 
-                      : "border-gray-300 bg-gray-50 opacity-60"
-                  }`}
-                >
-                  <div className="space-y-3">
-                    {/* Note Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-600">
-                          Note {index + 1}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleNoteVisibility("step5_8", "notes", index)}
-                          className={
-                            note.isVisible
-                              ? "text-green-600 hover:text-green-700 hover:bg-green-50"
-                              : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                          }
-                        >
-                          {note.isVisible ? (
-                            <Eye className="h-4 w-4 mr-1" />
-                          ) : (
-                            <EyeOff className="h-4 w-4 mr-1" />
-                          )}
-                          {note.isVisible ? "Visible" : "Hidden"}
-                        </Button>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeNote("step5_8", "notes", index)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Note Content */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-sm">Date</Label>
-                        <Input
-                          type="date"
-                          value={note.date}
-                          onChange={(e) =>
-                            updateNote("step5_8", "notes", index, {
-                              date: e.target.value,
-                            })
-                          }
-                          className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm">Link (Optional)</Label>
-                        <Input
-                          placeholder="https://..."
-                          value={note.link}
-                          onChange={(e) =>
-                            updateNote("step5_8", "notes", index, {
-                              link: e.target.value,
-                            })
-                          }
-                          className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm">Note Content</Label>
-                      <Textarea
-                        rows={3}
-                        placeholder="Enter note content..."
-                        value={note.content}
-                        onChange={(e) =>
-                          updateNote("step5_8", "notes", index, {
-                            content: e.target.value,
-                          })
-                        }
-                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {form.notes.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No notes added yet.</p>
-                  <p className="text-sm">Click "Add Note" to create your first note.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <NotesSection
+            title="Notes & Documentation"
+            notes={form.notes.map(note => ({
+              id: note.id,
+              date: note.date,
+              type: note.type || "General",
+              content: note.content,
+              sourceLink: note.sourceLink,
+              attachments: note.attachments,
+              isVisible: note.isVisible
+            }))}
+            onAddNote={() => addNote("step5_8", "notes")}
+            onUpdateNote={(index, updatedNote) => {
+              updateNote("step5_8", "notes", index, updatedNote);
+            }}
+            onRemoveNote={(index) => removeNote("step5_8", "notes", index)}
+            onToggleVisibility={(index) => toggleNoteVisibility("step5_8", "notes", index)}
+            noteTypes={[
+              "General",
+              "Clinical",
+              "Regulatory", 
+              "Safety",
+              "Efficacy",
+              "Protocol",
+              "Site",
+              "Patient",
+              "Adverse Event",
+              "Publication",
+              "Press Release",
+              "Other"
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

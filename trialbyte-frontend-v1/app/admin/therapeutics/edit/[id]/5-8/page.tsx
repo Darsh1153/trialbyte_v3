@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, Loader2, Plus, X } from "lucide-react";
+import NotesSection, { NoteItem } from "@/components/notes-section";
 import { useEditTherapeuticForm } from "../../context/edit-form-context";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -156,35 +157,39 @@ export default function EditTherapeuticsStep5_8() {
             <CardTitle className="text-lg font-semibold text-gray-700">Additional Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              {form.notes.map((note, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Textarea
-                    value={note}
-                    onChange={(e) => updateArrayItem("step5_8", "notes", index, e.target.value)}
-                    placeholder="Enter note"
-                    rows={2}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_8", "notes", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_8", "notes", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Note
-              </Button>
-            </div>
+            {/* Notes Section */}
+            <NotesSection
+              title="Notes & Documentation"
+              notes={form.notes.map(note => ({
+                id: note.id || Date.now().toString(),
+                date: note.date || new Date().toISOString().split("T")[0],
+                type: note.type || "General",
+                content: note.content || "",
+                sourceLink: note.sourceLink,
+                attachments: note.attachments,
+                isVisible: note.isVisible !== false
+              }))}
+              onAddNote={() => addNote("step5_8", "notes")}
+              onUpdateNote={(index, updatedNote) => {
+                updateNote("step5_8", "notes", index, updatedNote);
+              }}
+              onRemoveNote={(index) => removeNote("step5_8", "notes", index)}
+              onToggleVisibility={(index) => toggleNoteVisibility("step5_8", "notes", index)}
+              noteTypes={[
+                "General",
+                "Clinical",
+                "Regulatory", 
+                "Safety",
+                "Efficacy",
+                "Protocol",
+                "Site",
+                "Patient",
+                "Adverse Event",
+                "Publication",
+                "Press Release",
+                "Other"
+              ]}
+            />
 
             <div className="space-y-2">
               <Label>Attachments</Label>

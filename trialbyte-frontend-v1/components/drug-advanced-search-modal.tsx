@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { X, Plus, Minus } from "lucide-react"
 import { QueryHistoryModal } from "@/components/query-history-modal"
+import CustomDateInput from "@/components/ui/custom-date-input"
 
 interface DrugAdvancedSearchModalProps {
   open: boolean
@@ -22,48 +23,45 @@ export interface DrugSearchCriteria {
   logic: "AND" | "OR"
 }
 
+// Interface for drug data
+interface DrugData {
+  id: string;
+  drug_name: string;
+  generic_name: string;
+  other_name: string;
+  primary_name: string;
+  global_status: string;
+  development_status: string;
+  drug_summary: string;
+  originator: string;
+  other_active_companies: string;
+  therapeutic_area: string;
+  disease_type: string;
+  regulator_designations: string;
+  source_link: string;
+  drug_record_status: string;
+  is_approved: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const drugSearchFields = [
-  { value: "agreement", label: "Agreement" },
-  { value: "biological_target", label: "Biological Target" },
-  { value: "company", label: "Company" },
-  { value: "company_type", label: "Company Type" },
-  { value: "created_at", label: "Created Date" },
-  { value: "created_date", label: "Log Created Date" },
-  { value: "data", label: "Other Sources Data" },
-  { value: "delivery_medium", label: "Delivery Medium" },
-  { value: "delivery_route", label: "Delivery Route" },
-  { value: "development_status", label: "Development Status" },
-  { value: "disease_type", label: "Disease Type" },
-  { value: "drug_changes_log", label: "Drug Changes Log" },
   { value: "drug_name", label: "Drug Name" },
-  { value: "drug_record_status", label: "Drug Record Status" },
-  { value: "drug_summary", label: "Drug Summary" },
-  { value: "drug_technology", label: "Drug Technology" },
-  { value: "full_review_user", label: "Full Review User" },
   { value: "generic_name", label: "Generic Name" },
+  { value: "other_name", label: "Other Name" },
+  { value: "primary_name", label: "Primary Name" },
   { value: "global_status", label: "Global Status" },
-  { value: "is_approved", label: "Approval Status" },
-  { value: "last_modified_user", label: "Last Modified User" },
-  { value: "licensing_availability", label: "Licensing Availability" },
-  { value: "marketing_approvals", label: "Marketing Approvals" },
-  { value: "mechanism_of_action", label: "Mechanism of Action" },
-  { value: "next_review_date", label: "Next Review Date" },
-  { value: "notes", label: "Notes" },
+  { value: "development_status", label: "Development Status" },
+  { value: "drug_summary", label: "Drug Summary" },
   { value: "originator", label: "Originator" },
   { value: "other_active_companies", label: "Other Active Companies" },
-  { value: "other_name", label: "Other Name" },
-  { value: "preclinical", label: "Preclinical" },
-  { value: "primary_drugs", label: "Primary Drugs" },
-  { value: "primary_name", label: "Primary Name" },
-  { value: "reference", label: "Reference" },
+  { value: "therapeutic_area", label: "Therapeutic Area" },
+  { value: "disease_type", label: "Disease Type" },
   { value: "regulator_designations", label: "Regulator Designations" },
   { value: "source_link", label: "Source Link" },
-  { value: "sponsor", label: "Sponsor" },
-  { value: "status", label: "Status" },
-  { value: "therapeutic_area", label: "Therapeutic Area" },
-  { value: "therapeutic_class", label: "Therapeutic Class" },
-  { value: "title", label: "Development Title" },
-  { value: "trial_id", label: "Trial ID" },
+  { value: "drug_record_status", label: "Drug Record Status" },
+  { value: "is_approved", label: "Approval Status" },
+  { value: "created_at", label: "Created Date" },
   { value: "updated_at", label: "Updated Date" }
 ]
 
@@ -81,21 +79,12 @@ const operators = [
   { value: "less_than_or_equal", label: "<=" }
 ]
 
-// Sample drug names for dropdown - in real app, this would come from API
-const drugNames = [
-  "Aspirin", "Ibuprofen", "Acetaminophen", "Morphine", "Codeine", "Penicillin", "Amoxicillin", "Ciprofloxacin",
-  "Metformin", "Insulin", "Warfarin", "Digoxin", "Furosemide", "Lisinopril", "Amlodipine", "Atorvastatin",
-  "Omeprazole", "Prednisone", "Hydrocortisone", "Diazepam", "Lorazepam", "Alprazolam", "Sertraline", "Fluoxetine"
+// Fields that should use date picker
+const dateFields = [
+  "created_at",
+  "updated_at"
 ]
 
-// Fields that should show dropdowns instead of text input
-const dropdownFields = [
-  "drug_name", "generic_name", "primary_name", "global_status", "development_status", 
-  "originator", "therapeutic_area", "disease_type", "regulator_designations", 
-  "drug_record_status", "mechanism_of_action", "biological_target", "drug_technology",
-  "delivery_route", "delivery_medium", "company", "company_type", "status", "is_approved",
-  "therapeutic_class", "sponsor", "last_modified_user", "full_review_user"
-]
 
 export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: DrugAdvancedSearchModalProps) {
   const [criteria, setCriteria] = useState<DrugSearchCriteria[]>([
@@ -108,97 +97,147 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
     }
   ])
   const [savedQueriesOpen, setSavedQueriesOpen] = useState(false)
+  const [drugData, setDrugData] = useState<DrugData[]>([])
+  const [loading, setLoading] = useState(false)
 
-  // Get dropdown options based on field
-  const getDropdownOptions = (field: string) => {
-    switch (field) {
-      case "drug_name":
-      case "generic_name":
-      case "primary_name":
-        return drugNames.map(name => ({ value: name, label: name }))
-      case "global_status":
-        return [
-          { value: "Approved", label: "Approved" },
-          { value: "Pending", label: "Pending" },
-          { value: "Rejected", label: "Rejected" },
-          { value: "Discontinued", label: "Discontinued" },
-          { value: "Under Review", label: "Under Review" },
-          { value: "Phase I", label: "Phase I" },
-          { value: "Phase II", label: "Phase II" },
-          { value: "Phase III", label: "Phase III" },
-          { value: "Phase IV", label: "Phase IV" }
-        ]
-      case "development_status":
-        return [
-          { value: "Preclinical", label: "Preclinical" },
-          { value: "Phase I", label: "Phase I" },
-          { value: "Phase II", label: "Phase II" },
-          { value: "Phase III", label: "Phase III" },
-          { value: "Phase IV", label: "Phase IV" },
-          { value: "Approved", label: "Approved" },
-          { value: "Discontinued", label: "Discontinued" },
-          { value: "Suspended", label: "Suspended" }
-        ]
-      case "therapeutic_area":
-        return [
-          { value: "Oncology", label: "Oncology" },
-          { value: "Cardiology", label: "Cardiology" },
-          { value: "Neurology", label: "Neurology" },
-          { value: "Endocrinology", label: "Endocrinology" },
-          { value: "Immunology", label: "Immunology" },
-          { value: "Dermatology", label: "Dermatology" },
-          { value: "Hematology", label: "Hematology" },
-          { value: "Pulmonology", label: "Pulmonology" }
-        ]
-      case "disease_type":
-        return [
-          { value: "Lung Cancer", label: "Lung Cancer" },
-          { value: "Breast Cancer", label: "Breast Cancer" },
-          { value: "Colorectal Cancer", label: "Colorectal Cancer" },
-          { value: "Melanoma", label: "Melanoma" },
-          { value: "Lymphoma", label: "Lymphoma" },
-          { value: "Leukemia", label: "Leukemia" },
-          { value: "Prostate Cancer", label: "Prostate Cancer" },
-          { value: "Ovarian Cancer", label: "Ovarian Cancer" }
-        ]
-      case "is_approved":
-        return [
-          { value: "Yes", label: "Yes" },
-          { value: "No", label: "No" }
-        ]
-      case "therapeutic_class":
-        return [
-          { value: "Antibiotic", label: "Antibiotic" },
-          { value: "Antiviral", label: "Antiviral" },
-          { value: "Antifungal", label: "Antifungal" },
-          { value: "Anticancer", label: "Anticancer" },
-          { value: "Cardiovascular", label: "Cardiovascular" },
-          { value: "Neurological", label: "Neurological" },
-          { value: "Endocrine", label: "Endocrine" },
-          { value: "Immunosuppressive", label: "Immunosuppressive" }
-        ]
-      case "sponsor":
-        return [
-          { value: "Pfizer", label: "Pfizer" },
-          { value: "Johnson & Johnson", label: "Johnson & Johnson" },
-          { value: "Roche", label: "Roche" },
-          { value: "Novartis", label: "Novartis" },
-          { value: "Merck", label: "Merck" },
-          { value: "GSK", label: "GSK" },
-          { value: "Sanofi", label: "Sanofi" },
-          { value: "AstraZeneca", label: "AstraZeneca" }
-        ]
-      case "last_modified_user":
-      case "full_review_user":
-        return [
-          { value: "admin", label: "Admin" },
-          { value: "reviewer", label: "Reviewer" },
-          { value: "editor", label: "Editor" },
-          { value: "analyst", label: "Analyst" }
-        ]
-      default:
-        return []
+  // Fetch drug data when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchDrugData()
     }
+  }, [open])
+
+  const fetchDrugData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`)
+      if (response.ok) {
+        const data = await response.json()
+        // Extract overview data from each drug
+        const overviewData = (data.drugs || []).map(drug => drug.overview).filter(Boolean)
+        setDrugData(overviewData)
+      }
+    } catch (error) {
+      console.error('Error fetching drug data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Get unique values for a specific field from the drug data
+  const getFieldValues = (field: string): string[] => {
+    // Don't extract values for date fields - they use date picker
+    if (dateFields.includes(field)) {
+      return []
+    }
+    
+    const values = new Set<string>()
+    
+    drugData.forEach(drug => {
+      let fieldValue = ''
+      
+      switch (field) {
+        case 'drug_name':
+          fieldValue = drug.drug_name || ''
+          break
+        case 'generic_name':
+          fieldValue = drug.generic_name || ''
+          break
+        case 'other_name':
+          fieldValue = drug.other_name || ''
+          break
+        case 'primary_name':
+          fieldValue = drug.primary_name || ''
+          break
+        case 'global_status':
+          fieldValue = drug.global_status || ''
+          break
+        case 'development_status':
+          fieldValue = drug.development_status || ''
+          break
+        case 'drug_summary':
+          fieldValue = drug.drug_summary || ''
+          break
+        case 'originator':
+          fieldValue = drug.originator || ''
+          break
+        case 'other_active_companies':
+          fieldValue = drug.other_active_companies || ''
+          break
+        case 'therapeutic_area':
+          fieldValue = drug.therapeutic_area || ''
+          break
+        case 'disease_type':
+          fieldValue = drug.disease_type || ''
+          break
+        case 'regulator_designations':
+          fieldValue = drug.regulator_designations || ''
+          break
+        case 'source_link':
+          fieldValue = drug.source_link || ''
+          break
+        case 'drug_record_status':
+          fieldValue = drug.drug_record_status || ''
+          break
+        case 'is_approved':
+          fieldValue = drug.is_approved || ''
+          break
+      }
+      
+      if (fieldValue && fieldValue.trim()) {
+        values.add(fieldValue.trim())
+      }
+    })
+    
+    return Array.from(values).sort()
+  }
+
+  // Function to render the appropriate input type based on field
+  const renderValueInput = (criterion: DrugSearchCriteria) => {
+    const isDateField = dateFields.includes(criterion.field)
+    const dynamicValues = getFieldValues(criterion.field)
+    
+    // Date field with custom input
+    if (isDateField) {
+      return (
+        <CustomDateInput
+          value={criterion.value}
+          onChange={(value) => updateCriteria(criterion.id, "value", value)}
+          placeholder="Month Day Year"
+          className="w-full"
+        />
+      )
+    }
+    
+    // Dynamic dropdown for fields with data from database
+    if (dynamicValues.length > 0) {
+      return (
+        <Select
+          value={criterion.value}
+          onValueChange={(value) => updateCriteria(criterion.id, "value", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select option" />
+          </SelectTrigger>
+          <SelectContent>
+            {dynamicValues.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )
+    }
+    
+    // Default to text input for fields without dynamic data
+    return (
+      <Input
+        placeholder="Enter the search term"
+        value={criterion.value}
+        onChange={(e) => updateCriteria(criterion.id, "value", e.target.value)}
+      />
+    )
   }
 
   const addCriteria = () => {
@@ -277,7 +316,15 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
         </DialogHeader>
 
         <div className="p-6 space-y-4 max-h-[400px] overflow-y-auto">
-          {criteria.map((criterion, index) => (
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Loading drug data...</p>
+              </div>
+            </div>
+          ) : (
+            criteria.map((criterion, index) => (
             <div key={criterion.id} className="space-y-3">
               <div className="grid grid-cols-12 gap-3 items-center">
                 <div className="col-span-2">
@@ -317,29 +364,7 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
                 </div>
 
                 <div className="col-span-4">
-                  {dropdownFields.includes(criterion.field) ? (
-                    <Select
-                      value={criterion.value}
-                      onValueChange={(value) => updateCriteria(criterion.id, "value", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a value" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getDropdownOptions(criterion.field).map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input
-                      placeholder="Enter the search term"
-                      value={criterion.value}
-                      onChange={(e) => updateCriteria(criterion.id, "value", e.target.value)}
-                    />
-                  )}
+                  {renderValueInput(criterion)}
                 </div>
 
                 <div className="col-span-2">
@@ -387,7 +412,8 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
                 </div>
               )}
             </div>
-          ))}
+          ))
+          )}
         </div>
 
         <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">

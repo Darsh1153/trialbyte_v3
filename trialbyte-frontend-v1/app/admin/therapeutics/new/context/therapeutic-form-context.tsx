@@ -59,7 +59,15 @@ export interface TherapeuticFormData {
     study_completion_date: string;
     primary_completion_date: string;
     population_description: string;
-    references: string[];
+    references: Array<{
+      id: string;
+      date: string;
+      registryType: string;
+      content: string;
+      viewSource: string;
+      attachments: string[];
+      isVisible: boolean;
+    }>;
   };
 
   // Step 5-5: Study Sites
@@ -70,6 +78,7 @@ export interface TherapeuticFormData {
     site_countries: string[];
     site_regions: string[];
     site_contact_info: string[];
+    trial_results: string[];
     results_available: boolean;
     endpoints_met: boolean;
     adverse_events_reported: boolean;
@@ -143,11 +152,23 @@ export interface TherapeuticFormData {
     notes: Array<{
       id: string;
       date: string;
+      type: string;
       content: string;
-      link: string;
+      sourceLink?: string;
+      attachments?: string[];
       isVisible: boolean;
     }>;
     link: string;
+    changesLog: Array<{
+      id: string;
+      timestamp: string;
+      user: string;
+      action: string;
+      details: string;
+      field?: string;
+      oldValue?: string;
+      newValue?: string;
+    }>;
   };
 }
 
@@ -201,7 +222,15 @@ const initialFormState: TherapeuticFormData = {
     study_completion_date: "",
     primary_completion_date: "",
     population_description: "",
-    references: [""],
+    references: [{
+      id: "1",
+      date: "",
+      registryType: "",
+      content: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    }],
   },
   step5_5: {
     study_sites: [""],
@@ -210,6 +239,7 @@ const initialFormState: TherapeuticFormData = {
     site_countries: [""],
     site_regions: [""],
     site_contact_info: [""],
+    trial_results: [""],
     results_available: false,
     endpoints_met: false,
     adverse_events_reported: false,
@@ -276,6 +306,16 @@ const initialFormState: TherapeuticFormData = {
     date_type: "",
     notes: [],
     link: "",
+    changesLog: [{
+      id: "1",
+      timestamp: new Date().toISOString(),
+      user: "admin",
+      action: "created",
+      details: "Created trial",
+      field: "trial",
+      oldValue: "",
+      newValue: "new"
+    }],
   },
 };
 
@@ -433,6 +473,28 @@ interface TherapeuticFormContextType {
     field: string,
     index: number
   ) => void;
+  addReference: (step: keyof TherapeuticFormData, field: string) => void;
+  updateReference: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => void;
+  removeReference: (step: keyof TherapeuticFormData, field: string, index: number) => void;
+  toggleReferenceVisibility: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => void;
+  addChangeLog: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    action: string,
+    details: string,
+    fieldName?: string,
+    oldValue?: string,
+    newValue?: string
+  ) => void;
   resetForm: () => void;
   loadForm: (data: TherapeuticFormData) => void;
   getFormData: () => TherapeuticFormData;
@@ -460,11 +522,65 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     field: string,
     value: any
   ) => {
+    // Get the current value for change tracking
+    const currentValue = (formData[step] as any)[field];
+    
+    // Dispatch the update
     dispatch({ type: "UPDATE_FIELD", step, field, value });
+    
+    // Log the change if it's not the changesLog field itself and values are different
+    if (field !== "changesLog" && currentValue !== value) {
+      const action = currentValue === "" || currentValue === undefined ? "created" : "changed";
+      const details = currentValue === "" || currentValue === undefined 
+        ? `Created ${field}` 
+        : `Changed ${field} from "${currentValue}" to "${value}"`;
+      
+      // Add to changes log
+      setTimeout(() => {
+        const currentArray = (formData[step] as any).changesLog || [];
+        const newLogEntry = {
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+          user: "admin",
+          action,
+          details,
+          field,
+          oldValue: currentValue,
+          newValue: value,
+        };
+        dispatch({
+          type: "UPDATE_FIELD",
+          step,
+          field: "changesLog",
+          value: [...currentArray, newLogEntry],
+        });
+      }, 0);
+    }
   };
 
   const addArrayItem = (step: keyof TherapeuticFormData, field: string) => {
     dispatch({ type: "ADD_ARRAY_ITEM", step, field });
+    
+    // Log the array addition
+    setTimeout(() => {
+      const currentArray = (formData[step] as any)[field] as any[];
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action: "added",
+        details: `Added new item to ${field}`,
+        field,
+        oldValue: "",
+        newValue: "new item",
+      };
+      dispatch({
+        type: "UPDATE_FIELD",
+        step,
+        field: "changesLog",
+        value: [...currentArray, newLogEntry],
+      });
+    }, 0);
   };
 
   const removeArrayItem = (
@@ -472,7 +588,31 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     field: string,
     index: number
   ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const removedItem = currentArray[index];
+    
     dispatch({ type: "REMOVE_ARRAY_ITEM", step, field, index });
+    
+    // Log the array removal
+    setTimeout(() => {
+      const changesArray = (formData[step] as any).changesLog || [];
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action: "removed",
+        details: `Removed item from ${field}`,
+        field,
+        oldValue: removedItem || "item",
+        newValue: "",
+      };
+      dispatch({
+        type: "UPDATE_FIELD",
+        step,
+        field: "changesLog",
+        value: [...changesArray, newLogEntry],
+      });
+    }, 0);
   };
 
   const updateArrayItem = (
@@ -481,7 +621,31 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     index: number,
     value: string
   ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const oldValue = currentArray[index];
+    
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value });
+    
+    // Log the array item update
+    setTimeout(() => {
+      const changesArray = (formData[step] as any).changesLog || [];
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action: "updated",
+        details: `Updated item in ${field}`,
+        field,
+        oldValue: oldValue || "",
+        newValue: value,
+      };
+      dispatch({
+        type: "UPDATE_FIELD",
+        step,
+        field: "changesLog",
+        value: [...changesArray, newLogEntry],
+      });
+    }, 0);
   };
 
   const addComplexArrayItem = (
@@ -543,8 +707,10 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     const newNote = {
       id: Date.now().toString(),
       date: new Date().toISOString().split("T")[0],
+      type: "General",
       content: "",
-      link: "",
+      sourceLink: "",
+      attachments: [],
       isVisible: true,
     };
     dispatch({
@@ -602,6 +768,105 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       step,
       field,
       value: updatedArray,
+    });
+  };
+
+  // Reference management functions
+  const addReference = (step: keyof TherapeuticFormData, field: string) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newReference = {
+      id: Date.now().toString(),
+      date: "",
+      registryType: "",
+      content: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newReference],
+    });
+  };
+
+  const updateReference = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const removeReference = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.filter((_, idx) => idx !== index);
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleReferenceVisibility = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  // Change log management function
+  const addChangeLog = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    action: string,
+    details: string,
+    fieldName?: string,
+    oldValue?: string,
+    newValue?: string
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newLogEntry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      user: "admin", // This could be dynamic based on current user
+      action,
+      details,
+      field: fieldName,
+      oldValue,
+      newValue,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newLogEntry],
     });
   };
 
@@ -689,6 +954,13 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           study_completion_date: ensureString(allFormData.step5_4.study_completion_date),
           primary_completion_date: ensureString(allFormData.step5_4.primary_completion_date),
           population_description: ensureString(allFormData.step5_4.population_description),
+          references: allFormData.step5_4.references.filter(ref => ref.isVisible && (ref.content || ref.viewSource)).map(ref => ({
+            date: ref.date,
+            registryType: ref.registryType,
+            content: ref.content,
+            viewSource: ref.viewSource,
+            attachments: ref.attachments
+          })),
         },
         sites: {
           study_sites: allFormData.step5_5.study_sites.filter(Boolean),
@@ -730,11 +1002,22 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           date_type: ensureString(allFormData.step5_8.date_type),
           notes: allFormData.step5_8.notes.filter(note => note.isVisible && note.content).map(note => ({
             date: note.date,
+            type: note.type,
             content: note.content,
-            link: note.link
+            sourceLink: note.sourceLink,
+            attachments: note.attachments
           })),
           link: ensureString(allFormData.step5_8.link),
         },
+        changesLog: allFormData.step5_8.changesLog.map(change => ({
+          timestamp: change.timestamp,
+          user: change.user,
+          action: change.action,
+          details: change.details,
+          field: change.field,
+          oldValue: change.oldValue,
+          newValue: change.newValue
+        })),
       };
 
       const fullUrl = `${apiBaseUrl}/api/v1/therapeutic/create-therapeutic`;
@@ -800,6 +1083,11 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     updateNote,
     removeNote,
     toggleNoteVisibility,
+    addReference,
+    updateReference,
+    removeReference,
+    toggleReferenceVisibility,
+    addChangeLog,
     resetForm,
     loadForm,
     getFormData,

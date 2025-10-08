@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { X, Plus, Minus, CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import CustomDateInput from "@/components/ui/custom-date-input"
 
 interface TherapeuticAdvancedSearchModalProps {
   open: boolean
@@ -25,19 +26,124 @@ export interface TherapeuticSearchCriteria {
   logic: "AND" | "OR"
 }
 
+// Interface for therapeutic trial data
+interface TherapeuticTrial {
+  trial_id: string;
+  overview: {
+    id: string;
+    therapeutic_area: string;
+    trial_identifier: string[];
+    trial_phase: string;
+    status: string;
+    primary_drugs: string;
+    other_drugs: string;
+    title: string;
+    disease_type: string;
+    patient_segment: string;
+    line_of_therapy: string;
+    reference_links: string[];
+    trial_tags: string;
+    sponsor_collaborators: string;
+    sponsor_field_activity: string;
+    associated_cro: string;
+    countries: string;
+    region: string;
+    trial_record_status: string;
+    created_at: string;
+    updated_at: string;
+  };
+  outcomes: Array<{
+    id: string;
+    trial_id: string;
+    purpose_of_trial: string;
+    summary: string;
+    primary_outcome_measure: string;
+    other_outcome_measure: string;
+    study_design_keywords: string;
+    study_design: string;
+    treatment_regimen: string;
+    number_of_arms: number;
+  }>;
+  criteria: Array<{
+    id: string;
+    trial_id: string;
+    inclusion_criteria: string;
+    exclusion_criteria: string;
+    age_from: string;
+    subject_type: string;
+    age_to: string;
+    sex: string;
+    healthy_volunteers: string;
+    target_no_volunteers: number;
+    actual_enrolled_volunteers: number | null;
+  }>;
+  timing: Array<{
+    id: string;
+    trial_id: string;
+    start_date_estimated: string | null;
+    trial_end_date_estimated: string | null;
+  }>;
+  results: Array<{
+    id: string;
+    trial_id: string;
+    trial_outcome: string;
+    reference: string;
+    trial_results: string[];
+    adverse_event_reported: string;
+    adverse_event_type: string | null;
+    treatment_for_adverse_events: string | null;
+  }>;
+  sites: Array<{
+    id: string;
+    trial_id: string;
+    total: number;
+    notes: string;
+  }>;
+  other: Array<{
+    id: string;
+    trial_id: string;
+    data: string;
+  }>;
+  logs: Array<{
+    id: string;
+    trial_id: string;
+    trial_changes_log: string;
+  }>;
+  notes: Array<{
+    id: string;
+    trial_id: string;
+    notes: string;
+  }>;
+}
+
 const therapeuticSearchFields = [
-  // All fields sorted alphabetically
+  // Main fields that should have dropdowns (from database)
+  { value: "therapeutic_area", label: "Therapeutic Area" },
+  { value: "disease_type", label: "Disease Type" },
+  { value: "trial_phase", label: "Trial Phase" },
+  { value: "status", label: "Status" },
+  { value: "primary_drugs", label: "Primary Drugs" },
+  { value: "other_drugs", label: "Other Drugs" },
+  { value: "title", label: "Title" },
+  { value: "patient_segment", label: "Patient Segment" },
+  { value: "line_of_therapy", label: "Line of Therapy" },
+  { value: "sponsor_collaborators", label: "Sponsor Collaborators" },
+  { value: "associated_cro", label: "Associated CRO" },
+  { value: "countries", label: "Countries" },
+  { value: "region", label: "Region" },
+  { value: "trial_record_status", label: "Trial Record Status" },
+  { value: "trial_identifier", label: "Trial Identifier" },
+  { value: "reference_links", label: "Reference Links" },
+  
+  // Additional fields
   { value: "actual_enrollment", label: "Actual Enrollment" },
   { value: "adverse_events", label: "Adverse Events" },
   { value: "adverse_events_reported", label: "Adverse Events Reported" },
   { value: "age_max", label: "Age Maximum" },
   { value: "age_min", label: "Age Minimum" },
-  { value: "associated_cro", label: "Associated CRO" },
   { value: "biomarker_requirements", label: "Biomarker Requirements" },
   { value: "conclusion", label: "Conclusion" },
-  { value: "countries", label: "Countries" },
   { value: "created_at", label: "Created Date" },
-  { value: "disease_type", label: "Disease Type" },
   { value: "ecog_performance_status", label: "ECOG Performance Status" },
   { value: "efficacy_results", label: "Efficacy Results" },
   { value: "enrollment_status", label: "Enrollment Status" },
@@ -49,52 +155,30 @@ const therapeuticSearchFields = [
   { value: "inclusion_criteria", label: "Inclusion Criteria" },
   { value: "interim_analysis_dates", label: "Interim Analysis Dates" },
   { value: "last_patient_in", label: "Last Patient In" },
-  { value: "line_of_therapy", label: "Line of Therapy" },
   { value: "number_of_arms", label: "Number of Arms" },
-  { value: "other_drugs", label: "Other Drugs" },
   { value: "otherOutcomeMeasures", label: "Other Outcome Measures" },
-  { value: "patient_segment", label: "Patient Segment" },
   { value: "pipeline_data", label: "Pipeline Data" },
   { value: "population_description", label: "Population Description" },
   { value: "post_publications", label: "Post Publications" },
   { value: "press_releases", label: "Press Releases" },
-  { value: "primary_drugs", label: "Primary Drugs" },
   { value: "primary_completion_date", label: "Primary Completion Date" },
-  { value: "primary_endpoint_results", label: "Primary Endpoint Results" },
-  { value: "primaryOutcomeMeasures", label: "Primary Outcome Measures" },
-  { value: "prior_treatments", label: "Prior Treatments" },
-  { value: "publications", label: "Publications" },
+  { value: "primary_outcome_measure", label: "Primary Outcome Measure" },
   { value: "purpose_of_trial", label: "Purpose of Trial" },
   { value: "recruitment_period", label: "Recruitment Period" },
-  { value: "reference_links", label: "Reference Links" },
-  { value: "region", label: "Region" },
   { value: "regulatory_submission_date", label: "Regulatory Submission Date" },
   { value: "results_available", label: "Results Available" },
-  { value: "safety_results", label: "Safety Results" },
-  { value: "secondary_endpoint_results", label: "Secondary Endpoint Results" },
-  { value: "site_contact_info", label: "Site Contact Info" },
-  { value: "site_countries", label: "Site Countries" },
-  { value: "site_regions", label: "Site Regions" },
-  { value: "site_status", label: "Site Status" },
-  { value: "sponsor_collaborators", label: "Sponsor/Collaborators" },
   { value: "sponsor_field_activity", label: "Sponsor Field Activity" },
-  { value: "statistical_significance", label: "Statistical Significance" },
-  { value: "status", label: "Trial Status" },
+  { value: "start_date_estimated", label: "Start Date Estimated" },
   { value: "study_completion_date", label: "Study Completion Date" },
   { value: "study_design", label: "Study Design" },
   { value: "study_design_keywords", label: "Study Design Keywords" },
   { value: "study_end_date", label: "Study End Date" },
   { value: "study_sites", label: "Study Sites" },
   { value: "study_start_date", label: "Study Start Date" },
-  { value: "summary", label: "Trial Summary" },
-  { value: "therapeutic_area", label: "Therapeutic Area" },
-  { value: "trial_identifier", label: "Trial Identifier" },
-  { value: "trial_outcome", label: "Trial Outcome" },
-  { value: "trial_phase", label: "Trial Phase" },
-  { value: "trial_record_status", label: "Trial Record Status" },
-  { value: "trial_registries", label: "Trial Registries" },
+  { value: "summary", label: "Summary" },
+  { value: "target_enrollment", label: "Target Enrollment" },
+  { value: "trial_end_date_estimated", label: "Trial End Date Estimated" },
   { value: "trial_tags", label: "Trial Tags" },
-  { value: "trial_results", label: "Trial Results" },
   { value: "treatment_regimen", label: "Treatment Regimen" },
   { value: "updated_at", label: "Updated Date" }
 ]
@@ -276,57 +360,131 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
   ])
   const [savedQueriesOpen, setSavedQueriesOpen] = useState(false)
   const [savedQueries, setSavedQueries] = useState<any[]>([])
+  const [therapeuticData, setTherapeuticData] = useState<TherapeuticTrial[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // Fetch therapeutic data when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchTherapeuticData()
+    }
+  }, [open])
+
+  const fetchTherapeuticData = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`)
+      if (response.ok) {
+        const data = await response.json()
+        setTherapeuticData(data.trials || [])
+      }
+    } catch (error) {
+      console.error('Error fetching therapeutic data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Get unique values for a specific field from the therapeutic data
+  const getFieldValues = (field: string): string[] => {
+    const values = new Set<string>()
+    
+    therapeuticData.forEach(trial => {
+      // Handle different field paths
+      let fieldValue = ''
+      
+      if (field.includes('.')) {
+        // Handle nested fields like 'overview.therapeutic_area'
+        const [parent, child] = field.split('.')
+        if (parent === 'overview' && trial.overview) {
+          fieldValue = trial.overview[child as keyof typeof trial.overview] as string
+        }
+      } else {
+        // Handle direct fields
+        switch (field) {
+          case 'therapeutic_area':
+            fieldValue = trial.overview?.therapeutic_area || ''
+            break
+          case 'disease_type':
+            fieldValue = trial.overview?.disease_type || ''
+            break
+          case 'trial_phase':
+            fieldValue = trial.overview?.trial_phase || ''
+            break
+          case 'status':
+            fieldValue = trial.overview?.status || ''
+            break
+          case 'primary_drugs':
+            fieldValue = trial.overview?.primary_drugs || ''
+            break
+          case 'other_drugs':
+            fieldValue = trial.overview?.other_drugs || ''
+            break
+          case 'title':
+            fieldValue = trial.overview?.title || ''
+            break
+          case 'patient_segment':
+            fieldValue = trial.overview?.patient_segment || ''
+            break
+          case 'line_of_therapy':
+            fieldValue = trial.overview?.line_of_therapy || ''
+            break
+          case 'sponsor_collaborators':
+            fieldValue = trial.overview?.sponsor_collaborators || ''
+            break
+          case 'associated_cro':
+            fieldValue = trial.overview?.associated_cro || ''
+            break
+          case 'countries':
+            fieldValue = trial.overview?.countries || ''
+            break
+          case 'region':
+            fieldValue = trial.overview?.region || ''
+            break
+          case 'trial_record_status':
+            fieldValue = trial.overview?.trial_record_status || ''
+            break
+          // Handle array fields
+          case 'trial_identifier':
+            if (trial.overview?.trial_identifier) {
+              trial.overview.trial_identifier.forEach(id => values.add(id))
+            }
+            break
+          case 'reference_links':
+            if (trial.overview?.reference_links) {
+              trial.overview.reference_links.forEach(link => values.add(link))
+            }
+            break
+        }
+      }
+      
+      if (fieldValue && fieldValue.trim()) {
+        values.add(fieldValue.trim())
+      }
+    })
+    
+    return Array.from(values).sort()
+  }
 
   // Function to render the appropriate input type based on field
   const renderValueInput = (criterion: TherapeuticSearchCriteria) => {
     const fieldOptionsForField = fieldOptions[criterion.field]
     const isDateField = dateFields.includes(criterion.field)
+    const dynamicValues = getFieldValues(criterion.field)
     
-    // Date field with calendar
+    // Date field with custom input
     if (isDateField) {
-      // Parse the date string correctly to avoid timezone issues
-      const selectedDate = criterion.value ? (() => {
-        const [year, month, day] = criterion.value.split('-').map(Number)
-        return new Date(year, month - 1, day)
-      })() : undefined
-      
       return (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !selectedDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => {
-                if (date) {
-                  // Format the date as YYYY-MM-DD without timezone conversion
-                  const year = date.getFullYear()
-                  const month = String(date.getMonth() + 1).padStart(2, '0')
-                  const day = String(date.getDate()).padStart(2, '0')
-                  updateCriteria(criterion.id, "value", `${year}-${month}-${day}`)
-                } else {
-                  updateCriteria(criterion.id, "value", "")
-                }
-              }}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+        <CustomDateInput
+          value={criterion.value}
+          onChange={(value) => updateCriteria(criterion.id, "value", value)}
+          placeholder="Month Day Year"
+          className="w-full"
+        />
       )
     }
     
-    // Dropdown for fields with specific options
+    // Dropdown for fields with specific options (hardcoded)
     if (fieldOptionsForField) {
       return (
         <Select
@@ -347,7 +505,28 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
       )
     }
     
-    // Default to text input for fields without specific options
+    // Dynamic dropdown for fields with data from database
+    if (dynamicValues.length > 0) {
+      return (
+        <Select
+          value={criterion.value}
+          onValueChange={(value) => updateCriteria(criterion.id, "value", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select option" />
+          </SelectTrigger>
+          <SelectContent>
+            {dynamicValues.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )
+    }
+    
+    // Default to text input for fields without specific options or dynamic data
     return (
       <Input
         placeholder="Enter the search term"

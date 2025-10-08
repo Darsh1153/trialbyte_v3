@@ -35,7 +35,8 @@ import {
 } from "@/components/ui/select";
 
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, ChevronDown, Settings } from "lucide-react";
+import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, ChevronDown, Settings, Download, Save, ExternalLink, Maximize2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TherapeuticAdvancedSearchModal, TherapeuticSearchCriteria } from "@/components/therapeutic-advanced-search-modal";
 import { TherapeuticFilterModal, TherapeuticFilterState } from "@/components/therapeutic-filter-modal";
 import { SaveQueryModal } from "@/components/save-query-modal";
@@ -195,6 +196,11 @@ export default function AdminTherapeuticsPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // Multiple selection state
+  const [selectedTrials, setSelectedTrials] = useState<Set<string>>(new Set());
+  const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
+  const [showViewSelectedButton, setShowViewSelectedButton] = useState(false);
 
   // Fetch trials data
   // Filter function to show only the latest version of each record
@@ -834,6 +840,118 @@ export default function AdminTherapeuticsPage() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Multiple selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allTrialIds = new Set(paginatedTrials.map(trial => trial.trial_id));
+      setSelectedTrials(allTrialIds);
+      setIsSelectAllChecked(true);
+    } else {
+      setSelectedTrials(new Set());
+      setIsSelectAllChecked(false);
+    }
+  };
+
+  const handleSelectTrial = (trialId: string, checked: boolean) => {
+    const newSelectedTrials = new Set(selectedTrials);
+    if (checked) {
+      newSelectedTrials.add(trialId);
+    } else {
+      newSelectedTrials.delete(trialId);
+    }
+    setSelectedTrials(newSelectedTrials);
+    
+    // Update select all checkbox state
+    setIsSelectAllChecked(newSelectedTrials.size === paginatedTrials.length);
+  };
+
+  const handleViewSelectedTrials = (openInTabs: boolean = true) => {
+    if (selectedTrials.size === 0) {
+      toast({
+        title: "No trials selected",
+        description: "Please select at least one trial to view.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedTrialIds = Array.from(selectedTrials);
+    
+    if (openInTabs) {
+      // Open in new tabs
+      selectedTrialIds.forEach(trialId => {
+        window.open(`/admin/therapeutics/${trialId}`, '_blank');
+      });
+    } else {
+      // Open in popup windows
+      selectedTrialIds.forEach((trialId, index) => {
+        const popup = window.open(
+          `/admin/therapeutics/${trialId}`,
+          `trial_${trialId}`,
+          `width=1200,height=800,scrollbars=yes,resizable=yes,left=${100 + (index * 50)},top=${100 + (index * 50)}`
+        );
+        if (!popup) {
+          toast({
+            title: "Popup blocked",
+            description: "Please allow popups for this site to open multiple trials.",
+            variant: "destructive",
+          });
+        }
+      });
+    }
+
+    toast({
+      title: "Trials opened",
+      description: `Opened ${selectedTrialIds.length} trial${selectedTrialIds.length > 1 ? 's' : ''} successfully.`,
+    });
+  };
+
+  const handleExportSelected = () => {
+    if (selectedTrials.size === 0) {
+      toast({
+        title: "No trials selected",
+        description: "Please select at least one trial to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedTrialData = trials.filter(trial => selectedTrials.has(trial.trial_id));
+    
+    // Create CSV content
+    const csvContent = [
+      // Header
+      ['Trial ID', 'Title', 'Therapeutic Area', 'Disease Type', 'Status', 'Phase', 'Sponsor', 'Created Date'].join(','),
+      // Data rows
+      ...selectedTrialData.map(trial => [
+        trial.trial_id,
+        `"${trial.overview.title || 'Untitled'}"`,
+        `"${trial.overview.therapeutic_area || 'N/A'}"`,
+        `"${trial.overview.disease_type || 'N/A'}"`,
+        `"${trial.overview.status || 'Unknown'}"`,
+        `"${trial.overview.trial_phase || 'N/A'}"`,
+        `"${trial.overview.sponsor_collaborators || 'N/A'}"`,
+        `"${formatDate(trial.overview.created_at)}"`
+      ].join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `therapeutic_trials_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export successful",
+      description: `Exported ${selectedTrialData.length} trial${selectedTrialData.length > 1 ? 's' : ''} to CSV.`,
+    });
+  };
+
   // Get status color
   const getStatusColor = (status: string) => {
     const statusColors: Record<string, string> = {
@@ -888,7 +1006,7 @@ export default function AdminTherapeuticsPage() {
             onClick={() => setSaveQueryModalOpen(true)}
             className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
           >
-            <Clock className="h-4 w-4 mr-2" />
+            <Save className="h-4 w-4 mr-2" />
             Save Query
           </Button>
           <Button
@@ -965,6 +1083,57 @@ export default function AdminTherapeuticsPage() {
           </Button>
         )}
       </div>
+
+      {/* Selection Controls */}
+      {selectedTrials.size > 0 && (
+        <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-blue-800">
+              {selectedTrials.size} trial{selectedTrials.size > 1 ? 's' : ''} selected
+            </span>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewSelectedTrials(true)}
+                className="bg-white hover:bg-gray-50 text-blue-700 border-blue-300"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open in Tabs
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewSelectedTrials(false)}
+                className="bg-white hover:bg-gray-50 text-blue-700 border-blue-300"
+              >
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Open in Popups
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportSelected}
+                className="bg-white hover:bg-gray-50 text-green-700 border-green-300"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Selected
+              </Button>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedTrials(new Set());
+              setIsSelectAllChecked(false);
+            }}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            Clear Selection
+          </Button>
+        </div>
+      )}
 
       {/* Sort By Dropdown */}
       <div className="flex items-center space-x-2">
@@ -1162,6 +1331,12 @@ export default function AdminTherapeuticsPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isSelectAllChecked}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
                 {columnSettings.trialId && <TableHead>Trial ID</TableHead>}
                 <TableHead>Title</TableHead>
                 {columnSettings.therapeuticArea && <TableHead>Clinical Trials</TableHead>}
@@ -1176,6 +1351,12 @@ export default function AdminTherapeuticsPage() {
             <TableBody>
               {paginatedTrials.map((trial) => (
                 <TableRow key={trial.trial_id} className="hover:bg-muted/40">
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedTrials.has(trial.trial_id)}
+                      onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
+                    />
+                  </TableCell>
                   {columnSettings.trialId && (
                     <TableCell className="font-mono text-sm">
                       {trial.trial_id.slice(0, 8)}...
@@ -1248,34 +1429,44 @@ export default function AdminTherapeuticsPage() {
           {paginatedTrials.map((trial) => (
             <Card key={trial.trial_id} className="shadow-sm">
               <CardContent className="p-4 space-y-2">
-                <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">{trial.trial_id.slice(0, 8)}...</span></p>
-                <p className="font-semibold">{trial.overview.title || "Untitled"}</p>
-                <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
-                <p className="text-sm">Disease: {trial.overview.disease_type || "N/A"}</p>
-                <p className="text-sm">Status: <span className={getStatusColor(trial.overview.status)}>{trial.overview.status || "Unknown"}</span></p>
-                <p className="text-sm">Phase: {trial.overview.trial_phase || "N/A"}</p>
-                <p className="text-sm">Sponsor: {trial.overview.sponsor_collaborators || "N/A"}</p>
-                <p className="text-sm">Created: {formatDate(trial.overview.created_at)}</p>
-                <div className="flex items-center justify-end space-x-2 pt-2">
-                  <Button variant="outline" size="sm" onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}>
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteTrial(trial.trial_id)}
-                    disabled={deletingTrials[trial.trial_id]}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    {deletingTrials[trial.trial_id] ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                  </Button>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">{trial.trial_id.slice(0, 8)}...</span></p>
+                    <p className="font-semibold">{trial.overview.title || "Untitled"}</p>
+                    <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
+                    <p className="text-sm">Disease: {trial.overview.disease_type || "N/A"}</p>
+                    <p className="text-sm">Status: <span className={getStatusColor(trial.overview.status)}>{trial.overview.status || "Unknown"}</span></p>
+                    <p className="text-sm">Phase: {trial.overview.trial_phase || "N/A"}</p>
+                    <p className="text-sm">Sponsor: {trial.overview.sponsor_collaborators || "N/A"}</p>
+                    <p className="text-sm">Created: {formatDate(trial.overview.created_at)}</p>
+                  </div>
+                  <div className="flex flex-col items-end space-y-2">
+                    <Checkbox
+                      checked={selectedTrials.has(trial.trial_id)}
+                      onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteTrial(trial.trial_id)}
+                        disabled={deletingTrials[trial.trial_id]}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        {deletingTrials[trial.trial_id] ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

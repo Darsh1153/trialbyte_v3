@@ -18,6 +18,8 @@ import { SearchableSelect, SearchableSelectOption } from "@/components/ui/search
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ArrowRight, Check, Loader2, Plus, X, Eye, EyeOff } from "lucide-react";
+import NotesSection, { NoteItem } from "@/components/notes-section";
+import CustomDateInput from "@/components/ui/custom-date-input";
 import { useToast } from "@/hooks/use-toast";
 import { useContent } from "@/hooks/use-content";
 import { useDrugNames } from "@/hooks/use-drug-names";
@@ -1709,29 +1711,29 @@ export default function NewDrugPage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Created Date</Label>
-                <Input
-                  type="date"
+                <CustomDateInput
                   value={content.logs?.drug_added_date || ""}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     updateContent("logs", {
                       ...content.logs,
-                      drug_added_date: e.target.value,
+                      drug_added_date: value,
                     })
                   }
+                  placeholder="Month Day Year"
                   className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Last Modified Date</Label>
-                <Input
-                  type="date"
+                <CustomDateInput
                   value={content.logs?.last_modified_date || ""}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     updateContent("logs", {
                       ...content.logs,
-                      last_modified_date: e.target.value,
+                      last_modified_date: value,
                     })
                   }
+                  placeholder="Month Day Year"
                   className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
@@ -1785,36 +1787,78 @@ export default function NewDrugPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-700">Next Review Date</Label>
-                <Input
-                  type="date"
+                <CustomDateInput
                   value={content.logs?.next_review_date || ""}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     updateContent("logs", {
                       ...content.logs,
-                      next_review_date: e.target.value,
+                      next_review_date: value,
                     })
                   }
+                  placeholder="Month Day Year"
                   className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
             </div>
 
             {/* Notes */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Notes</Label>
-              <Textarea
-                value={content.logs?.notes || ""}
-                onChange={(e) =>
-                  updateContent("logs", {
-                    ...content.logs,
-                    notes: e.target.value,
-                  })
-                }
-                placeholder="Enter running documentation"
-                rows={4}
-                className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-              />
-            </div>
+            <NotesSection
+              title="Drug Notes & Documentation"
+              notes={content.logs?.notes ? (Array.isArray(content.logs.notes) ? content.logs.notes : [{
+                id: "1",
+                date: new Date().toISOString().split("T")[0],
+                type: "General",
+                content: content.logs.notes,
+                sourceLink: "",
+                attachments: [],
+                isVisible: true
+              }]) : []}
+              onAddNote={() => {
+                const newNote = {
+                  id: Date.now().toString(),
+                  date: new Date().toISOString().split("T")[0],
+                  type: "General",
+                  content: "",
+                  sourceLink: "",
+                  attachments: [],
+                  isVisible: true
+                };
+                const currentNotes = Array.isArray(content.logs?.notes) ? content.logs.notes : [];
+                updateContent("logs", {
+                  ...content.logs,
+                  notes: [...currentNotes, newNote]
+                });
+              }}
+              onUpdateNote={(index, updatedNote) => {
+                const currentNotes = Array.isArray(content.logs?.notes) ? content.logs.notes : [];
+                const updatedNotes = currentNotes.map((note, i) => 
+                  i === index ? { ...note, ...updatedNote } : note
+                );
+                updateContent("logs", {
+                  ...content.logs,
+                  notes: updatedNotes
+                });
+              }}
+              onRemoveNote={(index) => {
+                const currentNotes = Array.isArray(content.logs?.notes) ? content.logs.notes : [];
+                const updatedNotes = currentNotes.filter((_, i) => i !== index);
+                updateContent("logs", {
+                  ...content.logs,
+                  notes: updatedNotes
+                });
+              }}
+              noteTypes={[
+                "General",
+                "Development",
+                "Regulatory",
+                "Safety",
+                "Efficacy",
+                "Clinical",
+                "Manufacturing",
+                "Marketing",
+                "Other"
+              ]}
+            />
           </div>
         );
 

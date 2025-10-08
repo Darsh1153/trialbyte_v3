@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import NotesSection, { NoteItem } from "@/components/notes-section";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
@@ -101,58 +102,34 @@ export default function TherapeuticsStep5_6() {
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Notes</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={addNote}
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
-            </div>
-
-             <div className="space-y-4">
-               {notes.map((note: string, index: number) => (
-                 <div
-                   key={index}
-                   className="border-2 border-gray-600 rounded-lg bg-gray-50"
-                 >
-                   <div className="flex items-center justify-between p-3 border-b border-gray-300">
-                     <span className="text-sm font-medium text-gray-700">
-                       Note {index + 1}
-                     </span>
-                     <Button
-                       type="button"
-                       variant="ghost"
-                       size="icon"
-                       onClick={() => toggleNoteExpansion(index)}
-                       className="text-gray-600 hover:text-gray-800"
-                     >
-                       {expandedNotes.has(index) ? (
-                         <ChevronUp className="h-4 w-4" />
-                       ) : (
-                         <ChevronDown className="h-4 w-4" />
-                       )}
-                     </Button>
-                   </div>
-                   {expandedNotes.has(index) && (
-                     <div className="p-3">
-                       <Textarea
-                         rows={4}
-                         value={note}
-                         onChange={(e) => updateNote(index, e.target.value)}
-                         placeholder="Enter locations and contacts related information..."
-                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 bg-white"
-                       />
-                     </div>
-                   )}
-                 </div>
-               ))}
-             </div>
-          </div>
+            {/* Notes Section */}
+            <NotesSection
+              title="Interim Analysis Notes"
+              notes={notes.map((note: string, index: number) => ({
+                id: `note-${index}`,
+                date: new Date().toISOString().split("T")[0],
+                type: "Analysis",
+                content: note,
+                sourceLink: "",
+                attachments: [],
+                isVisible: true
+              }))}
+              onAddNote={() => addNote()}
+              onUpdateNote={(index, updatedNote) => {
+                updateNote(index, updatedNote.content || "");
+              }}
+              onRemoveNote={(index) => {
+                const updated = notes.filter((_, i) => i !== index);
+                updateField("step5_6", "interim_analysis_dates", updated);
+              }}
+              noteTypes={[
+                "Analysis",
+                "Timeline",
+                "Milestone",
+                "Review",
+                "Other"
+              ]}
+            />
 
           {/* Next Button */}
           <div className="flex justify-end">

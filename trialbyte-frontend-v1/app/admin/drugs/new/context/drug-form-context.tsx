@@ -26,11 +26,16 @@ export interface DrugFormData {
 
   // Development Status
   devStatus: {
-    disease_type: string;
-    therapeutic_class: string;
-    company: string;
-    company_type: string;
-    status: string;
+    entries: Array<{
+      id: string;
+      disease_type: string;
+      therapeutic_class: string;
+      originator: string;
+      active_companies: string;
+      countries: string;
+      current_status: string;
+      reference: string;
+    }>;
   };
 
   // Drug Activity
@@ -63,7 +68,15 @@ export interface DrugFormData {
   // Logs
   logs: {
     drug_changes_log: string;
-    notes: string;
+    notes: Array<{
+      id: string;
+      date: string;
+      type: string;
+      content: string;
+      sourceLink?: string;
+      attachments?: string[];
+      isVisible: boolean;
+    }>;
   };
 }
 
@@ -88,11 +101,7 @@ const initialFormState: DrugFormData = {
     links: [""],
   },
   devStatus: {
-    disease_type: "",
-    therapeutic_class: "",
-    company: "",
-    company_type: "",
-    status: "",
+    entries: [],
   },
   activity: {
     mechanism_of_action: "",
@@ -115,7 +124,7 @@ const initialFormState: DrugFormData = {
   },
   logs: {
     drug_changes_log: "",
-    notes: "",
+    notes: [],
   },
 };
 
@@ -144,6 +153,19 @@ type FormAction =
       step: keyof DrugFormData;
       field: string;
       index: number;
+      value: string;
+    }
+  | {
+      type: "ADD_DEV_STATUS_ENTRY";
+    }
+  | {
+      type: "REMOVE_DEV_STATUS_ENTRY";
+      index: number;
+    }
+  | {
+      type: "UPDATE_DEV_STATUS_ENTRY";
+      index: number;
+      field: string;
       value: string;
     }
   | { type: "RESET_FORM" }
@@ -212,6 +234,51 @@ function formReducer(state: DrugFormData, action: FormAction): DrugFormData {
     case "LOAD_FORM":
       return action.data;
 
+    case "ADD_DEV_STATUS_ENTRY":
+      const newEntry = {
+        id: Date.now().toString(),
+        disease_type: "",
+        therapeutic_class: "",
+        originator: "",
+        active_companies: "",
+        countries: "",
+        current_status: "",
+        reference: "",
+      };
+      return {
+        ...state,
+        devStatus: {
+          ...state.devStatus,
+          entries: [newEntry, ...state.devStatus.entries], // Latest entry first
+        },
+      };
+
+    case "REMOVE_DEV_STATUS_ENTRY":
+      const filteredEntries = state.devStatus.entries.filter(
+        (_, index) => index !== action.index
+      );
+      return {
+        ...state,
+        devStatus: {
+          ...state.devStatus,
+          entries: filteredEntries,
+        },
+      };
+
+    case "UPDATE_DEV_STATUS_ENTRY":
+      const updatedEntries = state.devStatus.entries.map((entry, index) =>
+        index === action.index
+          ? { ...entry, [action.field]: action.value }
+          : entry
+      );
+      return {
+        ...state,
+        devStatus: {
+          ...state.devStatus,
+          entries: updatedEntries,
+        },
+      };
+
     default:
       return state;
   }
@@ -237,6 +304,13 @@ interface DrugFormContextType {
     index: number,
     value: string
   ) => void;
+  addNote: (step: keyof DrugFormData, field: string) => void;
+  updateNote: (step: keyof DrugFormData, field: string, index: number, updates: Partial<any>) => void;
+  removeNote: (step: keyof DrugFormData, field: string, index: number) => void;
+  toggleNoteVisibility: (step: keyof DrugFormData, field: string, index: number) => void;
+  addDevStatusEntry: () => void;
+  removeDevStatusEntry: (index: number) => void;
+  updateDevStatusEntry: (index: number, field: string, value: string) => void;
   resetForm: () => void;
   loadForm: (data: DrugFormData) => void;
   getFormData: () => DrugFormData;
@@ -283,6 +357,76 @@ export function DrugFormProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value });
   };
 
+  // Note management functions
+  const addNote = (step: keyof DrugFormData, field: string) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newNote = {
+      id: Date.now().toString(),
+      date: new Date().toISOString().split("T")[0],
+      type: "General",
+      content: "",
+      sourceLink: "",
+      attachments: [],
+      isVisible: true,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newNote],
+    });
+  };
+
+  const updateNote = (
+    step: keyof DrugFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const removeNote = (
+    step: keyof DrugFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.filter((_, idx) => idx !== index);
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleNoteVisibility = (
+    step: keyof DrugFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
   const resetForm = () => {
     dispatch({ type: "RESET_FORM" });
   };
@@ -293,6 +437,18 @@ export function DrugFormProvider({ children }: { children: ReactNode }) {
 
   const getFormData = () => formData;
 
+  const addDevStatusEntry = () => {
+    dispatch({ type: "ADD_DEV_STATUS_ENTRY" });
+  };
+
+  const removeDevStatusEntry = (index: number) => {
+    dispatch({ type: "REMOVE_DEV_STATUS_ENTRY", index });
+  };
+
+  const updateDevStatusEntry = (index: number, field: string, value: string) => {
+    dispatch({ type: "UPDATE_DEV_STATUS_ENTRY", index, field, value });
+  };
+
   const value: DrugFormContextType = {
     formData,
     updateStep,
@@ -300,6 +456,13 @@ export function DrugFormProvider({ children }: { children: ReactNode }) {
     addArrayItem,
     removeArrayItem,
     updateArrayItem,
+    addNote,
+    updateNote,
+    removeNote,
+    toggleNoteVisibility,
+    addDevStatusEntry,
+    removeDevStatusEntry,
+    updateDevStatusEntry,
     resetForm,
     loadForm,
     getFormData,

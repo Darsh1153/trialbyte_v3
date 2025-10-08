@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
+import NotesSection, { NoteItem } from "@/components/notes-section";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -2597,59 +2598,23 @@ function ClinicalTrialsPage() {
             </div>
 
             {/* Trial Notes */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Trial Notes</h3>
-              <div className="space-y-3">
-                {trials[currentTrialIndex]?.notes &&
-                trials[currentTrialIndex].notes.length > 0 ? (
-                  trials[currentTrialIndex].notes.map((note, index) => (
-                    <div
-                      key={index}
-                      className="border rounded-lg p-4 bg-blue-50"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm font-medium text-gray-800">
-                          Note #{index + 1} - {note.date_type}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700 mb-2">{note.notes}</p>
-                      {note.link && (
-                        <a
-                          href={note.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline"
-                        >
-                          View Link
-                        </a>
-                      )}
-                      {note.attachments && note.attachments.length > 0 && (
-                        <div className="mt-2">
-                          <span className="text-xs font-medium text-gray-600">
-                            Attachments:
-                          </span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {note.attachments.map((attachment, attachIndex) => (
-                              <Badge
-                                key={attachIndex}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {attachment}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No notes available for this trial
-                  </div>
-                )}
-              </div>
-            </div>
+            <NotesSection
+              title="Trial Notes"
+              notes={trials[currentTrialIndex]?.notes?.map((note, index) => ({
+                id: `note-${index}`,
+                date: note.date_type || new Date().toISOString().split("T")[0],
+                type: "General",
+                content: note.notes || "",
+                sourceLink: note.link || "",
+                attachments: note.attachments || [],
+                isVisible: true
+              })) || []}
+              onAddNote={() => {}} // Read-only
+              onUpdateNote={() => {}} // Read-only
+              onRemoveNote={() => {}} // Read-only
+              showAddButton={false} // Hide add button for read-only
+              className="bg-blue-50"
+            />
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2 pt-4 border-t">

@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, Check, ChevronsUpDown, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -17,7 +17,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export default function TherapeuticsStep5_5() {
-  const { formData, updateField, saveTrial } = useTherapeuticForm();
+  const { formData, updateField, addArrayItem, removeArrayItem, updateArrayItem, saveTrial } = useTherapeuticForm();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_5;
@@ -224,24 +224,40 @@ export default function TherapeuticsStep5_5() {
           {/* Trial Results */}
           <div className="space-y-2">
             <Label>Trial Results</Label>
-            <div className="relative">
-              <Textarea
-                rows={3}
-                placeholder="Enter trial results here..."
-                value={form.site_regions[0] || ""}
-                onChange={(e) =>
-                  updateField("step5_5", "site_regions", [e.target.value])
-                }
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="absolute top-2 right-2 rounded-full"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+            <div className="space-y-3">
+              {form.trial_results.map((result, index) => (
+                <div key={index} className="relative">
+                  <Textarea
+                    rows={3}
+                    placeholder="Enter trial results here..."
+                    value={result}
+                    onChange={(e) => updateArrayItem("step5_5", "trial_results", index, e.target.value)}
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-12"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    {form.trial_results.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="rounded-full h-8 w-8"
+                        onClick={() => removeArrayItem("step5_5", "trial_results", index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full h-8 w-8"
+                      onClick={() => addArrayItem("step5_5", "trial_results")}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
