@@ -119,3 +119,4 @@ const getFallbackOptions = (categoryName: string): SearchableSelectOption[] => {
 
   return fallbackOptions[categoryName] || [];
 };
+
