@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEffect, useState } from "react";
-import { therapeuticsApi } from "@/app/lib/api";
+import { therapeuticsApi } from "@/app/_lib/api";
 import { toast } from "@/hooks/use-toast";
 
 export default function NewTherapeuticPage() {

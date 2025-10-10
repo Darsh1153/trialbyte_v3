@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { drugsApi } from "../../lib/api";
+import { drugsApi } from "../../_lib/api";
 import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, RefreshCw } from "lucide-react";
 import { DrugAdvancedSearchModal, DrugSearchCriteria } from "@/components/drug-advanced-search-modal";
 import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal";

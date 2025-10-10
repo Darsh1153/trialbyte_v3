@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { Search, ChevronLeft, ChevronRight, Plus, MoreHorizontal } from "lucide-react";
 import { AddUserModal } from "@/components/add-user-modal";
-import { usersApi } from "@/app/lib/api";
+import { usersApi } from "@/app/_lib/api";
 import {
   BarChart,
   Bar,

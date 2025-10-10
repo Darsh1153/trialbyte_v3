@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
-import { usersApi } from "@/app/lib/api";
+import { usersApi } from "@/app/_lib/api";
 import { toast } from "@/hooks/use-toast";
 
 interface AddUserModalProps {

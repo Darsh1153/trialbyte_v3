@@ -3,7 +3,7 @@
 import type React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { authApi } from "@/app/lib/api";
+import { authApi } from "@/app/_lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
