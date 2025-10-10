@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { NotesSection } from "@/components/notes-section";
 import { useContent } from "@/hooks/use-content";
 
 interface DrugFormData {
@@ -843,21 +844,65 @@ export default function NewDrugPage() {
                     rows={3}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={content.logs.notes}
-                    onChange={(e) =>
-                      updateContent("logs", {
-                        ...content.logs,
-                        notes: e.target.value,
-                      })
-                    }
-                    placeholder="Enter additional notes or comments"
-                    rows={3}
-                  />
-                </div>
+                
+                {/* Notes Section */}
+                <NotesSection
+                  title="Notes & Documentation"
+                  notes={content.logs?.notes ? (Array.isArray(content.logs.notes) ? content.logs.notes : [{
+                    id: "1",
+                    date: new Date().toISOString().split("T")[0],
+                    type: "General",
+                    content: content.logs.notes,
+                    sourceLink: "",
+                    attachments: [],
+                    isVisible: true
+                  }]) : []}
+                  onAddNote={() => {
+                    const newNote = {
+                      id: Date.now().toString(),
+                      date: new Date().toISOString().split("T")[0],
+                      type: "General",
+                      content: "",
+                      sourceLink: "",
+                      attachments: [],
+                      isVisible: true
+                    };
+                    const currentNotes = Array.isArray(content.logs?.notes) ? content.logs.notes : [];
+                    updateContent("logs", {
+                      ...content.logs,
+                      notes: [...currentNotes, newNote]
+                    });
+                  }}
+                  onUpdateNote={(index, updatedNote) => {
+                    const currentNotes = Array.isArray(content.logs?.notes) ? content.logs.notes : [];
+                    const updatedNotes = currentNotes.map((note, i) => 
+                      i === index ? { ...note, ...updatedNote } : note
+                    );
+                    updateContent("logs", {
+                      ...content.logs,
+                      notes: updatedNotes
+                    });
+                  }}
+                  onRemoveNote={(index) => {
+                    const currentNotes = Array.isArray(content.logs?.notes) ? content.logs.notes : [];
+                    const updatedNotes = currentNotes.filter((_, i) => i !== index);
+                    updateContent("logs", {
+                      ...content.logs,
+                      notes: updatedNotes
+                    });
+                  }}
+                  noteTypes={[
+                    "General",
+                    "Development",
+                    "Regulatory",
+                    "Safety",
+                    "Efficacy",
+                    "Clinical",
+                    "Manufacturing",
+                    "Marketing",
+                    "Other"
+                  ]}
+                />
               </CardContent>
             </Card>
           </div>

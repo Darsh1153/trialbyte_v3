@@ -11,6 +11,7 @@ import { X, Plus, Minus, CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import CustomDateInput from "@/components/ui/custom-date-input"
+import { MultiTagInput } from "@/components/ui/multi-tag-input"
 
 interface TherapeuticAdvancedSearchModalProps {
   open: boolean
@@ -22,7 +23,7 @@ export interface TherapeuticSearchCriteria {
   id: string
   field: string
   operator: string
-  value: string
+  value: string | string[] // Support both single string and array of strings
   logic: "AND" | "OR"
 }
 
@@ -472,11 +473,25 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
     const isDateField = dateFields.includes(criterion.field)
     const dynamicValues = getFieldValues(criterion.field)
     
+    // Special handling for trial_tags - use multi-tag input
+    if (criterion.field === "trial_tags") {
+      const tags = Array.isArray(criterion.value) ? criterion.value : 
+                   criterion.value ? [criterion.value] : [];
+      return (
+        <MultiTagInput
+          value={tags}
+          onChange={(tags) => updateCriteria(criterion.id, "value", tags)}
+          placeholder="Enter tags like 'Cancer', 'Fever' and press Enter"
+          className="w-full"
+        />
+      )
+    }
+    
     // Date field with custom input
     if (isDateField) {
       return (
         <CustomDateInput
-          value={criterion.value}
+          value={Array.isArray(criterion.value) ? criterion.value[0] || "" : criterion.value}
           onChange={(value) => updateCriteria(criterion.id, "value", value)}
           placeholder="Month Day Year"
           className="w-full"
@@ -488,7 +503,7 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
     if (fieldOptionsForField) {
       return (
         <Select
-          value={criterion.value}
+          value={Array.isArray(criterion.value) ? criterion.value[0] || "" : criterion.value}
           onValueChange={(value) => updateCriteria(criterion.id, "value", value)}
         >
           <SelectTrigger>
@@ -509,7 +524,7 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
     if (dynamicValues.length > 0) {
       return (
         <Select
-          value={criterion.value}
+          value={Array.isArray(criterion.value) ? criterion.value[0] || "" : criterion.value}
           onValueChange={(value) => updateCriteria(criterion.id, "value", value)}
         >
           <SelectTrigger>
@@ -526,11 +541,36 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
       )
     }
     
+    // Integer input for number_of_arms field
+    if (criterion.field === "number_of_arms") {
+      return (
+        <Input
+          type="number"
+          min="1"
+          placeholder="Enter number of arms (e.g., 2)"
+          value={Array.isArray(criterion.value) ? criterion.value[0] || "" : criterion.value}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Only allow positive integers
+            if (value === "" || /^\d+$/.test(value)) {
+              updateCriteria(criterion.id, "value", value);
+            }
+          }}
+          onKeyDown={(e) => {
+            // Prevent non-numeric characters except backspace, delete, arrow keys
+            if (!/[\d\b\ArrowLeft\ArrowRight\ArrowUp\ArrowDown\Delete]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+              e.preventDefault();
+            }
+          }}
+        />
+      )
+    }
+    
     // Default to text input for fields without specific options or dynamic data
     return (
       <Input
         placeholder="Enter the search term"
-        value={criterion.value}
+        value={Array.isArray(criterion.value) ? criterion.value[0] || "" : criterion.value}
         onChange={(e) => updateCriteria(criterion.id, "value", e.target.value)}
       />
     )
@@ -552,13 +592,32 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
     setCriteria((prev) => prev.filter((c) => c.id !== id))
   }
 
-  const updateCriteria = (id: string, field: keyof TherapeuticSearchCriteria, value: string) => {
-    setCriteria((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)))
+  const updateCriteria = (id: string, field: keyof TherapeuticSearchCriteria, value: string | string[]) => {
+    setCriteria((prev) => prev.map((c) => {
+      if (c.id === id) {
+        const updated = { ...c, [field]: value };
+        
+        // Set default operator for number_of_arms field
+        if (field === "field" && value === "number_of_arms") {
+          updated.operator = "equals";
+          updated.value = "";
+        }
+        
+        return updated;
+      }
+      return c;
+    }))
   }
 
   const handleApply = () => {
-    onApplySearch(criteria.filter((c) => c.value.trim() !== ""))
-    onOpenChange(false)
+    const filteredCriteria = criteria.filter((c) => {
+      if (Array.isArray(c.value)) {
+        return c.value.length > 0 && c.value.some(v => v.trim() !== "");
+      }
+      return c.value.trim() !== "";
+    });
+    onApplySearch(filteredCriteria);
+    onOpenChange(false);
   }
 
   const handleClear = () => {
@@ -655,7 +714,10 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {operators.map((op) => (
+                        {(criterion.field === "number_of_arms" 
+                          ? operators.filter(op => ["equals", "greater_than", "greater_than_equal", "less_than", "less_than_equal", "not_equals"].includes(op.value))
+                          : operators
+                        ).map((op) => (
                           <SelectItem key={op.value} value={op.value}>
                             {op.label}
                           </SelectItem>

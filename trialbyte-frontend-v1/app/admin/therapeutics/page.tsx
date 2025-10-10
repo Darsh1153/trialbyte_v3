@@ -422,6 +422,22 @@ export default function AdminTherapeuticsPage() {
 
   // Handle advanced search
   const handleAdvancedSearch = (criteria: TherapeuticSearchCriteria[]) => {
+    console.log('Advanced search criteria:', criteria);
+    
+    // Debug: Check if any trials contain "bladder" in any field
+    const bladderTrials = trials.filter(trial => {
+      const searchText = JSON.stringify(trial).toLowerCase();
+      return searchText.includes('bladder');
+    });
+    
+    console.log('Trials containing "bladder":', bladderTrials.map(t => ({
+      id: t.trial_id,
+      title: t.overview.title,
+      trial_tags: t.overview.trial_tags,
+      disease_type: t.overview.disease_type,
+      therapeutic_area: t.overview.therapeutic_area
+    })));
+    
     setAdvancedSearchCriteria(criteria);
   };
 
@@ -456,6 +472,17 @@ export default function AdminTherapeuticsPage() {
   // Apply advanced search criteria to filter trials
   const applyAdvancedSearchFilter = (trial: TherapeuticTrial, criteria: TherapeuticSearchCriteria[]): boolean => {
     if (criteria.length === 0) return true;
+
+    // Debug: Log all trials and their trial_tags/disease_type for debugging
+    if (criteria.some(c => c.field === "trial_tags")) {
+      console.log('All trials trial_tags and disease_type:', trials.map(t => ({
+        id: t.trial_id,
+        title: t.overview.title,
+        trial_tags: t.overview.trial_tags,
+        disease_type: t.overview.disease_type,
+        combined: `${t.overview.trial_tags || ""} ${t.overview.disease_type || ""}`.trim()
+      })));
+    }
 
     const results = criteria.map((criterion) => {
       const { field, operator, value } = criterion;
@@ -495,7 +522,10 @@ export default function AdminTherapeuticsPage() {
           fieldValue = trial.overview.line_of_therapy || "";
           break;
         case "trial_tags":
-          fieldValue = trial.overview.trial_tags || "";
+          // Search in both trial_tags and disease_type since the UI shows disease_type as tags
+          const trialTags = trial.overview.trial_tags || "";
+          const diseaseType = trial.overview.disease_type || "";
+          fieldValue = `${trialTags} ${diseaseType}`.trim();
           break;
         case "sponsor_collaborators":
           fieldValue = trial.overview.sponsor_collaborators || "";
@@ -615,8 +645,35 @@ export default function AdminTherapeuticsPage() {
       }
 
       // Apply the operator
-      const searchValue = value.toLowerCase();
       const targetValue = fieldValue.toLowerCase();
+
+      // Special handling for trial_tags with multiple values
+      if (field === "trial_tags" && Array.isArray(value)) {
+        // For multiple tags, all tags must be present (AND logic)
+        // Handle different possible formats of trial_tags data
+        const trialTagsString = fieldValue.toLowerCase();
+        
+        // Check if all tags are present in the trial_tags string
+        const allTagsPresent = value.every(tag => {
+          const tagLower = tag.toLowerCase().trim();
+          // Check for exact word match or comma-separated match
+          return trialTagsString.includes(tagLower) || 
+                 trialTagsString.split(/[,\s]+/).includes(tagLower);
+        });
+        
+        console.log('Trial Tags Search Debug:', {
+          fieldValue,
+          searchTags: value,
+          allTagsPresent,
+          trialTagsString,
+          trialTags: trial.overview.trial_tags,
+          diseaseType: trial.overview.disease_type
+        });
+        
+        return allTagsPresent;
+      }
+
+      const searchValue = typeof value === 'string' ? value.toLowerCase() : '';
 
       switch (operator) {
         case "contains":
@@ -634,9 +691,13 @@ export default function AdminTherapeuticsPage() {
         case "not_equals":
           return targetValue !== searchValue;
         case "greater_than":
-          return parseFloat(fieldValue) > parseFloat(value);
+          return parseFloat(fieldValue) > parseFloat(value as string);
+        case "greater_than_equal":
+          return parseFloat(fieldValue) >= parseFloat(value as string);
         case "less_than":
-          return parseFloat(fieldValue) < parseFloat(value);
+          return parseFloat(fieldValue) < parseFloat(value as string);
+        case "less_than_equal":
+          return parseFloat(fieldValue) <= parseFloat(value as string);
         default:
           return true;
       }

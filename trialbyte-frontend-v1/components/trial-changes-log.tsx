@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Clock, User, Edit3, Plus, Trash2 } from "lucide-react";
+import { Clock, User, Edit3, Plus, Trash2, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 interface ChangeLogEntry {
@@ -15,6 +15,8 @@ interface ChangeLogEntry {
   field?: string;
   oldValue?: string;
   newValue?: string;
+  step?: string;
+  changeType?: 'field_change' | 'content_addition' | 'content_removal' | 'visibility_change' | 'creation';
 }
 
 interface TrialChangesLogProps {
@@ -22,27 +24,37 @@ interface TrialChangesLogProps {
   className?: string;
 }
 
-const getActionIcon = (action: string) => {
+const getActionIcon = (action: string, changeType?: string) => {
   switch (action.toLowerCase()) {
     case "created":
+    case "added":
       return <Plus className="h-4 w-4 text-green-600" />;
     case "changed":
       return <Edit3 className="h-4 w-4 text-blue-600" />;
+    case "removed":
     case "deleted":
       return <Trash2 className="h-4 w-4 text-red-600" />;
+    case "hidden":
+    case "shown":
+      return <Eye className="h-4 w-4 text-purple-600" />;
     default:
       return <Edit3 className="h-4 w-4 text-gray-600" />;
   }
 };
 
-const getActionColor = (action: string) => {
+const getActionColor = (action: string, changeType?: string) => {
   switch (action.toLowerCase()) {
     case "created":
+    case "added":
       return "text-green-700 bg-green-50 border-green-200";
     case "changed":
       return "text-blue-700 bg-blue-50 border-blue-200";
+    case "removed":
     case "deleted":
       return "text-red-700 bg-red-50 border-red-200";
+    case "hidden":
+    case "shown":
+      return "text-purple-700 bg-purple-50 border-purple-200";
     default:
       return "text-gray-700 bg-gray-50 border-gray-200";
   }
@@ -87,11 +99,11 @@ export default function TrialChangesLog({ changesLog, className = "" }: TrialCha
                 {sortedChanges.map((change, index) => (
                   <div
                     key={change.id}
-                    className={`p-4 rounded-lg border-l-4 ${getActionColor(change.action)}`}
+                    className={`p-4 rounded-lg border-l-4 ${getActionColor(change.action, change.changeType)}`}
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 mt-0.5">
-                        {getActionIcon(change.action)}
+                        {getActionIcon(change.action, change.changeType)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

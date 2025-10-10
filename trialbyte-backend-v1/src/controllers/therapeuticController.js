@@ -47,6 +47,37 @@ const notesRepo = new TherapeuticNotesRepository();
 const respondNotFound = (res, resource = "Record") =>
   res.status(StatusCodes.NOT_FOUND).json({ message: `${resource} not found` });
 
+const { UserRepository } = require("../repositories/userRepository");
+const bcrypt = require("bcryptjs");
+
+// Create instances of repositories
+const userRepository = new UserRepository();
+
+// Ensure system admin user exists
+const ensureSystemAdmin = async () => {
+  try {
+    const existingAdmin = await userRepository.findByUsername("admin");
+    if (!existingAdmin) {
+      console.log("Creating system admin user for activity logging...");
+      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const adminUser = await userRepository.create({
+        username: "admin",
+        email: "admin@system.local",
+        password: hashedPassword,
+        company: "System",
+        designation: "System Administrator",
+        plan: "admin"
+      });
+      console.log("System admin user created:", adminUser.id);
+      return adminUser.id;
+    }
+    return existingAdmin.id;
+  } catch (error) {
+    console.error("Failed to ensure system admin user:", error);
+    return null;
+  }
+};
+
 const logTherapeuticActivity = async (
   action_type,
   table_name,
@@ -54,17 +85,46 @@ const logTherapeuticActivity = async (
   change_details,
   user_id
 ) => {
+  let actualUserId = user_id;
+  
   if (!user_id) {
     console.warn("user_id is required for therapeutic activity logging");
     return;
   }
-  await logUserActivity({
-    user_id: user_id, // Now required parameter
-    table_name,
-    record_id,
-    action_type,
-    change_details,
-  });
+  
+  try {
+    await logUserActivity({
+      user_id: actualUserId,
+      table_name,
+      record_id,
+      action_type,
+      change_details,
+    });
+  } catch (error) {
+    console.error("Failed to log therapeutic activity:", error);
+    // If the user doesn't exist, try to create a system user or use a fallback
+    if (error.code === '23503' || error.message.includes('foreign key')) {
+      console.warn(`User ${user_id} not found in database, ensuring system admin exists...`);
+      const systemAdminId = await ensureSystemAdmin();
+      if (systemAdminId) {
+        try {
+          await logUserActivity({
+            user_id: systemAdminId,
+            table_name,
+            record_id,
+            action_type,
+            change_details: {
+              ...change_details,
+              original_user: user_id,
+              note: "Logged by system admin due to missing user"
+            },
+          });
+        } catch (retryError) {
+          console.error("Failed to log with system admin:", retryError);
+        }
+      }
+    }
+  }
 };
 
 // Helper function to ensure array fields are properly formatted
@@ -400,17 +460,130 @@ const createWithAllData = async (req, res) => {
     }
 
     // Create other sources data if provided
-    if (other) {
-      const otherWithTrial = { ...other, trial_id };
-      const createdOther = await otherRepo.create(otherWithTrial);
-      await logTherapeuticActivity(
-        "INSERT",
-        "therapeutic_other_sources",
-        createdOther.id,
-        otherWithTrial,
-        user_id
-      );
-      createdData.other = createdOther;
+    // Handle both old 'other' and new 'other_sources' format
+    const otherSourcesData = req.body.other_sources || other;
+    if (otherSourcesData) {
+      // Check if other_sources is an object with multiple arrays (new format)
+      if (otherSourcesData.pipeline_data || otherSourcesData.press_releases || 
+          otherSourcesData.publications || otherSourcesData.trial_registries || 
+          otherSourcesData.associated_studies) {
+        
+        // Process each type of other source
+        const allOtherSources = [];
+        
+        // Pipeline Data
+        if (otherSourcesData.pipeline_data && Array.isArray(otherSourcesData.pipeline_data)) {
+          for (const item of otherSourcesData.pipeline_data) {
+            const sourceData = {
+              type: 'pipeline_data',
+              date: item.date,
+              information: item.information,
+              url: item.url,
+              file: item.file
+            };
+            const created = await otherRepo.create({ 
+              trial_id, 
+              data: JSON.stringify(sourceData)
+            });
+            allOtherSources.push(created);
+          }
+        }
+        
+        // Press Releases
+        if (otherSourcesData.press_releases && Array.isArray(otherSourcesData.press_releases)) {
+          for (const item of otherSourcesData.press_releases) {
+            const sourceData = {
+              type: 'press_releases',
+              date: item.date,
+              title: item.title,
+              url: item.url,
+              file: item.file
+            };
+            const created = await otherRepo.create({ 
+              trial_id, 
+              data: JSON.stringify(sourceData)
+            });
+            allOtherSources.push(created);
+          }
+        }
+        
+        // Publications
+        if (otherSourcesData.publications && Array.isArray(otherSourcesData.publications)) {
+          for (const item of otherSourcesData.publications) {
+            const sourceData = {
+              type: 'publications',
+              publicationType: item.type,
+              title: item.title,
+              url: item.url,
+              file: item.file
+            };
+            const created = await otherRepo.create({ 
+              trial_id, 
+              data: JSON.stringify(sourceData)
+            });
+            allOtherSources.push(created);
+          }
+        }
+        
+        // Trial Registries
+        if (otherSourcesData.trial_registries && Array.isArray(otherSourcesData.trial_registries)) {
+          for (const item of otherSourcesData.trial_registries) {
+            const sourceData = {
+              type: 'trial_registries',
+              registry: item.registry,
+              identifier: item.identifier,
+              url: item.url,
+              file: item.file
+            };
+            const created = await otherRepo.create({ 
+              trial_id, 
+              data: JSON.stringify(sourceData)
+            });
+            allOtherSources.push(created);
+          }
+        }
+        
+        // Associated Studies
+        if (otherSourcesData.associated_studies && Array.isArray(otherSourcesData.associated_studies)) {
+          for (const item of otherSourcesData.associated_studies) {
+            const sourceData = {
+              type: 'associated_studies',
+              studyType: item.type,
+              title: item.title,
+              url: item.url,
+              file: item.file
+            };
+            const created = await otherRepo.create({ 
+              trial_id, 
+              data: JSON.stringify(sourceData)
+            });
+            allOtherSources.push(created);
+          }
+        }
+        
+        if (allOtherSources.length > 0) {
+          await logTherapeuticActivity(
+            "INSERT",
+            "therapeutic_other_sources",
+            trial_id,
+            { count: allOtherSources.length },
+            user_id
+          );
+          createdData.other_sources = allOtherSources;
+        }
+      } else {
+        // Old format - single other source
+        const otherWithTrial = { ...otherSourcesData, trial_id };
+        const createdOther = await otherRepo.create(otherWithTrial);
+        await logTherapeuticActivity(
+          "INSERT",
+          "therapeutic_other_sources",
+          createdOther.id,
+          otherWithTrial,
+          user_id
+        );
+        createdData.other = createdOther;
+      }
     }
 
     // Create logs data if provided
@@ -440,6 +613,22 @@ const createWithAllData = async (req, res) => {
       );
       createdData.notes = createdNotes;
     }
+
+    // Log a summary of the trial creation
+    await logTherapeuticActivity(
+      "INSERT",
+      "therapeutic_trial_summary",
+      trial_id,
+      {
+        summary: "Complete therapeutic trial created",
+        trial_title: processedOverview.title || "Untitled Trial",
+        trial_phase: processedOverview.trial_phase || "Unknown",
+        status: processedOverview.status || "Unknown",
+        sections_created: Object.keys(createdData).length,
+        created_sections: Object.keys(createdData)
+      },
+      user_id
+    );
 
     return res.status(StatusCodes.CREATED).json({
       message: "Trial created successfully with all data",

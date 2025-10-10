@@ -17,6 +17,7 @@ const userActivityRouter = require("./src/routers/userActivityRouter");
 const therapeuticRouter = require("./src/routers/therapeuticRouter");
 const drugRouter = require("./src/routers/drugRouter");
 const queryRouter = require("./src/routers/queryRouter");
+const dropdownManagementRouter = require("./src/routers/dropdownManagementRouter");
 
 // CORS configuration
 const corsOptions = {
@@ -54,6 +55,7 @@ app.use("/api/v1/user-activity", userActivityRouter);
 app.use("/api/v1/therapeutic", therapeuticRouter);
 app.use("/api/v1/drugs", drugRouter);
 app.use("/api/v1/queries", queryRouter);
+app.use("/api/v1/dropdown-management", dropdownManagementRouter);
 
 // basic error handler for tests and dev
 // eslint-disable-next-line no-unused-vars

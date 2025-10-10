@@ -7,18 +7,187 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, Eye, EyeOff, Upload, FileText, Image } from "lucide-react";
+import { Plus, X, Eye, EyeOff, Upload, FileText, Image, Calculator, Calendar } from "lucide-react";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function TherapeuticsStep5_4() {
   const { formData, updateField, addReference, removeReference, updateReference, saveTrial } = useTherapeuticForm();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calculatorData, setCalculatorData] = useState({
+    startDate: "",
+    enrollmentClosedDate: "",
+    trialEndDate: "",
+    resultPublishedDate: "",
+    inclusionPeriod: "",
+    resultDuration: "",
+    overallDurationComplete: "",
+    overallDurationPublish: ""
+  });
   const form = formData.step5_4;
+
+  // Auto-calculation utility functions
+  const calculateDateDifference = (date1: string, date2: string): number => {
+    if (!date1 || !date2) return 0;
+    
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
+    
+    const diffTime = Math.abs(d2.getTime() - d1.getTime());
+    const diffMonths = Math.round(diffTime / (1000 * 60 * 60 * 24 * 30.44)); // Average days per month
+    return diffMonths;
+  };
+
+  const calculateBackwardDate = (endDate: string, durationMonths: number): string => {
+    if (!endDate || !durationMonths) return "";
+    
+    const end = new Date(endDate);
+    if (isNaN(end.getTime())) return "";
+    
+    const start = new Date(end);
+    start.setMonth(start.getMonth() - durationMonths);
+    
+    return start.toISOString().split('T')[0];
+  };
+
+  const calculateForwardDate = (startDate: string, durationMonths: number): string => {
+    if (!startDate || !durationMonths) return "";
+    
+    const start = new Date(startDate);
+    if (isNaN(start.getTime())) return "";
+    
+    const end = new Date(start);
+    end.setMonth(end.getMonth() + durationMonths);
+    
+    return end.toISOString().split('T')[0];
+  };
+
+  // Auto-calculation logic based on confidence levels
+  const performAutoCalculations = (row: string, column: string, value: string) => {
+    const confidenceLevels = { "actual": 3, "benchmark": 2, "estimated": 1 };
+    const currentLevel = confidenceLevels[row.toLowerCase() as keyof typeof confidenceLevels];
+    
+    // Get all current values for calculations
+    const getValue = (r: string, c: string) => {
+      const key = `${r.toLowerCase()}_${c.replace(/\s+/g, "_").toLowerCase()}`;
+      return (form as any)[key] || "";
+    };
+
+    // Auto-calculate Inclusion Period
+    if (column === "Start Date" || column === "Enrollment Closed Date") {
+      const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
+      const enrollmentClosedDate = column === "Enrollment Closed Date" ? value : getValue(row, "Enrollment Closed Date");
+      
+      if (startDate && enrollmentClosedDate) {
+        const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
+        updateTableValue(row, "Inclusion Period", inclusionPeriod.toString());
+      }
+    }
+
+    // Auto-calculate Result Duration
+    if (column === "Trial End Date" || column === "Result Published Date") {
+      const trialEndDate = column === "Trial End Date" ? value : getValue(row, "Trial End Date");
+      const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
+      
+      if (trialEndDate && resultPublishedDate) {
+        const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
+        updateTableValue(row, "Result Duration", resultDuration.toString());
+      }
+    }
+
+    // Auto-calculate Overall Duration to Complete
+    if (column === "Start Date" || column === "Trial End Date") {
+      const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
+      const trialEndDate = column === "Trial End Date" ? value : getValue(row, "Trial End Date");
+      
+      if (startDate && trialEndDate) {
+        const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
+        updateField("step5_4", "estimated_enrollment", overallDurationComplete.toString());
+      }
+    }
+
+    // Auto-calculate Overall Duration to Publish Results
+    if (column === "Start Date" || column === "Result Published Date") {
+      const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
+      const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
+      
+      if (startDate && resultPublishedDate) {
+        const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
+        updateField("step5_4", "actual_enrollment", overallDurationPublish.toString());
+      }
+    }
+
+    // Back-calculation logic (as per the scenario in the image)
+    if (column === "Trial End Date" && row.toLowerCase() === "estimated") {
+      const trialEndDate = value;
+      const primaryOutcomeDuration = getValue("actual", "Primary Outcome Duration");
+      
+      if (trialEndDate && primaryOutcomeDuration) {
+        const enrollmentClosedDate = calculateBackwardDate(trialEndDate, parseInt(primaryOutcomeDuration));
+        updateTableValue("estimated", "Enrollment Closed Date", enrollmentClosedDate);
+        
+        // Calculate inclusion period for estimated row
+        const startDate = getValue("estimated", "Start Date");
+        if (startDate) {
+          const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
+          updateTableValue("estimated", "Inclusion Period", inclusionPeriod.toString());
+        }
+      }
+    }
+  };
+
+  // Manual calculator functions
+  const calculateManualValues = () => {
+    const { startDate, enrollmentClosedDate, trialEndDate, resultPublishedDate } = calculatorData;
+    
+    if (startDate && enrollmentClosedDate) {
+      const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
+      setCalculatorData(prev => ({ ...prev, inclusionPeriod: inclusionPeriod.toString() }));
+    }
+    
+    if (trialEndDate && resultPublishedDate) {
+      const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
+      setCalculatorData(prev => ({ ...prev, resultDuration: resultDuration.toString() }));
+    }
+    
+    if (startDate && trialEndDate) {
+      const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
+      setCalculatorData(prev => ({ ...prev, overallDurationComplete: overallDurationComplete.toString() }));
+    }
+    
+    if (startDate && resultPublishedDate) {
+      const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
+      setCalculatorData(prev => ({ ...prev, overallDurationPublish: overallDurationPublish.toString() }));
+    }
+  };
+
+  const applyCalculatorValues = () => {
+    if (calculatorData.inclusionPeriod) {
+      updateTableValue("estimated", "Inclusion Period", calculatorData.inclusionPeriod);
+    }
+    if (calculatorData.resultDuration) {
+      updateTableValue("estimated", "Result Duration", calculatorData.resultDuration);
+    }
+    if (calculatorData.overallDurationComplete) {
+      updateField("step5_4", "estimated_enrollment", calculatorData.overallDurationComplete);
+    }
+    if (calculatorData.overallDurationPublish) {
+      updateField("step5_4", "actual_enrollment", calculatorData.overallDurationPublish);
+    }
+    
+    setShowCalculator(false);
+    toast({
+      title: "Success",
+      description: "Calculated values have been applied to the form",
+    });
+  };
 
   // Create a state structure for the table data
   const getTableValue = (row: string, col: string) => {
@@ -29,6 +198,9 @@ export default function TherapeuticsStep5_4() {
   const updateTableValue = (row: string, col: string, value: string) => {
     const key = `${row.toLowerCase()}_${col.replace(/\s+/g, "_").toLowerCase()}`;
     updateField("step5_4", key as any, value);
+    
+    // Trigger auto-calculations after updating the value
+    performAutoCalculations(row, col, value);
   };
 
   // Columns for the top table
@@ -130,45 +302,214 @@ export default function TherapeuticsStep5_4() {
       <Card>
         <CardContent className="space-y-8">
           {/* Top Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="text-left p-2"></th>
-                  {columns.map((col) => (
-                    <th key={col} className="text-left p-2 text-sm font-medium">
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row}>
-                    <td className="p-2 font-medium">{row}</td>
-                    {columns.map((col, i) => (
-                      <td key={i} className="p-2">
-                        {col.includes("Date") ? (
-                          <CustomDateInput
-                            value={getTableValue(row, col)}
-                            onChange={(value) => updateTableValue(row, col, value)}
-                            placeholder="Month Day Year"
-                            className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                          />
-                        ) : (
-                          <Input
-                            type="text"
-                            className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                            value={getTableValue(row, col)}
-                            onChange={(e) => updateTableValue(row, col, e.target.value)}
-                          />
-                        )}
-                      </td>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Timing</h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCalculator(!showCalculator)}
+                className="flex items-center gap-2"
+              >
+                <Calculator className="h-4 w-4" />
+                {showCalculator ? "Hide Calculator" : "Show Calculator"}
+              </Button>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2"></th>
+                    {columns.map((col) => (
+                      <th key={col} className="text-left p-2 text-sm font-medium">
+                        {col}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row}>
+                      <td className="p-2 font-medium">{row}</td>
+                      {columns.map((col, i) => (
+                        <td key={i} className="p-2">
+                          {col.includes("Date") ? (
+                            <CustomDateInput
+                              value={getTableValue(row, col)}
+                              onChange={(value) => updateTableValue(row, col, value)}
+                              placeholder="Month Day Year"
+                              className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                            />
+                          ) : (
+                            <Input
+                              type="text"
+                              className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                              value={getTableValue(row, col)}
+                              onChange={(e) => updateTableValue(row, col, e.target.value)}
+                            />
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Manual Calculator */}
+            {showCalculator && (
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Calculator className="h-5 w-5 text-blue-600" />
+                    <h4 className="text-lg font-semibold text-blue-800">Date Calculator</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Input Dates */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-gray-700">Input Dates</h5>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <Label>Start Date</Label>
+                          <CustomDateInput
+                            value={calculatorData.startDate}
+                            onChange={(value) => setCalculatorData(prev => ({ ...prev, startDate: value }))}
+                            placeholder="Select start date"
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Enrollment Closed Date</Label>
+                          <CustomDateInput
+                            value={calculatorData.enrollmentClosedDate}
+                            onChange={(value) => setCalculatorData(prev => ({ ...prev, enrollmentClosedDate: value }))}
+                            placeholder="Select enrollment closed date"
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Trial End Date</Label>
+                          <CustomDateInput
+                            value={calculatorData.trialEndDate}
+                            onChange={(value) => setCalculatorData(prev => ({ ...prev, trialEndDate: value }))}
+                            placeholder="Select trial end date"
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label>Result Published Date</Label>
+                          <CustomDateInput
+                            value={calculatorData.resultPublishedDate}
+                            onChange={(value) => setCalculatorData(prev => ({ ...prev, resultPublishedDate: value }))}
+                            placeholder="Select result published date"
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Calculated Durations */}
+                    <div className="space-y-4">
+                      <h5 className="font-medium text-gray-700">Calculated Durations (Months)</h5>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="calc-inclusion-period">Inclusion Period</Label>
+                          <Input
+                            id="calc-inclusion-period"
+                            value={calculatorData.inclusionPeriod}
+                            readOnly
+                            className="w-full bg-gray-100"
+                            placeholder="Auto-calculated"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Difference between start date and enrollment closed date</p>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="calc-result-duration">Result Duration</Label>
+                          <Input
+                            id="calc-result-duration"
+                            value={calculatorData.resultDuration}
+                            readOnly
+                            className="w-full bg-gray-100"
+                            placeholder="Auto-calculated"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Difference between trial end date and result published date</p>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="calc-overall-complete">Overall Duration to Complete</Label>
+                          <Input
+                            id="calc-overall-complete"
+                            value={calculatorData.overallDurationComplete}
+                            readOnly
+                            className="w-full bg-gray-100"
+                            placeholder="Auto-calculated"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Difference between start date and trial end date</p>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="calc-overall-publish">Overall Duration to Publish Results</Label>
+                          <Input
+                            id="calc-overall-publish"
+                            value={calculatorData.overallDurationPublish}
+                            readOnly
+                            className="w-full bg-gray-100"
+                            placeholder="Auto-calculated"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Difference between start date and result published date</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3 mt-6">
+                    <Button
+                      type="button"
+                      onClick={calculateManualValues}
+                      className="flex items-center gap-2"
+                    >
+                      <Calculator className="h-4 w-4" />
+                      Calculate Durations
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={applyCalculatorValues}
+                      disabled={!calculatorData.inclusionPeriod && !calculatorData.resultDuration && !calculatorData.overallDurationComplete && !calculatorData.overallDurationPublish}
+                    >
+                      Apply to Form
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setCalculatorData({
+                        startDate: "",
+                        enrollmentClosedDate: "",
+                        trialEndDate: "",
+                        resultPublishedDate: "",
+                        inclusionPeriod: "",
+                        resultDuration: "",
+                        overallDurationComplete: "",
+                        overallDurationPublish: ""
+                      })}
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Overall Duration Fields */}

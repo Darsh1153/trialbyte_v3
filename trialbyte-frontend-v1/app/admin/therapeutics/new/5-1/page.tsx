@@ -272,9 +272,10 @@ export default function TherapeuticsStep5_1() {
   ];
 
   const otherDrugsOptions: SearchableSelectOption[] = [
-    { value: "Drug X", label: "Drug X" },
-    { value: "Drug Y", label: "Drug Y" },
-    { value: "Drug Z", label: "Drug Z" },
+    ...getPrimaryDrugsOptions().map(drug => ({
+      value: drug.value,
+      label: drug.label
+    }))
   ];
 
   const diseaseTypeOptions: SearchableSelectOption[] = [

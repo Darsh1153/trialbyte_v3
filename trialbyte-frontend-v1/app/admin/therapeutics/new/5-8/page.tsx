@@ -225,6 +225,69 @@ export default function TherapeuticsStep5_8() {
         </div>
       </div>
 
+      {/* Trial Creation & Modification Info */}
+      <Card className="border rounded-xl shadow-sm">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Creation Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-green-700">Trial Creation</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Created Date:</span>
+                  <span className="text-gray-600">
+                    {form.creationInfo?.createdDate 
+                      ? new Date(form.creationInfo.createdDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : 'Not available'
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Created User:</span>
+                  <span className="text-gray-600">{form.creationInfo?.createdUser || 'admin'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modification Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-blue-700">Last Modification</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Last Modified Date:</span>
+                  <span className="text-gray-600">
+                    {form.modificationInfo?.lastModifiedDate 
+                      ? new Date(form.modificationInfo.lastModifiedDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : 'Not available'
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Last Modified User:</span>
+                  <span className="text-gray-600">{form.modificationInfo?.lastModifiedUser || 'admin'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Total Modifications:</span>
+                  <span className="text-gray-600">{form.modificationInfo?.modificationCount || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Trial Changes Log */}
       <TrialChangesLog changesLog={form.changesLog} />
 

@@ -12,6 +12,7 @@ import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { UploadButton } from "@/lib/uploadthing";
 
 export default function TherapeuticsStep5_7() {
   const { 
@@ -215,22 +216,49 @@ export default function TherapeuticsStep5_7() {
                           </div>
                           <div className="w-1/2">
                             <Label className="text-sm">Upload File</Label>
-                            <div className="relative">
-                              <Upload className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                type="file"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
+                            <div className="mt-1">
+                              <UploadButton
+                                endpoint="therapeuticFileUploader"
+                                onClientUploadComplete={(res) => {
+                                  if (res && res[0]) {
+                                    // Update the file field with the uploaded file name
                                     updateComplexArrayItem(
                                       "step5_7",
                                       activeTab,
                                       idx,
-                                      { file: file.name }
+                                      { file: res[0].name }
                                     );
+                                    // Update the URL field with the uploaded file URL
+                                    updateComplexArrayItem(
+                                      "step5_7",
+                                      activeTab,
+                                      idx,
+                                      { url: res[0].url }
+                                    );
+                                    toast({
+                                      title: "Success",
+                                      description: "File uploaded successfully!",
+                                    });
                                   }
                                 }}
-                                className="pl-10 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                                onUploadError={(error: Error) => {
+                                  console.error("UploadThing error:", error);
+                                  console.error("Error details:", {
+                                    name: error.name,
+                                    message: error.message,
+                                    stack: error.stack,
+                                    cause: (error as any).cause
+                                  });
+                                  toast({
+                                    title: "Error",
+                                    description: `Upload failed: ${error.message}`,
+                                    variant: "destructive",
+                                  });
+                                }}
+                                appearance={{
+                                  button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
+                                  allowedContent: "hidden",
+                                }}
                               />
                             </div>
                           </div>
@@ -297,22 +325,47 @@ export default function TherapeuticsStep5_7() {
                           </div>
                           <div className="w-1/2">
                             <Label className="text-sm">Upload File</Label>
-                            <div className="relative">
-                              <Upload className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                type="file"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
+                            <div className="mt-1">
+                              <UploadButton
+                                endpoint="therapeuticFileUploader"
+                                onClientUploadComplete={(res) => {
+                                  if (res && res[0]) {
                                     updateComplexArrayItem(
                                       "step5_7",
                                       activeTab,
                                       idx,
-                                      { file: file.name }
+                                      { file: res[0].name }
                                     );
+                                    updateComplexArrayItem(
+                                      "step5_7",
+                                      activeTab,
+                                      idx,
+                                      { url: res[0].url }
+                                    );
+                                    toast({
+                                      title: "Success",
+                                      description: "File uploaded successfully!",
+                                    });
                                   }
                                 }}
-                                className="pl-10 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                                onUploadError={(error: Error) => {
+                                  console.error("UploadThing error:", error);
+                                  console.error("Error details:", {
+                                    name: error.name,
+                                    message: error.message,
+                                    stack: error.stack,
+                                    cause: (error as any).cause
+                                  });
+                                  toast({
+                                    title: "Error",
+                                    description: `Upload failed: ${error.message}`,
+                                    variant: "destructive",
+                                  });
+                                }}
+                                appearance={{
+                                  button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
+                                  allowedContent: "hidden",
+                                }}
                               />
                             </div>
                           </div>
@@ -382,22 +435,47 @@ export default function TherapeuticsStep5_7() {
                           </div>
                           <div className="w-1/2">
                             <Label className="text-sm">Upload File</Label>
-                            <div className="relative">
-                              <Upload className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                type="file"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
+                            <div className="mt-1">
+                              <UploadButton
+                                endpoint="therapeuticFileUploader"
+                                onClientUploadComplete={(res) => {
+                                  if (res && res[0]) {
                                     updateComplexArrayItem(
                                       "step5_7",
                                       activeTab,
                                       idx,
-                                      { file: file.name }
+                                      { file: res[0].name }
                                     );
+                                    updateComplexArrayItem(
+                                      "step5_7",
+                                      activeTab,
+                                      idx,
+                                      { url: res[0].url }
+                                    );
+                                    toast({
+                                      title: "Success",
+                                      description: "File uploaded successfully!",
+                                    });
                                   }
                                 }}
-                                className="pl-10 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                                onUploadError={(error: Error) => {
+                                  console.error("UploadThing error:", error);
+                                  console.error("Error details:", {
+                                    name: error.name,
+                                    message: error.message,
+                                    stack: error.stack,
+                                    cause: (error as any).cause
+                                  });
+                                  toast({
+                                    title: "Error",
+                                    description: `Upload failed: ${error.message}`,
+                                    variant: "destructive",
+                                  });
+                                }}
+                                appearance={{
+                                  button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
+                                  allowedContent: "hidden",
+                                }}
                               />
                             </div>
                           </div>
@@ -467,22 +545,47 @@ export default function TherapeuticsStep5_7() {
                           </div>
                           <div className="w-1/2">
                             <Label className="text-sm">Upload File</Label>
-                            <div className="relative">
-                              <Upload className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                type="file"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
+                            <div className="mt-1">
+                              <UploadButton
+                                endpoint="therapeuticFileUploader"
+                                onClientUploadComplete={(res) => {
+                                  if (res && res[0]) {
                                     updateComplexArrayItem(
                                       "step5_7",
                                       activeTab,
                                       idx,
-                                      { file: file.name }
+                                      { file: res[0].name }
                                     );
+                                    updateComplexArrayItem(
+                                      "step5_7",
+                                      activeTab,
+                                      idx,
+                                      { url: res[0].url }
+                                    );
+                                    toast({
+                                      title: "Success",
+                                      description: "File uploaded successfully!",
+                                    });
                                   }
                                 }}
-                                className="pl-10 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                                onUploadError={(error: Error) => {
+                                  console.error("UploadThing error:", error);
+                                  console.error("Error details:", {
+                                    name: error.name,
+                                    message: error.message,
+                                    stack: error.stack,
+                                    cause: (error as any).cause
+                                  });
+                                  toast({
+                                    title: "Error",
+                                    description: `Upload failed: ${error.message}`,
+                                    variant: "destructive",
+                                  });
+                                }}
+                                appearance={{
+                                  button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
+                                  allowedContent: "hidden",
+                                }}
                               />
                             </div>
                           </div>
@@ -552,22 +655,47 @@ export default function TherapeuticsStep5_7() {
                           </div>
                           <div className="w-1/2">
                             <Label className="text-sm">Upload File</Label>
-                            <div className="relative">
-                              <Upload className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                              <Input
-                                type="file"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
+                            <div className="mt-1">
+                              <UploadButton
+                                endpoint="therapeuticFileUploader"
+                                onClientUploadComplete={(res) => {
+                                  if (res && res[0]) {
                                     updateComplexArrayItem(
                                       "step5_7",
                                       activeTab,
                                       idx,
-                                      { file: file.name }
+                                      { file: res[0].name }
                                     );
+                                    updateComplexArrayItem(
+                                      "step5_7",
+                                      activeTab,
+                                      idx,
+                                      { url: res[0].url }
+                                    );
+                                    toast({
+                                      title: "Success",
+                                      description: "File uploaded successfully!",
+                                    });
                                   }
                                 }}
-                                className="pl-10 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                                onUploadError={(error: Error) => {
+                                  console.error("UploadThing error:", error);
+                                  console.error("Error details:", {
+                                    name: error.name,
+                                    message: error.message,
+                                    stack: error.stack,
+                                    cause: (error as any).cause
+                                  });
+                                  toast({
+                                    title: "Error",
+                                    description: `Upload failed: ${error.message}`,
+                                    variant: "destructive",
+                                  });
+                                }}
+                                appearance={{
+                                  button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
+                                  allowedContent: "hidden",
+                                }}
                               />
                             </div>
                           </div>

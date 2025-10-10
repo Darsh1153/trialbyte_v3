@@ -42,6 +42,7 @@ import {
   Loader2,
   ChevronDown,
   LogOut,
+  Link as LinkIcon,
 } from "lucide-react";
 import { Suspense } from "react";
 
@@ -183,23 +184,146 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
     const fetchTrial = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`);
-        const data = await response.json();
-        
-        if (data.trials && data.trials.length > 0) {
           const trialId = resolvedParams.id;
-          const foundTrial = data.trials.find((t: TherapeuticTrial) => t.trial_id === trialId);
-          
-          if (foundTrial) {
-            setTrial(foundTrial);
-          } else {
+        
+        // Use the specific endpoint for fetching a single trial's data
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trial/${trialId}/all-data`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
             toast({
               title: "Trial Not Found",
               description: "The requested therapeutic trial could not be found.",
               variant: "destructive",
             });
             router.push("/admin/therapeutics");
+            return;
           }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.data) {
+          // Transform the API response to match our interface
+          const transformedTrial: TherapeuticTrial = {
+            trial_id: data.trial_id,
+            overview: {
+              id: data.data.overview.id,
+              therapeutic_area: data.data.overview.therapeutic_area || "N/A",
+              trial_identifier: data.data.overview.trial_identifier || [],
+              trial_phase: data.data.overview.trial_phase || "N/A",
+              status: data.data.overview.status || "N/A",
+              primary_drugs: data.data.overview.primary_drugs || "N/A",
+              other_drugs: data.data.overview.other_drugs || "N/A",
+              title: data.data.overview.title || "N/A",
+              disease_type: data.data.overview.disease_type || "N/A",
+              patient_segment: data.data.overview.patient_segment || "N/A",
+              line_of_therapy: data.data.overview.line_of_therapy || "N/A",
+              reference_links: data.data.overview.reference_links || [],
+              trial_tags: data.data.overview.trial_tags || "N/A",
+              sponsor_collaborators: data.data.overview.sponsor_collaborators || "N/A",
+              sponsor_field_activity: data.data.overview.sponsor_field_activity || "N/A",
+              associated_cro: data.data.overview.associated_cro || "N/A",
+              countries: data.data.overview.countries || "N/A",
+              region: data.data.overview.region || "N/A",
+              trial_record_status: data.data.overview.trial_record_status || "N/A",
+              created_at: data.data.overview.created_at || "N/A",
+              updated_at: data.data.overview.updated_at || "N/A",
+            },
+            outcomes: data.data.outcomes.map((outcome: any) => ({
+              id: outcome.id,
+              trial_id: outcome.trial_id,
+              purpose_of_trial: outcome.purpose_of_trial || "N/A",
+              summary: outcome.summary || "N/A",
+              primary_outcome_measure: outcome.primary_outcome_measure || "N/A",
+              other_outcome_measure: outcome.other_outcome_measure || "N/A",
+              study_design_keywords: outcome.study_design_keywords || "N/A",
+              study_design: outcome.study_design || "N/A",
+              treatment_regimen: outcome.treatment_regimen || "N/A",
+              number_of_arms: outcome.number_of_arms || 0,
+            })),
+            criteria: data.data.criteria.map((criterion: any) => ({
+              id: criterion.id,
+              trial_id: criterion.trial_id,
+              inclusion_criteria: criterion.inclusion_criteria || "N/A",
+              exclusion_criteria: criterion.exclusion_criteria || "N/A",
+              age_from: criterion.age_from || "N/A",
+              subject_type: criterion.subject_type || "N/A",
+              age_to: criterion.age_to || "N/A",
+              sex: criterion.sex || "N/A",
+              healthy_volunteers: criterion.healthy_volunteers || "N/A",
+              target_no_volunteers: criterion.target_no_volunteers || 0,
+              actual_enrolled_volunteers: criterion.actual_enrolled_volunteers || 0,
+            })),
+            timing: data.data.timing.map((timing: any) => ({
+              id: timing.id,
+              trial_id: timing.trial_id,
+              start_date_estimated: timing.start_date_estimated || "N/A",
+              trial_end_date_estimated: timing.trial_end_date_estimated || "N/A",
+            })),
+            results: data.data.results.map((result: any) => ({
+              id: result.id,
+              trial_id: result.trial_id,
+              trial_outcome: result.trial_outcome || "N/A",
+              reference: result.reference || "N/A",
+              trial_results: result.trial_results || [],
+              adverse_event_reported: result.adverse_event_reported || "N/A",
+              adverse_event_type: result.adverse_event_type || "N/A",
+              treatment_for_adverse_events: result.treatment_for_adverse_events || "N/A",
+            })),
+            sites: data.data.sites.map((site: any) => ({
+              id: site.id,
+              trial_id: site.trial_id,
+              total: site.total || 0,
+              notes: site.notes || "N/A",
+            })),
+            other: data.data.other.map((other: any) => ({
+              id: other.id,
+              trial_id: other.trial_id,
+              data: other.data || "N/A",
+              url: other.url || "N/A",
+            })),
+            logs: data.data.logs.map((log: any) => ({
+              id: log.id,
+              trial_id: log.trial_id,
+              trial_changes_log: log.trial_changes_log || "N/A",
+              trial_added_date: log.trial_added_date || "N/A",
+              last_modified_date: log.last_modified_date || "N/A",
+              last_modified_user: log.last_modified_user || "N/A",
+              full_review_user: log.full_review_user || "N/A",
+              next_review_date: log.next_review_date || "N/A",
+            })),
+            notes: data.data.notes.map((note: any) => ({
+              id: note.id,
+              trial_id: note.trial_id,
+              date_type: note.date_type || "N/A",
+              notes: note.notes || "N/A",
+              link: note.link || "N/A",
+              attachments: (() => {
+                if (Array.isArray(note.attachments)) {
+                  return note.attachments;
+                } else if (typeof note.attachments === 'string' && note.attachments.trim()) {
+                  // Try to parse as JSON first
+                  try {
+                    const parsed = JSON.parse(note.attachments);
+                    return Array.isArray(parsed) ? parsed : [note.attachments];
+                  } catch {
+                    // If not JSON, split by comma or treat as single item
+                    return note.attachments.includes(',') 
+                      ? note.attachments.split(',').map(item => item.trim()).filter(item => item)
+                      : [note.attachments];
+                  }
+                }
+                return [];
+              })(),
+            })),
+          };
+          
+          console.log("Transformed trial data:", transformedTrial);
+          console.log("Notes data:", data.data.notes);
+          console.log("Notes attachments:", data.data.notes.map(note => ({ id: note.id, attachments: note.attachments })));
+          setTrial(transformedTrial);
         } else {
           toast({
             title: "No Data Available",
@@ -2215,19 +2339,197 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </div>
                 <CardContent className="p-6">
                   <div className="space-y-6">
+                    {console.log("Rendering Other Sources - trial.other:", trial.other)}
+                    
+                    {/* Display Other Sources from step 5-7 */}
                     {trial.other && trial.other.length > 0 ? (
-                      trial.other.map((source, index) => (
+                      trial.other.map((source, index) => {
+                        // Parse the JSON data
+                        let parsedData;
+                        try {
+                          parsedData = typeof source.data === 'string' ? JSON.parse(source.data) : source.data;
+                          console.log(`Other Source ${index}:`, parsedData);
+                        } catch (error) {
+                          console.error(`Failed to parse source data:`, source.data);
+                          // If not JSON, treat as plain text
+                          parsedData = { type: 'legacy', data: source.data };
+                        }
+
+                        // Helper function to check if URL is an image
+                        const isImageUrl = (url: string) => {
+                          if (!url || typeof url !== 'string') return false;
+                          const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff?)(\?.*)?$/i;
+                          if (imageExtensions.test(url)) return true;
+                          if (url.includes('utfs.io')) return true;
+                          if (url.startsWith('data:image/')) return true;
+                          if (url.startsWith('blob:')) return true;
+                          return false;
+                        };
+
+                        // Determine the source type label
+                        const getTypeLabel = (type: string) => {
+                          const labels: Record<string, string> = {
+                            'pipeline_data': 'Pipeline Data',
+                            'press_releases': 'Press Release',
+                            'publications': 'Publication',
+                            'trial_registries': 'Trial Registry',
+                            'associated_studies': 'Associated Study',
+                            'legacy': 'Other Source'
+                          };
+                          return labels[type] || 'Other Source';
+                        };
+
+                        return (
                         <div key={index} className="bg-gray-50 rounded-lg p-4">
-                          <div className="space-y-2">
+                            <div className="space-y-3">
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-1">
                             <p className="text-sm font-medium text-gray-800">
-                              Source {index + 1}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {source.data}
-                            </p>
+                                    {getTypeLabel(parsedData.type)} #{index + 1}
+                                  </p>
+                                  {parsedData.date && (
+                                    <p className="text-xs text-gray-500">
+                                      Date: {new Date(parsedData.date).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Display type-specific information */}
+                              {parsedData.type === 'pipeline_data' && parsedData.information && (
+                                <div className="bg-white p-3 rounded border border-gray-200">
+                                  <p className="text-xs font-medium text-gray-600 mb-1">Information:</p>
+                                  <p className="text-sm text-gray-700">{parsedData.information}</p>
+                                </div>
+                              )}
+
+                              {parsedData.type === 'press_releases' && parsedData.title && (
+                                <div className="bg-white p-3 rounded border border-gray-200">
+                                  <p className="text-xs font-medium text-gray-600 mb-1">Title:</p>
+                                  <p className="text-sm text-gray-700">{parsedData.title}</p>
+                                </div>
+                              )}
+
+                              {parsedData.type === 'publications' && (
+                                <div className="bg-white p-3 rounded border border-gray-200">
+                                  {parsedData.publicationType && (
+                                    <p className="text-xs text-gray-500 mb-1">
+                                      Type: {parsedData.publicationType}
+                                    </p>
+                                  )}
+                                  {parsedData.title && (
+                                    <>
+                                      <p className="text-xs font-medium text-gray-600 mb-1">Title:</p>
+                                      <p className="text-sm text-gray-700">{parsedData.title}</p>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+
+                              {parsedData.type === 'trial_registries' && (
+                                <div className="bg-white p-3 rounded border border-gray-200">
+                                  {parsedData.registry && (
+                                    <p className="text-xs text-gray-500 mb-1">
+                                      Registry: {parsedData.registry}
+                                    </p>
+                                  )}
+                                  {parsedData.identifier && (
+                                    <>
+                                      <p className="text-xs font-medium text-gray-600 mb-1">Identifier:</p>
+                                      <p className="text-sm text-gray-700">{parsedData.identifier}</p>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+
+                              {parsedData.type === 'associated_studies' && (
+                                <div className="bg-white p-3 rounded border border-gray-200">
+                                  {parsedData.studyType && (
+                                    <p className="text-xs text-gray-500 mb-1">
+                                      Study Type: {parsedData.studyType}
+                                    </p>
+                                  )}
+                                  {parsedData.title && (
+                                    <>
+                                      <p className="text-xs font-medium text-gray-600 mb-1">Title:</p>
+                                      <p className="text-sm text-gray-700">{parsedData.title}</p>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Legacy format */}
+                              {parsedData.type === 'legacy' && parsedData.data && parsedData.data !== "N/A" && (
+                                <p className="text-sm text-gray-700">{parsedData.data}</p>
+                              )}
+                              
+                              {/* Display URL as link if not an image */}
+                              {parsedData.url && parsedData.url !== "N/A" && !isImageUrl(parsedData.url) && (
+                                <div className="mt-2">
+                                  <a
+                                    href={parsedData.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                                  >
+                                    <LinkIcon className="h-3 w-3" />
+                                    View Source Link
+                                  </a>
                           </div>
-                        </div>
-                      ))
+                              )}
+                              
+                              {/* Display uploaded images */}
+                              {parsedData.url && isImageUrl(parsedData.url) && (
+                                <div className="mt-3">
+                                  <p className="text-xs font-medium text-gray-600 mb-2">
+                                    Uploaded File:
+                                  </p>
+                                  <div className="flex flex-wrap gap-4">
+                                    <div className="relative group w-full max-w-4xl">
+                                      <div className="aspect-[2/1] bg-white rounded-lg border border-gray-200 overflow-hidden relative">
+                                        <img
+                                          src={parsedData.url}
+                                          alt={`${getTypeLabel(parsedData.type)} Image`}
+                                          className="w-full h-full object-cover hover:border-blue-400 transition-all cursor-pointer"
+                                          onClick={() => window.open(parsedData.url, '_blank')}
+                                          onLoad={() => console.log(`Image loaded successfully: ${parsedData.url}`)}
+                                          onError={(e) => {
+                                            console.error(`Image failed to load: ${parsedData.url}`);
+                                            e.currentTarget.style.display = 'none';
+                                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                            if (fallback) fallback.style.display = 'flex';
+                                          }}
+                                        />
+                                        <div className="hidden absolute inset-0 bg-gray-100 items-center justify-center flex-col gap-2">
+                                          <Upload className="h-8 w-8 text-gray-400" />
+                                          <span className="text-xs text-gray-500">Failed to load image</span>
+                                          <a
+                                            href={parsedData.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-blue-600 hover:underline"
+                                          >
+                                            Open in new tab
+                                          </a>
+                                        </div>
+                                        {/* Overlay on hover */}
+                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                          <Maximize2 className="h-6 w-6 text-white drop-shadow-lg" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {parsedData.file && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      File: {parsedData.file}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
                     ) : (
                       <div className="text-center py-8">
                         <p className="text-sm text-gray-600">
@@ -2416,7 +2718,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           View Link
                         </a>
                       )}
-                      {note.attachments && note.attachments.length > 0 && (
+                      {note.attachments && Array.isArray(note.attachments) && note.attachments.length > 0 && (
                         <div className="mt-2">
                           <span className="text-xs font-medium text-gray-600">
                             Attachments:

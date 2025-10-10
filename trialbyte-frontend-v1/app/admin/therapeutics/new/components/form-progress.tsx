@@ -83,15 +83,6 @@ export default function FormProgress({ currentStep }: FormProgressProps) {
         </div>
       </div>
 
-      {/* Active Tab Content Header */}
-      <div 
-        className="rounded-lg p-4"
-        style={{ backgroundColor: '#204B73' }}
-      >
-        <h2 className="text-white text-lg font-semibold">
-          {steps.find(step => step.number === currentStep)?.title}
-        </h2>
-      </div>
     </div>
   );
 }

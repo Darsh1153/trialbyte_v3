@@ -1425,57 +1425,116 @@ export default function NewDrugPage() {
                   )}
 
                   {activeTab === "press_releases" && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Press Release</Label>
-                      <div className="relative">
-                        <Textarea
-                          value={content.otherSources.pressReleases}
-                          onChange={(e) =>
+                    <NotesSection
+                      title="Press Release Notes"
+                      notes={content.otherSources?.pressReleaseNotes ? (Array.isArray(content.otherSources.pressReleaseNotes) ? content.otherSources.pressReleaseNotes : [{
+                        id: "1",
+                        date: new Date().toISOString().split("T")[0],
+                        type: "Press Release",
+                        content: content.otherSources.pressReleases || "",
+                        sourceLink: "",
+                        attachments: [],
+                        isVisible: true
+                      }]) : []}
+                      onAddNote={() => {
+                        const newNote = {
+                          id: Date.now().toString(),
+                          date: new Date().toISOString().split("T")[0],
+                          type: "Press Release",
+                          content: "",
+                          sourceLink: "",
+                          attachments: [],
+                          isVisible: true
+                        };
+                        const currentNotes = Array.isArray(content.otherSources?.pressReleaseNotes) ? content.otherSources.pressReleaseNotes : [];
                             updateContent("otherSources", {
                               ...content.otherSources,
-                              pressReleases: e.target.value,
-                            })
-                          }
-                          placeholder="Enter press release information..."
-                          rows={6}
-                          className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
-                        />
-                    <Button
-                      type="button"
-                          size="icon"
-                          className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
-                        >
-                          <Plus className="h-4 w-4 text-white" />
-                    </Button>
-                  </div>
-                </div>
+                          pressReleaseNotes: [...currentNotes, newNote]
+                        });
+                      }}
+                      onUpdateNote={(index, updatedNote) => {
+                        const currentNotes = Array.isArray(content.otherSources?.pressReleaseNotes) ? content.otherSources.pressReleaseNotes : [];
+                        const updatedNotes = currentNotes.map((note, i) => 
+                          i === index ? { ...note, ...updatedNote } : note
+                        );
+                        updateContent("otherSources", {
+                          ...content.otherSources,
+                          pressReleaseNotes: updatedNotes
+                        });
+                      }}
+                      onRemoveNote={(index) => {
+                        const currentNotes = Array.isArray(content.otherSources?.pressReleaseNotes) ? content.otherSources.pressReleaseNotes : [];
+                        const updatedNotes = currentNotes.filter((_, i) => i !== index);
+                        updateContent("otherSources", {
+                          ...content.otherSources,
+                          pressReleaseNotes: updatedNotes
+                        });
+                      }}
+                      noteTypes={[
+                        "Press Release",
+                        "Announcement",
+                        "Media Coverage",
+                        "News Article",
+                        "Other"
+                      ]}
+                    />
                   )}
 
                   {activeTab === "publications" && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Publications</Label>
-                      <div className="relative">
-                        <Textarea
-                          value={content.otherSources.publications}
-                          onChange={(e) =>
+                    <NotesSection
+                      title="Publication Notes"
+                      notes={content.otherSources?.publicationNotes ? (Array.isArray(content.otherSources.publicationNotes) ? content.otherSources.publicationNotes : [{
+                        id: "1",
+                        date: new Date().toISOString().split("T")[0],
+                        type: "Publication",
+                        content: content.otherSources.publications || "",
+                        sourceLink: "",
+                        attachments: [],
+                        isVisible: true
+                      }]) : []}
+                      onAddNote={() => {
+                        const newNote = {
+                          id: Date.now().toString(),
+                          date: new Date().toISOString().split("T")[0],
+                          type: "Publication",
+                          content: "",
+                          sourceLink: "",
+                          attachments: [],
+                          isVisible: true
+                        };
+                        const currentNotes = Array.isArray(content.otherSources?.publicationNotes) ? content.otherSources.publicationNotes : [];
                             updateContent("otherSources", {
                               ...content.otherSources,
-                              publications: e.target.value,
-                            })
-                          }
-                          placeholder="Enter publication information..."
-                          rows={6}
-                          className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
-                        />
-                      <Button
-                        type="button"
-                        size="icon"
-                          className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
-                      >
-                          <Plus className="h-4 w-4 text-white" />
-                      </Button>
-                    </div>
-                  </div>
+                          publicationNotes: [...currentNotes, newNote]
+                        });
+                      }}
+                      onUpdateNote={(index, updatedNote) => {
+                        const currentNotes = Array.isArray(content.otherSources?.publicationNotes) ? content.otherSources.publicationNotes : [];
+                        const updatedNotes = currentNotes.map((note, i) => 
+                          i === index ? { ...note, ...updatedNote } : note
+                        );
+                        updateContent("otherSources", {
+                          ...content.otherSources,
+                          publicationNotes: updatedNotes
+                        });
+                      }}
+                      onRemoveNote={(index) => {
+                        const currentNotes = Array.isArray(content.otherSources?.publicationNotes) ? content.otherSources.publicationNotes : [];
+                        const updatedNotes = currentNotes.filter((_, i) => i !== index);
+                        updateContent("otherSources", {
+                          ...content.otherSources,
+                          publicationNotes: updatedNotes
+                        });
+                      }}
+                      noteTypes={[
+                        "Publication",
+                        "Research Paper",
+                        "Journal Article",
+                        "Conference Paper",
+                        "Patent",
+                        "Other"
+                      ]}
+                    />
                   )}
                 </div>
               </CardContent>
@@ -1898,15 +1957,6 @@ export default function NewDrugPage() {
         </div>
       </div>
 
-      {/* Active Tab Content Header */}
-      <div
-        className="rounded-lg p-4"
-        style={{ backgroundColor: '#204B73' }}
-      >
-        <h2 className="text-white text-lg font-semibold">
-          {steps.find(step => step.id === currentStep)?.title}
-        </h2>
-      </div>
 
       {/* Step Content */}
       <div className="min-h-[500px]">{renderStepContent()}</div>

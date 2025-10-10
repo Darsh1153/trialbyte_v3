@@ -24,6 +24,15 @@ export interface EditDrugFormData {
     is_approved: boolean;
     attachments: string[];
     links: string[];
+    drug_development_status_rows: Array<{
+      disease_type: string;
+      therapeutic_class: string;
+      company: string;
+      company_type: string;
+      country: string;
+      development_status: string;
+      reference: string;
+    }>;
   };
 
   // Development Status
@@ -108,6 +117,15 @@ const initialFormData: EditDrugFormData = {
     is_approved: false,
     attachments: [""],
     links: [""],
+    drug_development_status_rows: [{
+      disease_type: "",
+      therapeutic_class: "",
+      company: "",
+      company_type: "",
+      country: "",
+      development_status: "",
+      reference: "",
+    }],
   },
   devStatus: {
     disease_type: "",
@@ -315,6 +333,15 @@ export function EditDrugFormProvider({ children, drugId }: { children: ReactNode
             is_approved: data.data?.overview?.is_approved || false,
             attachments: data.data?.overview?.attachments || [""],
             links: data.data?.overview?.links || [""],
+            drug_development_status_rows: data.data?.overview?.drug_development_status_rows || [{
+              disease_type: "",
+              therapeutic_class: "",
+              company: "",
+              company_type: "",
+              country: "",
+              development_status: "",
+              reference: "",
+            }],
           },
           devStatus: {
             disease_type: data.data?.devStatus?.[0]?.disease_type || "",

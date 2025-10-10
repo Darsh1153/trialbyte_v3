@@ -59,6 +59,22 @@ export interface TherapeuticFormData {
     study_completion_date: string;
     primary_completion_date: string;
     population_description: string;
+    // Trial Duration Calculator fields
+    trialDuration: {
+      startDate: string;
+      enrollmentCloseDate: string;
+      resultPublishDate: string;
+      trialEndDate: string;
+      inclusionPeriod: number;
+      resultDuration: number;
+      overallDurationToComplete: number;
+      confidenceTypes: {
+        startDate: "Estimated" | "Benchmark" | "Actual";
+        enrollmentCloseDate: "Estimated" | "Benchmark" | "Actual";
+        resultPublishDate: "Estimated" | "Benchmark" | "Actual";
+        trialEndDate: "Estimated" | "Benchmark" | "Actual";
+      };
+    };
     references: Array<{
       id: string;
       date: string;
@@ -168,7 +184,18 @@ export interface TherapeuticFormData {
       field?: string;
       oldValue?: string;
       newValue?: string;
+      step?: string;
+      changeType?: 'field_change' | 'content_addition' | 'content_removal' | 'visibility_change' | 'creation';
     }>;
+    creationInfo: {
+      createdDate: string;
+      createdUser: string;
+    };
+    modificationInfo: {
+      lastModifiedDate: string;
+      lastModifiedUser: string;
+      modificationCount: number;
+    };
   };
 }
 
@@ -222,6 +249,21 @@ const initialFormState: TherapeuticFormData = {
     study_completion_date: "",
     primary_completion_date: "",
     population_description: "",
+    trialDuration: {
+      startDate: "",
+      enrollmentCloseDate: "",
+      resultPublishDate: "",
+      trialEndDate: "",
+      inclusionPeriod: 0,
+      resultDuration: 0,
+      overallDurationToComplete: 0,
+      confidenceTypes: {
+        startDate: "Estimated",
+        enrollmentCloseDate: "Estimated",
+        resultPublishDate: "Estimated",
+        trialEndDate: "Estimated",
+      },
+    },
     references: [{
       id: "1",
       date: "",
@@ -314,8 +356,19 @@ const initialFormState: TherapeuticFormData = {
       details: "Created trial",
       field: "trial",
       oldValue: "",
-      newValue: "new"
+      newValue: "new",
+      step: "step5_1",
+      changeType: "creation"
     }],
+    creationInfo: {
+      createdDate: new Date().toISOString(),
+      createdUser: "admin",
+    },
+    modificationInfo: {
+      lastModifiedDate: new Date().toISOString(),
+      lastModifiedUser: "admin",
+      modificationCount: 0,
+    },
   },
 };
 
@@ -528,31 +581,102 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     // Dispatch the update
     dispatch({ type: "UPDATE_FIELD", step, field, value });
     
-    // Log the change if it's not the changesLog field itself and values are different
-    if (field !== "changesLog" && currentValue !== value) {
-      const action = currentValue === "" || currentValue === undefined ? "created" : "changed";
-      const details = currentValue === "" || currentValue === undefined 
-        ? `Created ${field}` 
-        : `Changed ${field} from "${currentValue}" to "${value}"`;
+    // Enhanced audit logging
+    if (field !== "changesLog" && field !== "creationInfo" && field !== "modificationInfo" && currentValue !== value) {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      
+      // Determine change type and action
+      let changeType: 'field_change' | 'content_addition' | 'content_removal' | 'visibility_change' | 'creation' = 'field_change';
+      let action = "changed";
+      let details = "";
+      
+      if (currentValue === "" || currentValue === undefined || currentValue === null) {
+        changeType = 'content_addition';
+        action = "added";
+        details = `Added "${value}" to ${field}`;
+      } else if (value === "" || value === undefined || value === null) {
+        changeType = 'content_removal';
+        action = "removed";
+        details = `Removed "${currentValue}" from ${field}`;
+      } else {
+        changeType = 'field_change';
+        action = "changed";
+        details = `"${field}" was changed from "${currentValue}" to "${value}"`;
+      }
+      
+      // Check if we should consolidate with existing changes from today
+      const existingChanges = (formData.step5_8 as any).changesLog || [];
+      const todayChanges = existingChanges.filter((change: any) => 
+        change.timestamp.startsWith(today) && change.user === "admin"
+      );
+      
+      let shouldConsolidate = todayChanges.length > 0 && todayChanges.some((change: any) => 
+        change.step === step && change.changeType === changeType
+      );
       
       // Add to changes log
       setTimeout(() => {
-        const currentArray = (formData[step] as any).changesLog || [];
-        const newLogEntry = {
-          id: Date.now().toString(),
-          timestamp: new Date().toISOString(),
-          user: "admin",
-          action,
-          details,
-          field,
-          oldValue: currentValue,
-          newValue: value,
-        };
+        const currentArray = (formData.step5_8 as any).changesLog || [];
+        
+        if (shouldConsolidate) {
+          // Find the existing entry to consolidate with
+          const existingEntryIndex = currentArray.findIndex((change: any) => 
+            change.timestamp.startsWith(today) && 
+            change.user === "admin" && 
+            change.step === step &&
+            change.changeType === changeType
+          );
+          
+          if (existingEntryIndex !== -1) {
+            // Update existing entry with additional details
+            const updatedArray = [...currentArray];
+            updatedArray[existingEntryIndex] = {
+              ...updatedArray[existingEntryIndex],
+              details: `${updatedArray[existingEntryIndex].details}; ${details}`,
+              timestamp: now.toISOString(), // Update to latest time
+            };
+            
+            dispatch({
+              type: "UPDATE_FIELD",
+              step: "step5_8",
+              field: "changesLog",
+              value: updatedArray,
+            });
+          }
+        } else {
+          // Create new entry
+          const newLogEntry = {
+            id: Date.now().toString(),
+            timestamp: now.toISOString(),
+            user: "admin",
+            action,
+            details,
+            field,
+            oldValue: currentValue,
+            newValue: value,
+            step,
+            changeType,
+          };
+          
+          dispatch({
+            type: "UPDATE_FIELD",
+            step: "step5_8",
+            field: "changesLog",
+            value: [...currentArray, newLogEntry],
+          });
+        }
+        
+        // Update modification info
         dispatch({
           type: "UPDATE_FIELD",
-          step,
-          field: "changesLog",
-          value: [...currentArray, newLogEntry],
+          step: "step5_8",
+          field: "modificationInfo",
+          value: {
+            lastModifiedDate: now.toISOString(),
+            lastModifiedUser: "admin",
+            modificationCount: (formData.step5_8 as any).modificationInfo.modificationCount + 1,
+          },
         });
       }, 0);
     }
@@ -760,6 +884,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     index: number
   ) => {
     const currentArray = (formData[step] as any)[field] as any[];
+    const item = currentArray[index];
     const updatedArray = currentArray.map((item, idx) =>
       idx === index ? { ...item, isVisible: !item.isVisible } : item
     );
@@ -769,6 +894,46 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       field,
       value: updatedArray,
     });
+    
+    // Log the visibility change with enhanced details
+    const action = item.isVisible ? "hidden" : "shown";
+    const noteContent = item.content ? item.content.substring(0, 50) + "..." : "Note";
+    const noteDate = item.date || "Unknown date";
+    const details = `Date note dated ${noteDate} from ${item.type || "General"} was changed from ${item.isVisible ? "show" : "hide"} to ${item.isVisible ? "hide" : "show"}`;
+    
+    setTimeout(() => {
+      const currentLogArray = (formData.step5_8 as any).changesLog || [];
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action,
+        details,
+        field: `${field}[${index}]`,
+        oldValue: item.isVisible ? "show" : "hide",
+        newValue: item.isVisible ? "hide" : "show",
+        step,
+        changeType: "visibility_change" as const,
+      };
+      dispatch({
+        type: "UPDATE_FIELD",
+        step: "step5_8",
+        field: "changesLog",
+        value: [...currentLogArray, newLogEntry],
+      });
+      
+      // Update modification info
+      dispatch({
+        type: "UPDATE_FIELD",
+        step: "step5_8",
+        field: "modificationInfo",
+        value: {
+          lastModifiedDate: new Date().toISOString(),
+          lastModifiedUser: "admin",
+          modificationCount: (formData.step5_8 as any).modificationInfo.modificationCount + 1,
+        },
+      });
+    }, 0);
   };
 
   // Reference management functions
@@ -882,10 +1047,17 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
 
   // Helper functions for data transformation
   const ensureString = (value: any): string => {
-    return value ? String(value).trim() : "";
+    if (value === null || value === undefined || value === "") {
+      return "";
+    }
+    const stringValue = String(value).trim();
+    return stringValue === "" ? "" : stringValue;
   };
 
   const ensureNumber = (value: any, defaultValue: number = 0): number => {
+    if (value === null || value === undefined || value === "") {
+      return defaultValue;
+    }
     const num = parseInt(String(value));
     return isNaN(num) ? defaultValue : num;
   };
@@ -907,7 +1079,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         user_id: "admin", // Admin user ID
         overview: {
           therapeutic_area: ensureString(allFormData.step5_1.therapeutic_area),
-          trial_identifier: allFormData.step5_1.trial_identifier.filter(Boolean),
+          trial_identifier: allFormData.step5_1.trial_identifier.filter(Boolean).length > 0 ? allFormData.step5_1.trial_identifier.filter(Boolean) : [],
           trial_phase: ensureString(allFormData.step5_1.trial_phase),
           status: ensureString(allFormData.step5_1.status),
           primary_drugs: ensureString(allFormData.step5_1.primary_drugs),
@@ -916,7 +1088,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           disease_type: ensureString(allFormData.step5_1.disease_type),
           patient_segment: ensureString(allFormData.step5_1.patient_segment),
           line_of_therapy: ensureString(allFormData.step5_1.line_of_therapy),
-          reference_links: allFormData.step5_1.reference_links.filter(Boolean),
+          reference_links: allFormData.step5_1.reference_links.filter(Boolean).length > 0 ? allFormData.step5_1.reference_links.filter(Boolean) : [],
           trial_tags: ensureString(allFormData.step5_1.trial_tags),
           sponsor_collaborators: ensureString(allFormData.step5_1.sponsor_collaborators),
           sponsor_field_activity: ensureString(allFormData.step5_1.sponsor_field_activity),
@@ -946,83 +1118,60 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           target_no_volunteers: ensureNumber(allFormData.step5_4.estimated_enrollment, 0),
           actual_enrolled_volunteers: ensureNumber(allFormData.step5_4.actual_enrollment, 0),
         },
-        population: {
-          estimated_enrollment: ensureString(allFormData.step5_4.estimated_enrollment),
-          actual_enrollment: ensureString(allFormData.step5_4.actual_enrollment),
-          enrollment_status: ensureString(allFormData.step5_4.enrollment_status),
-          recruitment_period: ensureString(allFormData.step5_4.recruitment_period),
-          study_completion_date: ensureString(allFormData.step5_4.study_completion_date),
-          primary_completion_date: ensureString(allFormData.step5_4.primary_completion_date),
-          population_description: ensureString(allFormData.step5_4.population_description),
-          references: allFormData.step5_4.references.filter(ref => ref.isVisible && (ref.content || ref.viewSource)).map(ref => ({
-            date: ref.date,
-            registryType: ref.registryType,
-            content: ref.content,
-            viewSource: ref.viewSource,
-            attachments: ref.attachments
-          })),
-        },
-        sites: {
-          study_sites: allFormData.step5_5.study_sites.filter(Boolean),
-          principal_investigators: allFormData.step5_5.principal_investigators.filter(Boolean),
-          site_status: ensureString(allFormData.step5_5.site_status),
-          site_countries: allFormData.step5_5.site_countries.filter(Boolean),
-          site_regions: allFormData.step5_5.site_regions.filter(Boolean),
-          site_contact_info: allFormData.step5_5.site_contact_info.filter(Boolean),
-          results_available: allFormData.step5_5.results_available || false,
-          endpoints_met: allFormData.step5_5.endpoints_met || false,
-          adverse_events_reported: allFormData.step5_5.adverse_events_reported || false,
-        },
         timing: {
-          study_start_date: ensureString(allFormData.step5_6.study_start_date),
-          first_patient_in: ensureString(allFormData.step5_6.first_patient_in),
-          last_patient_in: ensureString(allFormData.step5_6.last_patient_in),
-          study_end_date: ensureString(allFormData.step5_6.study_end_date),
-          interim_analysis_dates: allFormData.step5_6.interim_analysis_dates.filter(Boolean),
-          final_analysis_date: ensureString(allFormData.step5_6.final_analysis_date),
-          regulatory_submission_date: ensureString(allFormData.step5_6.regulatory_submission_date),
+          start_date_estimated: ensureString(allFormData.step5_6.study_start_date),
+          trial_end_date_estimated: ensureString(allFormData.step5_6.study_end_date),
         },
         results: {
-          primary_endpoint_results: ensureString(allFormData.step5_7.primary_endpoint_results),
-          secondary_endpoint_results: allFormData.step5_7.secondary_endpoint_results.filter(Boolean),
-          safety_results: ensureString(allFormData.step5_7.safety_results),
-          efficacy_results: ensureString(allFormData.step5_7.efficacy_results),
-          statistical_significance: ensureString(allFormData.step5_7.statistical_significance),
-          adverse_events: allFormData.step5_7.adverse_events.filter(Boolean),
-          conclusion: ensureString(allFormData.step5_7.conclusion),
+          trial_outcome: ensureString(allFormData.step5_7.primary_endpoint_results),
+          reference: ensureString(allFormData.step5_7.conclusion),
+          trial_results: allFormData.step5_7.secondary_endpoint_results.filter(Boolean).length > 0 
+            ? allFormData.step5_7.secondary_endpoint_results.filter(Boolean) 
+            : [],
+          adverse_event_reported: allFormData.step5_7.adverse_events.length > 0 ? "Yes" : "No",
+          adverse_event_type: allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || "",
+          treatment_for_adverse_events: ensureString(allFormData.step5_7.safety_results),
+        },
+        sites: {
+          total: allFormData.step5_5.study_sites.filter(Boolean).length || 0,
+          notes: allFormData.step5_5.study_sites.filter(Boolean).join(", ") || "",
         },
         other_sources: {
-          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information)),
-          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title)),
-          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.type || item.title)),
-          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.registry || item.identifier)),
-          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.type || item.title)),
+          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information || item.url || item.file)),
+          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title || item.url || item.file)),
+          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.type || item.title || item.url || item.file)),
+          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.registry || item.identifier || item.url || item.file)),
+          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.type || item.title || item.url || item.file)),
+        },
+        logs: {
+          trial_changes_log: allFormData.step5_8.changesLog.length > 0 
+            ? allFormData.step5_8.changesLog.map(change => 
+                `${change.timestamp}: ${change.user} ${change.action} - ${change.details}`
+              ).join("; ") 
+            : "Trial created",
+          trial_added_date: new Date().toISOString(),
+          last_modified_date: new Date().toISOString(),
+          last_modified_user: "admin",
+          full_review_user: "admin",
+          next_review_date: null,
         },
         notes: {
           date_type: ensureString(allFormData.step5_8.date_type),
-          notes: allFormData.step5_8.notes.filter(note => note.isVisible && note.content).map(note => ({
-            date: note.date,
-            type: note.type,
-            content: note.content,
-            sourceLink: note.sourceLink,
-            attachments: note.attachments
-          })),
+          notes: allFormData.step5_8.notes.filter(note => note.isVisible && note.content).length > 0 
+            ? allFormData.step5_8.notes.filter(note => note.isVisible && note.content).map(note => 
+                `${note.date} (${note.type}): ${note.content}${note.sourceLink ? ` - Source: ${note.sourceLink}` : ""}`
+              ).join("; ") 
+            : "No notes available",
           link: ensureString(allFormData.step5_8.link),
+          attachments: allFormData.step5_8.notes.filter(note => note.isVisible && note.attachments && note.attachments.length > 0)
+            .flatMap(note => note.attachments) || [],
         },
-        changesLog: allFormData.step5_8.changesLog.map(change => ({
-          timestamp: change.timestamp,
-          user: change.user,
-          action: change.action,
-          details: change.details,
-          field: change.field,
-          oldValue: change.oldValue,
-          newValue: change.newValue
-        })),
       };
 
       const fullUrl = `${apiBaseUrl}/api/v1/therapeutic/create-therapeutic`;
       console.log("Making request to:", fullUrl);
       console.log("Payload:", therapeuticPayload);
+      console.log("Payload size:", JSON.stringify(therapeuticPayload).length, "characters");
       
       const response = await fetch(fullUrl, {
         method: "POST",
@@ -1037,7 +1186,11 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         let errorMessage = "Failed to create therapeutic trial";
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
+          console.error("API Error Response:", errorData);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          if (errorData.details) {
+            errorMessage += ` - Details: ${errorData.details}`;
+          }
         } catch (jsonError) {
           // If response is not JSON (e.g., HTML error page), get text
           const errorText = await response.text();
