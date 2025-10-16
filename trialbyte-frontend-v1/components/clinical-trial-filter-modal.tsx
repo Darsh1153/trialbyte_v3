@@ -1,5 +1,6 @@
 "use client"
 
+import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -82,7 +83,7 @@ export function ClinicalTrialFilterModal({ open, onOpenChange, onApplyFilters, c
   const handleSaveQuery = () => {
     // Create a readable query name
     const activeFilterCount = Object.values(filters).reduce((count, arr) => count + arr.length, 0);
-    const queryName = `Filter Query (${activeFilterCount} filters) - ${new Date().toLocaleDateString()}`;
+    const queryName = `Filter Query (${activeFilterCount} filters) - ${formatDateToMMDDYYYY(new Date().toISOString())}`;
     
     // Save to localStorage for demo purposes
     const savedQueries = JSON.parse(localStorage.getItem('clinicalTrialFilterQueries') || '[]');

@@ -525,12 +525,12 @@ export default function TherapeuticsStep5_1() {
           {/* Row 1: therapeutic area / trial identifier / phase */}
           <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label>Clinical Trials</Label>
+              <Label>Therapeutic Area</Label>
               <SearchableSelect
                 options={therapeuticAreaOptions}
                 value={form.therapeutic_area}
                 onValueChange={handleTherapeuticAreaChange}
-                placeholder="Select Clinical Trials"
+                placeholder="Select Therapeutic Area"
                 searchPlaceholder="Search therapeutic areas..."
                 emptyMessage="No therapeutic area found."
                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"

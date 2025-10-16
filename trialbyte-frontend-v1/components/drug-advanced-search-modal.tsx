@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { X, Plus, Minus } from "lucide-react"
 import { QueryHistoryModal } from "@/components/query-history-modal"
 import CustomDateInput from "@/components/ui/custom-date-input"
+import { useToast } from "@/hooks/use-toast"
 
 interface DrugAdvancedSearchModalProps {
   open: boolean
@@ -87,6 +88,7 @@ const dateFields = [
 
 
 export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: DrugAdvancedSearchModalProps) {
+  const { toast } = useToast();
   const [criteria, setCriteria] = useState<DrugSearchCriteria[]>([
     {
       id: "1",
@@ -289,21 +291,36 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
     // Create a readable query name
     const queryName = `Drug Advanced Search (${criteria.length} criteria) - ${new Date().toLocaleDateString()}`;
     
-    // Save to localStorage for demo purposes
-    const savedQueries = JSON.parse(localStorage.getItem('drugSearchQueries') || '[]');
+    // Save to localStorage using unified key
+    const savedQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]');
     const newQuery = {
       id: Date.now().toString(),
-      name: queryName,
-      criteria: criteria,
-      createdAt: new Date().toISOString()
+      title: queryName,
+      description: `Drug advanced search with ${criteria.length} criteria`,
+      query_type: "drug_advanced_search",
+      query_data: {
+        searchTerm: "",
+        filters: {},
+        searchCriteria: criteria,
+        savedAt: new Date().toISOString()
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
     savedQueries.push(newQuery);
-    localStorage.setItem('drugSearchQueries', JSON.stringify(savedQueries));
+    localStorage.setItem('unifiedSavedQueries', JSON.stringify(savedQueries));
     
-    // Show feedback
-    alert(`Query saved as: ${queryName}`);
-    console.log("Saving drug query:", criteria)
+    // Debug: Log what we're saving
+    console.log("Saving to localStorage:", savedQueries);
+    console.log("Total queries in storage:", savedQueries.length);
+    
+    // Show feedback using toast
+    toast({
+      title: "Query Saved",
+      description: `Drug advanced search query saved as: ${queryName}`,
+    });
+    console.log("Drug query saved:", newQuery);
   }
 
   return (
@@ -428,7 +445,7 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
             </Button>
             <Button variant="outline" onClick={handleSaveQuery} className="bg-gray-600 text-white hover:bg-gray-700">
               <span className="mr-2">💾</span>
-              Save this Querye
+              Save this Query
             </Button>
             <Button variant="outline" onClick={handleClear} className="bg-yellow-600 text-white hover:bg-yellow-700">
               <span className="mr-2">🔄</span>

@@ -34,7 +34,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { toast } from "@/hooks/use-toast";
+import { formatDateToMMDDYYYY } from "@/lib/date-utils";
+import { normalizePhaseValue } from "@/lib/search-utils";
+import { useToast } from "@/hooks/use-toast";
 import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, ChevronDown, Settings, Download, Save, ExternalLink, Maximize2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TherapeuticAdvancedSearchModal, TherapeuticSearchCriteria } from "@/components/therapeutic-advanced-search-modal";
@@ -151,6 +153,7 @@ interface ApiResponse {
 
 export default function AdminTherapeuticsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [trials, setTrials] = useState<TherapeuticTrial[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -417,7 +420,18 @@ export default function AdminTherapeuticsPage() {
 
   // Handle edit button click
   const handleEditClick = (trialId: string) => {
-    router.push(`/admin/therapeutics/edit/${trialId}`);
+    const popup = window.open(
+      `/admin/therapeutics/edit/${trialId}`,
+      `edit_trial_${trialId}`,
+      "width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no"
+    );
+    if (!popup) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups for this site to edit trials.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle advanced search
@@ -442,14 +456,28 @@ export default function AdminTherapeuticsPage() {
   };
 
   // Handle load query from history
-  const handleLoadQuery = (query: any) => {
-    if (query.criteria) {
-      setAdvancedSearchCriteria(query.criteria);
-      toast({
-        title: "Query Loaded",
-        description: `Loaded query: ${query.name}`,
-      });
+  const handleLoadQuery = (queryData: any) => {
+    console.log('Loading query data:', queryData);
+    
+    // Load search criteria if available
+    if (queryData.searchCriteria && Array.isArray(queryData.searchCriteria)) {
+      setAdvancedSearchCriteria(queryData.searchCriteria);
     }
+    
+    // Load filters if available
+    if (queryData.filters) {
+      setAppliedFilters(queryData.filters);
+    }
+    
+    // Load search term if available
+    if (queryData.searchTerm) {
+      setSearchTerm(queryData.searchTerm);
+    }
+    
+    toast({
+      title: "Query Loaded",
+      description: "Query has been loaded successfully",
+    });
   };
 
   // Handle filter application
@@ -477,10 +505,10 @@ export default function AdminTherapeuticsPage() {
     if (criteria.some(c => c.field === "trial_tags")) {
       console.log('All trials trial_tags and disease_type:', trials.map(t => ({
         id: t.trial_id,
-        title: t.overview.title,
-        trial_tags: t.overview.trial_tags,
-        disease_type: t.overview.disease_type,
-        combined: `${t.overview.trial_tags || ""} ${t.overview.disease_type || ""}`.trim()
+        title: t.overview?.title || "N/A",
+        trial_tags: t.overview?.trial_tags || "N/A",
+        disease_type: t.overview?.disease_type || "N/A",
+        combined: `${t.overview?.trial_tags || ""} ${t.overview?.disease_type || ""}`.trim()
       })));
     }
 
@@ -647,6 +675,60 @@ export default function AdminTherapeuticsPage() {
       // Apply the operator
       const targetValue = fieldValue.toLowerCase();
 
+      // Special handling for dropdown fields that should use exact matching
+      const dropdownFields = [
+        'trial_phase', 'status', 'therapeutic_area', 'disease_type', 
+        'patient_segment', 'line_of_therapy', 'trial_record_status',
+        'sex', 'healthy_volunteers', 'trial_outcome', 'adverse_event_reported'
+      ];
+
+      // For dropdown fields, if the operator is "contains" but we're searching for exact values,
+      // we should use exact matching instead
+      if (dropdownFields.includes(field) && operator === "contains") {
+        const searchValue = typeof value === 'string' ? value.toLowerCase() : '';
+        
+        // Check if the search value matches exactly or if it's a partial match within the field
+        if (targetValue === searchValue) {
+          return true;
+        }
+        
+        // For trial_phase specifically, handle all variations
+        if (field === 'trial_phase') {
+          const normalizedSearch = normalizePhaseValue(searchValue).toLowerCase();
+          const normalizedTarget = normalizePhaseValue(targetValue).toLowerCase();
+          
+          // Check for exact match
+          if (normalizedTarget === normalizedSearch) {
+            return true;
+          }
+          
+          // Check for partial matches (e.g., "Phase 3" should match "Phase III")
+          const phaseEquivalents = {
+            'phase i': ['phase 1', 'phase i', 'phase 1/2'],
+            'phase ii': ['phase 2', 'phase ii', 'phase 2/3'],
+            'phase iii': ['phase 3', 'phase iii'],
+            'phase iv': ['phase 4', 'phase iv'],
+            'phase 1': ['phase i', 'phase 1', 'phase 1/2'],
+            'phase 2': ['phase ii', 'phase 2', 'phase 2/3'],
+            'phase 3': ['phase iii', 'phase 3'],
+            'phase 4': ['phase iv', 'phase 4']
+          };
+          
+          // Check if search value matches any equivalent
+          for (const [key, equivalents] of Object.entries(phaseEquivalents)) {
+            if (key === normalizedSearch) {
+              return equivalents.some(equiv => normalizedTarget.includes(equiv));
+            }
+          }
+          
+          // Also check if target contains search (for cases like "Phase 1/2" matching "Phase 1")
+          return normalizedTarget.includes(normalizedSearch) || normalizedSearch.includes(normalizedTarget);
+        }
+        
+        // For other dropdown fields, use exact matching
+        return targetValue === searchValue;
+      }
+
       // Special handling for trial_tags with multiple values
       if (field === "trial_tags" && Array.isArray(value)) {
         // For multiple tags, all tags must be present (AND logic)
@@ -721,12 +803,12 @@ export default function AdminTherapeuticsPage() {
   const getSortValue = (trial: TherapeuticTrial, field: string): string | number => {
     switch (field) {
       case "trial_id": return trial.trial_id;
-      case "therapeutic_area": return trial.overview.therapeutic_area;
-      case "disease_type": return trial.overview.disease_type;
-      case "primary_drug": return trial.overview.primary_drugs;
-      case "trial_status": return trial.overview.status;
-      case "sponsor": return trial.overview.sponsor_collaborators;
-      case "phase": return trial.overview.trial_phase;
+      case "therapeutic_area": return trial.overview?.therapeutic_area || "";
+      case "disease_type": return trial.overview?.disease_type || "";
+      case "primary_drug": return trial.overview?.primary_drugs || "";
+      case "trial_status": return trial.overview?.status || "";
+      case "sponsor": return trial.overview?.sponsor_collaborators || "";
+      case "phase": return trial.overview?.trial_phase || "";
       case "enrollment": return trial.criteria[0]?.target_no_volunteers?.toString() || "0";
       default: return "";
     }
@@ -751,12 +833,50 @@ export default function AdminTherapeuticsPage() {
 
   // Filter trials based on search term, advanced search criteria, and filters
   const filteredTrials = trials.filter((trial) => {
-    // Basic search term filter
-    const matchesSearchTerm = searchTerm === "" ||
-      trial.overview.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trial.overview.therapeutic_area.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trial.overview.disease_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trial.overview.sponsor_collaborators.toLowerCase().includes(searchTerm.toLowerCase());
+    // Basic search term filter - search across multiple fields
+    const matchesSearchTerm = searchTerm === "" || (() => {
+      if (!searchTerm.trim()) return true;
+      
+      const searchLower = searchTerm.toLowerCase();
+      const searchableText = [
+        trial.overview?.title || "",
+        trial.overview?.therapeutic_area || "",
+        trial.overview?.disease_type || "",
+        trial.overview?.sponsor_collaborators || "",
+        trial.overview?.primary_drugs || "",
+        trial.overview?.other_drugs || "",
+        trial.overview?.patient_segment || "",
+        trial.overview?.line_of_therapy || "",
+        trial.overview?.trial_tags || "",
+        trial.overview?.countries || "",
+        trial.overview?.region || "",
+        trial.overview?.trial_record_status || "",
+        trial.overview?.trial_phase || "",
+        trial.overview?.status || "",
+        trial.overview?.trial_identifier?.join(" ") || "",
+        trial.overview?.reference_links?.join(" ") || "",
+        // Also search in outcomes
+        trial.outcomes?.[0]?.purpose_of_trial || "",
+        trial.outcomes?.[0]?.summary || "",
+        trial.outcomes?.[0]?.primary_outcome_measure || "",
+        trial.outcomes?.[0]?.other_outcome_measure || "",
+        trial.outcomes?.[0]?.study_design_keywords || "",
+        trial.outcomes?.[0]?.study_design || "",
+        trial.outcomes?.[0]?.treatment_regimen || "",
+        // Also search in criteria
+        trial.criteria?.[0]?.inclusion_criteria || "",
+        trial.criteria?.[0]?.exclusion_criteria || "",
+        trial.criteria?.[0]?.subject_type || "",
+        // Also search in results
+        trial.results?.[0]?.trial_outcome || "",
+        trial.results?.[0]?.trial_results?.join(" ") || "",
+        trial.results?.[0]?.adverse_event_reported || "",
+        trial.results?.[0]?.adverse_event_type || "",
+        trial.results?.[0]?.treatment_for_adverse_events || "",
+      ].join(" ").toLowerCase();
+      
+      return searchableText.includes(searchLower);
+    })();
 
     // Advanced search filter
     const matchesAdvancedSearch = applyAdvancedSearchFilter(trial, advancedSearchCriteria);
@@ -764,35 +884,35 @@ export default function AdminTherapeuticsPage() {
     // Apply filters
     const matchesFilters = (
       (appliedFilters.therapeuticAreas.length === 0 ||
-        appliedFilters.therapeuticAreas.includes(trial.overview.therapeutic_area)) &&
+        (trial.overview?.therapeutic_area && appliedFilters.therapeuticAreas.includes(trial.overview.therapeutic_area))) &&
       (appliedFilters.statuses.length === 0 ||
-        appliedFilters.statuses.includes(trial.overview.status)) &&
+        (trial.overview?.status && appliedFilters.statuses.includes(trial.overview.status))) &&
       (appliedFilters.diseaseTypes.length === 0 ||
-        appliedFilters.diseaseTypes.includes(trial.overview.disease_type)) &&
+        (trial.overview?.disease_type && appliedFilters.diseaseTypes.includes(trial.overview.disease_type))) &&
       (appliedFilters.primaryDrugs.length === 0 ||
-        appliedFilters.primaryDrugs.some(drug =>
-          trial.overview.primary_drugs.toLowerCase().includes(drug.toLowerCase()))) &&
+        (trial.overview?.primary_drugs && appliedFilters.primaryDrugs.some(drug =>
+          trial.overview.primary_drugs.toLowerCase().includes(drug.toLowerCase())))) &&
       (appliedFilters.trialPhases.length === 0 ||
-        appliedFilters.trialPhases.includes(trial.overview.trial_phase)) &&
+        (trial.overview?.trial_phase && appliedFilters.trialPhases.includes(trial.overview.trial_phase))) &&
       (appliedFilters.countries.length === 0 ||
-        appliedFilters.countries.some(country =>
-          trial.overview.countries.toLowerCase().includes(country.toLowerCase()))) &&
+        (trial.overview?.countries && appliedFilters.countries.some(country =>
+          trial.overview.countries.toLowerCase().includes(country.toLowerCase())))) &&
       (appliedFilters.sponsorsCollaborators.length === 0 ||
-        appliedFilters.sponsorsCollaborators.some(sponsor =>
-          trial.overview.sponsor_collaborators.toLowerCase().includes(sponsor.toLowerCase()))) &&
+        (trial.overview?.sponsor_collaborators && appliedFilters.sponsorsCollaborators.some(sponsor =>
+          trial.overview.sponsor_collaborators.toLowerCase().includes(sponsor.toLowerCase())))) &&
       (appliedFilters.trialRecordStatus.length === 0 ||
-        appliedFilters.trialRecordStatus.includes(trial.overview.trial_record_status)) &&
+        (trial.overview?.trial_record_status && appliedFilters.trialRecordStatus.includes(trial.overview.trial_record_status))) &&
       (appliedFilters.patientSegments.length === 0 ||
-        appliedFilters.patientSegments.includes(trial.overview.patient_segment)) &&
+        (trial.overview?.patient_segment && appliedFilters.patientSegments.includes(trial.overview.patient_segment))) &&
       (appliedFilters.lineOfTherapy.length === 0 ||
-        appliedFilters.lineOfTherapy.includes(trial.overview.line_of_therapy)) &&
+        (trial.overview?.line_of_therapy && appliedFilters.lineOfTherapy.includes(trial.overview.line_of_therapy))) &&
       (appliedFilters.trialTags.length === 0 ||
-        appliedFilters.trialTags.some(tag =>
-          trial.overview.trial_tags.toLowerCase().includes(tag.toLowerCase()))) &&
+        (trial.overview?.trial_tags && appliedFilters.trialTags.some(tag =>
+          trial.overview.trial_tags.toLowerCase().includes(tag.toLowerCase())))) &&
       (appliedFilters.sex.length === 0 ||
-        trial.criteria.length > 0 && appliedFilters.sex.includes(trial.criteria[0].sex)) &&
+        (trial.criteria.length > 0 && trial.criteria[0]?.sex && appliedFilters.sex.includes(trial.criteria[0].sex))) &&
       (appliedFilters.healthyVolunteers.length === 0 ||
-        trial.criteria.length > 0 && appliedFilters.healthyVolunteers.includes(trial.criteria[0].healthy_volunteers))
+        (trial.criteria.length > 0 && trial.criteria[0]?.healthy_volunteers && appliedFilters.healthyVolunteers.includes(trial.criteria[0].healthy_volunteers)))
     );
 
     return matchesSearchTerm && matchesAdvancedSearch && matchesFilters;
@@ -897,8 +1017,7 @@ export default function AdminTherapeuticsPage() {
 
   // Format date for display
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    return formatDateToMMDDYYYY(dateString);
   };
 
   // Multiple selection handlers
@@ -926,7 +1045,7 @@ export default function AdminTherapeuticsPage() {
     setIsSelectAllChecked(newSelectedTrials.size === paginatedTrials.length);
   };
 
-  const handleViewSelectedTrials = (openInTabs: boolean = true) => {
+  const handleViewSelectedTrials = (openInTabs: boolean = false) => {
     if (selectedTrials.size === 0) {
       toast({
         title: "No trials selected",
@@ -939,17 +1058,17 @@ export default function AdminTherapeuticsPage() {
     const selectedTrialIds = Array.from(selectedTrials);
     
     if (openInTabs) {
-      // Open in new tabs
+      // Open in new tabs - backend view
       selectedTrialIds.forEach(trialId => {
-        window.open(`/admin/therapeutics/${trialId}`, '_blank');
+        window.open(`/admin/therapeutics/${trialId}/backend`, '_blank');
       });
     } else {
-      // Open in popup windows
+      // Open in popup windows - backend view (default)
       selectedTrialIds.forEach((trialId, index) => {
         const popup = window.open(
-          `/admin/therapeutics/${trialId}`,
-          `trial_${trialId}`,
-          `width=1200,height=800,scrollbars=yes,resizable=yes,left=${100 + (index * 50)},top=${100 + (index * 50)}`
+          `/admin/therapeutics/${trialId}/backend`,
+          `trial_backend_${trialId}`,
+          `width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no,left=${100 + (index * 50)},top=${100 + (index * 50)}`
         );
         if (!popup) {
           toast({
@@ -963,7 +1082,7 @@ export default function AdminTherapeuticsPage() {
 
     toast({
       title: "Trials opened",
-      description: `Opened ${selectedTrialIds.length} trial${selectedTrialIds.length > 1 ? 's' : ''} successfully.`,
+      description: `Opened ${selectedTrialIds.length} trial${selectedTrialIds.length > 1 ? 's' : ''} in backend view successfully.`,
     });
   };
 
@@ -1094,11 +1213,22 @@ export default function AdminTherapeuticsPage() {
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-          <Button asChild>
-            <Link href="/admin/therapeutics/new/5-1">
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Trials
-            </Link>
+          <Button onClick={() => {
+            const popup = window.open(
+              "/admin/therapeutics/new/5-1",
+              "add_new_trial",
+              "width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no"
+            );
+            if (!popup) {
+              toast({
+                title: "Popup blocked",
+                description: "Please allow popups for this site to add new trials.",
+                variant: "destructive",
+              });
+            }
+          }}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add New Trial
           </Button>
         </div>
       </div>
@@ -1108,7 +1238,7 @@ export default function AdminTherapeuticsPage() {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search trials..."
+            placeholder="Search trials by title, therapeutic area, disease type, drugs, sponsor, etc..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -1166,10 +1296,10 @@ export default function AdminTherapeuticsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleViewSelectedTrials(false)}
-                className="bg-white hover:bg-gray-50 text-blue-700 border-blue-300"
+                className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
               >
                 <Maximize2 className="h-4 w-4 mr-2" />
-                Open in Popups
+                Open in Popups (Default)
               </Button>
               <Button
                 variant="outline"
@@ -1452,7 +1582,20 @@ export default function AdminTherapeuticsPage() {
                   <TableCell className="text-sm">{formatDate(trial.overview.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const popup = window.open(
+                          `/admin/therapeutics/${trial.trial_id}/backend`,
+                          `trial_backend_${trial.trial_id}`,
+                          `width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no`
+                        );
+                        if (!popup) {
+                          toast({
+                            title: "Popup blocked",
+                            description: "Please allow popups for this site to view trial backend data.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}>
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
@@ -1507,7 +1650,20 @@ export default function AdminTherapeuticsPage() {
                       onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
                     />
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => router.push(`/admin/therapeutics/${trial.trial_id}`)}>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const popup = window.open(
+                          `/admin/therapeutics/${trial.trial_id}/backend`,
+                          `trial_backend_${trial.trial_id}`,
+                          `width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no`
+                        );
+                        if (!popup) {
+                          toast({
+                            title: "Popup blocked",
+                            description: "Please allow popups for this site to view trial backend data.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}>
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
@@ -1614,6 +1770,7 @@ export default function AdminTherapeuticsPage() {
         open={isAdvancedSearchOpen}
         onOpenChange={setIsAdvancedSearchOpen}
         onApplySearch={handleAdvancedSearch}
+        trials={trials}
       />
 
       {/* Filter Modal */}
@@ -1622,6 +1779,7 @@ export default function AdminTherapeuticsPage() {
         onOpenChange={setFilterModalOpen}
         onApplyFilters={handleApplyFilters}
         currentFilters={appliedFilters}
+        trials={trials}
       />
 
       {/* Save Query Modal */}

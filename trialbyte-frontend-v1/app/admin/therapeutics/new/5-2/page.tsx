@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Plus, X, Check, ChevronsUpDown } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +28,29 @@ export default function TherapeuticsStep5_2() {
   const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_2;
 
+  // Study Design Keywords options
+  const studyDesignKeywords = [
+    "Placebo-control",
+    "Active control",
+    "Randomized",
+    "Non-Randomized",
+    "Multiple-Blinded",
+    "Single-Blinded",
+    "Open",
+    "Multi-centre",
+    "Safety",
+    "Efficacy",
+    "Tolerability",
+    "Pharmacokinetics",
+    "Pharmacodynamics",
+    "Interventional",
+    "Treatment",
+    "Parallel Assignment",
+    "Single group assignment",
+    "Prospective",
+    "Cohort"
+  ];
+
   const addPrimaryOutcome = () =>
     addArrayItem("step5_2", "primaryOutcomeMeasures");
   const updatePrimaryOutcome = (index: number, value: string) =>
@@ -37,6 +63,22 @@ export default function TherapeuticsStep5_2() {
     updateArrayItem("step5_2", "otherOutcomeMeasures", index, value);
   const removeOtherOutcome = (index: number) =>
     removeArrayItem("step5_2", "otherOutcomeMeasures", index);
+
+  // Handle study design keyword selection
+  const handleKeywordToggle = (keyword: string) => {
+    const currentKeywords = form.study_design_keywords || [];
+    const isSelected = currentKeywords.includes(keyword);
+    
+    if (isSelected) {
+      // Remove keyword
+      const updatedKeywords = currentKeywords.filter(k => k !== keyword);
+      updateField("step5_2", "study_design_keywords", updatedKeywords);
+    } else {
+      // Add keyword
+      const updatedKeywords = [...currentKeywords, keyword];
+      updateField("step5_2", "study_design_keywords", updatedKeywords);
+    }
+  };
 
   const handleSaveChanges = async () => {
     try {
@@ -203,15 +245,56 @@ export default function TherapeuticsStep5_2() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Study Design Keywords</Label>
-                  <Textarea
-                    value={form.study_design_keywords}
-                    onChange={(e) =>
-                      updateField("step5_2", "study_design_keywords", e.target.value)
-                    }
-                    placeholder="e.g., Randomized, Double-blind, Placebo-controlled"
-                    rows={8}
-                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      >
+                        {form.study_design_keywords && form.study_design_keywords.length > 0
+                          ? `${form.study_design_keywords.length} keyword(s) selected`
+                          : "Select keywords..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search keywords..." />
+                        <CommandList>
+                          <CommandEmpty>No keywords found.</CommandEmpty>
+                          <CommandGroup>
+                            {studyDesignKeywords.map((keyword) => (
+                              <CommandItem
+                                key={keyword}
+                                value={keyword}
+                                onSelect={() => handleKeywordToggle(keyword)}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  checked={(form.study_design_keywords || []).includes(keyword)}
+                                  className="border-gray-600 data-[state=checked]:bg-gray-800 data-[state=checked]:border-gray-800"
+                                />
+                                <span>{keyword}</span>
+                                <Check
+                                  className={`ml-auto h-4 w-4 ${
+                                    (form.study_design_keywords || []).includes(keyword)
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  }`}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {form.study_design_keywords && form.study_design_keywords.length > 0 && (
+                    <div className="text-sm text-gray-600 mt-2">
+                      Selected: {form.study_design_keywords.join(", ")}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">

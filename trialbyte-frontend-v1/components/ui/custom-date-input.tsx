@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format, parse, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
+import "./calendar-dropdown.css";
 
 interface CustomDateInputProps {
   value?: string;
@@ -20,7 +21,7 @@ interface CustomDateInputProps {
 export function CustomDateInput({
   value = "",
   onChange,
-  placeholder = "Month Day Year",
+  placeholder = "MM-DD-YYYY or click calendar",
   className,
   disabled = false
 }: CustomDateInputProps) {
@@ -43,6 +44,18 @@ export function CustomDateInput({
       "yyyy-MM-dd",   // 2024-01-01
       "MMMM d yyyy",  // January 1 2024
       "MMM d yyyy",   // Jan 1 2024
+      "d/M/yyyy",     // 1/1/2024 (European format)
+      "dd/MM/yyyy",   // 01/01/2024 (European format)
+      "d-M-yyyy",     // 1-1-2024 (European format)
+      "dd-MM-yyyy",   // 01-01-2024 (European format)
+      "yyyy/MM/dd",   // 2024/01/01
+      "yyyy.MM.dd",   // 2024.01.01
+      "MM.dd.yyyy",   // 01.01.2024
+      "M.d.yyyy",     // 1.1.2024
+      "MMMM d",       // January 1 (current year)
+      "MMM d",        // Jan 1 (current year)
+      "M/d",          // 1/1 (current year)
+      "MM/dd",        // 01/01 (current year)
     ];
 
     for (const formatStr of formats) {
@@ -53,6 +66,16 @@ export function CustomDateInput({
         }
       } catch {
         continue;
+      }
+    }
+    
+    // Try parsing as a simple number (assume it's a day of current month/year)
+    const dayNumber = parseInt(input);
+    if (!isNaN(dayNumber) && dayNumber >= 1 && dayNumber <= 31) {
+      const now = new Date();
+      const testDate = new Date(now.getFullYear(), now.getMonth(), dayNumber);
+      if (testDate.getDate() === dayNumber) {
+        return testDate;
       }
     }
     
@@ -67,9 +90,9 @@ export function CustomDateInput({
     return `${year}-${month}-${day}`;
   };
 
-  // Format date to "Month Day Year" format
+  // Format date to "MM-DD-YYYY" format
   const formatDateToDisplay = (date: Date): string => {
-    return format(date, "MMMM d, yyyy");
+    return format(date, "MM-dd-yyyy");
   };
 
   // Initialize state from props
@@ -97,9 +120,7 @@ export function CustomDateInput({
     const parsedDate = parseInputToDate(newValue);
     if (parsedDate) {
       setSelectedDate(parsedDate);
-      // Format it properly and update the input
-      const formatted = formatDateToDisplay(parsedDate);
-      setInputValue(formatted);
+      // Don't auto-format while typing to allow natural input
       onChange?.(formatDateForAPI(parsedDate));
     } else if (newValue.trim() === "") {
       setSelectedDate(undefined);
@@ -168,6 +189,9 @@ export function CustomDateInput({
             selected={selectedDate}
             onSelect={handleCalendarSelect}
             initialFocus
+            captionLayout="dropdown"
+            fromYear={1900}
+            toYear={2100}
           />
         </PopoverContent>
       </Popover>

@@ -16,6 +16,16 @@ import {
 import { Plus, X } from "lucide-react";
 import { useDrugForm } from "../context/drug-form-context";
 import DrugFormProgress from "../components/drug-form-progress";
+import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
+
+// Originator options - same companies for both Originator and Other Active Companies
+const originatorOptions: SearchableSelectOption[] = [
+  { value: "pfizer", label: "Pfizer" },
+  { value: "novartis", label: "Novartis" },
+  { value: "roche", label: "Roche" },
+  { value: "merck", label: "Merck" },
+  { value: "johnson_johnson", label: "Johnson & Johnson" },
+];
 
 export default function DrugsNewOverview() {
   const {
@@ -151,29 +161,31 @@ export default function DrugsNewOverview() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Originator</Label>
-              <Input
-                placeholder="Enter"
+              <SearchableSelect
+                options={originatorOptions}
                 value={form.originator}
-                onChange={(e) =>
-                  updateField("overview", "originator", e.target.value)
+                onValueChange={(value) =>
+                  updateField("overview", "originator", value)
                 }
+                placeholder="Select originator"
+                searchPlaceholder="Search originator..."
+                emptyMessage="No originator found."
+                className="border-gray-300 focus:border-gray-500 focus:ring-gray-500"
               />
             </div>
             <div className="space-y-2">
               <Label>Other Active Companies</Label>
-              <Select
+              <SearchableSelect
+                options={originatorOptions}
                 value={form.other_active_companies}
                 onValueChange={(value) =>
                   updateField("overview", "other_active_companies", value)
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="company-a">Company A</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select other active companies"
+                searchPlaceholder="Search companies..."
+                emptyMessage="No companies found."
+                className="border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+              />
             </div>
           </div>
 

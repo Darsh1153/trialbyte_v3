@@ -33,7 +33,7 @@ export interface EditTherapeuticFormData {
     summary: string;
     primaryOutcomeMeasures: string[];
     otherOutcomeMeasures: string[];
-    study_design_keywords: string;
+    study_design_keywords: string[];
     study_design: string;
     treatment_regimen: string;
     number_of_arms: string;
@@ -60,6 +60,15 @@ export interface EditTherapeuticFormData {
     study_completion_date: string;
     primary_completion_date: string;
     population_description: string;
+    references: Array<{
+      id: string;
+      date: string;
+      registryType: string;
+      content: string;
+      viewSource: string;
+      attachments: string[];
+      isVisible: boolean;
+    }>;
   };
 
   // Step 5-5: Study Sites
@@ -99,6 +108,41 @@ export interface EditTherapeuticFormData {
       id: string;
       date: string;
       information: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    press_releases: Array<{
+      id: string;
+      date: string;
+      title: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    publications: Array<{
+      id: string;
+      type: string;
+      title: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    trial_registries: Array<{
+      id: string;
+      registry: string;
+      identifier: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
+    }>;
+    associated_studies: Array<{
+      id: string;
+      type: string;
+      title: string;
+      url: string;
+      file: string;
+      isVisible: boolean;
     }>;
   };
 
@@ -117,6 +161,29 @@ export interface EditTherapeuticFormData {
     regulatory_links: string[];
     publication_links: string[];
     additional_resources: string[];
+    date_type: string;
+    link: string;
+    changesLog: Array<{
+      id: string;
+      timestamp: string;
+      user: string;
+      action: string;
+      details: string;
+      field?: string;
+      oldValue?: string;
+      newValue?: string;
+      step?: string;
+      changeType?: string;
+    }>;
+    creationInfo: {
+      createdDate: string;
+      createdUser: string;
+    };
+    modificationInfo: {
+      lastModifiedDate: string;
+      lastModifiedUser: string;
+      modificationCount: number;
+    };
   };
 }
 
@@ -147,7 +214,7 @@ const initialFormData: EditTherapeuticFormData = {
     summary: "",
     primaryOutcomeMeasures: [],
     otherOutcomeMeasures: [],
-    study_design_keywords: "",
+    study_design_keywords: [],
     study_design: "",
     treatment_regimen: "",
     number_of_arms: "",
@@ -170,6 +237,7 @@ const initialFormData: EditTherapeuticFormData = {
     study_completion_date: "",
     primary_completion_date: "",
     population_description: "",
+    references: [],
   },
   step5_5: {
     study_sites: [],
@@ -200,6 +268,10 @@ const initialFormData: EditTherapeuticFormData = {
     adverse_events: [],
     conclusion: "",
     pipeline_data: [],
+    press_releases: [],
+    publications: [],
+    trial_registries: [],
+    associated_studies: [],
   },
   step5_8: {
     notes: [],
@@ -207,6 +279,18 @@ const initialFormData: EditTherapeuticFormData = {
     regulatory_links: [],
     publication_links: [],
     additional_resources: [],
+    date_type: "",
+    link: "",
+    changesLog: [],
+    creationInfo: {
+      createdDate: "",
+      createdUser: "",
+    },
+    modificationInfo: {
+      lastModifiedDate: "",
+      lastModifiedUser: "",
+      modificationCount: 0,
+    },
   },
 };
 
@@ -274,6 +358,9 @@ interface EditTherapeuticFormContextType {
   addArrayItem: (step: keyof EditTherapeuticFormData, field: string, value: any) => void;
   removeArrayItem: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
   updateArrayItem: (step: keyof EditTherapeuticFormData, field: string, index: number, value: any) => void;
+  addReference: (step: keyof EditTherapeuticFormData, field: string) => void;
+  removeReference: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
+  updateReference: (step: keyof EditTherapeuticFormData, field: string, index: number, updates: any) => void;
   addNote: (step: keyof EditTherapeuticFormData, field: string) => void;
   updateNote: (step: keyof EditTherapeuticFormData, field: string, index: number, updates: Partial<any>) => void;
   removeNote: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
@@ -374,7 +461,9 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               summary: foundTrial.outcomes?.[0]?.summary || "",
               primaryOutcomeMeasures: foundTrial.outcomes?.[0]?.primary_outcome_measure ? [foundTrial.outcomes[0].primary_outcome_measure] : [],
               otherOutcomeMeasures: foundTrial.outcomes?.[0]?.other_outcome_measure ? [foundTrial.outcomes[0].other_outcome_measure] : [],
-              study_design_keywords: foundTrial.outcomes?.[0]?.study_design_keywords || "",
+              study_design_keywords: foundTrial.outcomes?.[0]?.study_design_keywords 
+                ? foundTrial.outcomes[0].study_design_keywords.split(", ").filter(Boolean)
+                : [],
               study_design: foundTrial.outcomes?.[0]?.study_design || "",
               treatment_regimen: foundTrial.outcomes?.[0]?.treatment_regimen || "",
               number_of_arms: foundTrial.outcomes?.[0]?.number_of_arms?.toString() || "",
@@ -397,6 +486,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               study_completion_date: "",
               primary_completion_date: "",
               population_description: "",
+              references: [],
             },
             step5_5: {
               study_sites: foundTrial.sites?.[0]?.notes ? [foundTrial.sites[0].notes] : [],
@@ -427,13 +517,48 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               adverse_events: foundTrial.results?.[0]?.adverse_event_type ? [foundTrial.results[0].adverse_event_type] : [],
               conclusion: "",
               pipeline_data: [],
+              press_releases: [],
+              publications: [],
+              trial_registries: [],
+              associated_studies: [],
             },
             step5_8: {
-              notes: foundTrial.notes?.map((note: any) => note.notes) || [],
+              notes: foundTrial.notes?.map((note: any) => ({
+                id: note.id || Date.now().toString(),
+                date: note.date || new Date().toISOString().split("T")[0],
+                type: note.type || "General",
+                content: note.content || "",
+                sourceLink: note.sourceLink || "",
+                attachments: note.attachments || [],
+                isVisible: note.isVisible !== false
+              })) || [],
               attachments: [],
               regulatory_links: [],
               publication_links: [],
               additional_resources: [],
+              date_type: "",
+              link: "",
+              changesLog: [{
+                id: Date.now().toString(),
+                timestamp: new Date().toISOString(),
+                user: "admin",
+                action: "loaded",
+                details: "Trial loaded for editing",
+                field: "trial",
+                oldValue: "",
+                newValue: "edit_mode",
+                step: "step5_1",
+                changeType: "creation"
+              }],
+              creationInfo: {
+                createdDate: foundTrial.created_at || new Date().toISOString(),
+                createdUser: foundTrial.created_by || "admin",
+              },
+              modificationInfo: {
+                lastModifiedDate: foundTrial.updated_at || new Date().toISOString(),
+                lastModifiedUser: foundTrial.updated_by || "admin",
+                modificationCount: 0,
+              },
             },
           };
           
@@ -634,19 +759,149 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
   }, [trialId]);
 
   const updateField = (step: keyof EditTherapeuticFormData, field: string, value: any) => {
+    const oldValue = (formData[step] as any)[field];
+    
     dispatch({ type: "UPDATE_FIELD", step, field, value });
+    
+    // Log the field update
+    setTimeout(() => {
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action: "changed",
+        details: `Updated ${field}`,
+        field,
+        oldValue: typeof oldValue === 'string' ? oldValue : JSON.stringify(oldValue),
+        newValue: typeof value === 'string' ? value : JSON.stringify(value),
+        step,
+        changeType: "field_change" as const,
+      };
+      
+      const changesArray = (formData.step5_8 as any).changesLog || [];
+      dispatch({
+        type: "UPDATE_FIELD",
+        step: "step5_8",
+        field: "changesLog",
+        value: [...changesArray, newLogEntry],
+      });
+    }, 0);
   };
 
   const addArrayItem = (step: keyof EditTherapeuticFormData, field: string, value: any) => {
     dispatch({ type: "ADD_ARRAY_ITEM", step, field, value });
+    
+    // Log the array addition
+    setTimeout(() => {
+      const currentArray = (formData[step] as any)[field] as any[];
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action: "added",
+        details: `Added item to ${field}`,
+        field,
+        oldValue: "",
+        newValue: typeof value === 'string' ? value : JSON.stringify(value),
+        step,
+        changeType: "content_addition" as const,
+      };
+      
+      const changesArray = (formData.step5_8 as any).changesLog || [];
+      dispatch({
+        type: "UPDATE_FIELD",
+        step: "step5_8",
+        field: "changesLog",
+        value: [...changesArray, newLogEntry],
+      });
+    }, 0);
   };
 
   const removeArrayItem = (step: keyof EditTherapeuticFormData, field: string, index: number) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const removedItem = currentArray[index];
+    
     dispatch({ type: "REMOVE_ARRAY_ITEM", step, field, index });
+    
+    // Log the array removal
+    setTimeout(() => {
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action: "removed",
+        details: `Removed item from ${field}`,
+        field,
+        oldValue: typeof removedItem === 'string' ? removedItem : JSON.stringify(removedItem),
+        newValue: "",
+        step,
+        changeType: "content_removal" as const,
+      };
+      
+      const changesArray = (formData.step5_8 as any).changesLog || [];
+      dispatch({
+        type: "UPDATE_FIELD",
+        step: "step5_8",
+        field: "changesLog",
+        value: [...changesArray, newLogEntry],
+      });
+    }, 0);
   };
 
   const updateArrayItem = (step: keyof EditTherapeuticFormData, field: string, index: number, value: any) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const oldValue = currentArray[index];
+    
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value });
+    
+    // Log the array update
+    setTimeout(() => {
+      const newLogEntry = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        user: "admin",
+        action: "changed",
+        details: `Updated item in ${field}`,
+        field,
+        oldValue: typeof oldValue === 'string' ? oldValue : JSON.stringify(oldValue),
+        newValue: typeof value === 'string' ? value : JSON.stringify(value),
+        step,
+        changeType: "field_change" as const,
+      };
+      
+      const changesArray = (formData.step5_8 as any).changesLog || [];
+      dispatch({
+        type: "UPDATE_FIELD",
+        step: "step5_8",
+        field: "changesLog",
+        value: [...changesArray, newLogEntry],
+      });
+    }, 0);
+  };
+
+  // Reference management functions
+  const addReference = (step: keyof EditTherapeuticFormData, field: string) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newReference = {
+      id: Date.now().toString(),
+      date: "",
+      registryType: "",
+      content: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    };
+    dispatch({ type: "ADD_ARRAY_ITEM", step, field, value: newReference });
+  };
+
+  const removeReference = (step: keyof EditTherapeuticFormData, field: string, index: number) => {
+    dispatch({ type: "REMOVE_ARRAY_ITEM", step, field, index });
+  };
+
+  const updateReference = (step: keyof EditTherapeuticFormData, field: string, index: number, updates: any) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedReference = { ...currentArray[index], ...updates };
+    dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value: updatedReference });
   };
 
   // Note management functions
@@ -725,6 +980,9 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     addArrayItem,
     removeArrayItem,
     updateArrayItem,
+    addReference,
+    removeReference,
+    updateReference,
     addNote,
     updateNote,
     removeNote,

@@ -23,6 +23,7 @@ import Image from "next/image";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { 
   ChevronLeft, 
   ChevronRight,
@@ -1729,9 +1730,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         </span>
                         <Badge className="bg-green-600 text-white">
                           {(drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.start_date_estimated
-                            ? new Date(
-                                (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).start_date_estimated
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY((drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.start_date_estimated)
                             : "N/A"}
                         </Badge>
                       </div>
@@ -1741,9 +1740,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         </span>
                         <Badge className="bg-green-600 text-white">
                           {(drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.drug_end_date_estimated
-                            ? new Date(
-                                (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).drug_end_date_estimated
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY((drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.drug_end_date_estimated)
                             : "N/A"}
                         </Badge>
                       </div>

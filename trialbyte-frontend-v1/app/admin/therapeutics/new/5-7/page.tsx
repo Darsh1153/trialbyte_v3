@@ -7,16 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
-import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon } from "lucide-react";
+import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon, Calendar } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { UploadButton } from "@/lib/uploadthing";
+import CustomDateInput from "@/components/ui/custom-date-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function TherapeuticsStep5_7() {
   const { 
     formData, 
+    updateField,
     addArrayItem, 
     removeArrayItem, 
     updateArrayItem, 
@@ -127,6 +130,7 @@ export default function TherapeuticsStep5_7() {
 
       <Card>
         <CardContent className="space-y-6">
+
           {/* Tab Navigation */}
           <div className="flex gap-2 border-b pb-2">
             {tabs.map((tab) => (
@@ -193,6 +197,23 @@ export default function TherapeuticsStep5_7() {
                               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                             />
                           </div>
+                        </div>
+                        <div className="w-full">
+                          <Label className="text-sm">Description</Label>
+                          <Textarea
+                            rows={3}
+                            placeholder="Enter pipeline data description..."
+                            value={item.description || ""}
+                            onChange={(e) =>
+                              updateComplexArrayItem(
+                                "step5_7",
+                                activeTab,
+                                idx,
+                                { description: e.target.value }
+                              )
+                            }
+                            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                          />
                         </div>
                         <div className="flex gap-2">
                           <div className="w-1/2">
@@ -302,6 +323,23 @@ export default function TherapeuticsStep5_7() {
                               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                             />
                           </div>
+                        </div>
+                        <div className="w-full">
+                          <Label className="text-sm">Description</Label>
+                          <Textarea
+                            rows={3}
+                            placeholder="Enter press release description..."
+                            value={item.description || ""}
+                            onChange={(e) =>
+                              updateComplexArrayItem(
+                                "step5_7",
+                                activeTab,
+                                idx,
+                                { description: e.target.value }
+                              )
+                            }
+                            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                          />
                         </div>
                         <div className="flex gap-2">
                           <div className="w-1/2">
@@ -413,6 +451,23 @@ export default function TherapeuticsStep5_7() {
                             />
                           </div>
                         </div>
+                        <div className="w-full">
+                          <Label className="text-sm">Description</Label>
+                          <Textarea
+                            rows={3}
+                            placeholder="Enter publication description..."
+                            value={item.description || ""}
+                            onChange={(e) =>
+                              updateComplexArrayItem(
+                                "step5_7",
+                                activeTab,
+                                idx,
+                                { description: e.target.value }
+                              )
+                            }
+                            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                          />
+                        </div>
                         <div className="flex gap-2">
                           <div className="w-1/2">
                             <Label className="text-sm">URL</Label>
@@ -522,6 +577,23 @@ export default function TherapeuticsStep5_7() {
                               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                             />
                           </div>
+                        </div>
+                        <div className="w-full">
+                          <Label className="text-sm">Description</Label>
+                          <Textarea
+                            rows={3}
+                            placeholder="Enter trial registry description..."
+                            value={item.description || ""}
+                            onChange={(e) =>
+                              updateComplexArrayItem(
+                                "step5_7",
+                                activeTab,
+                                idx,
+                                { description: e.target.value }
+                              )
+                            }
+                            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                          />
                         </div>
                         <div className="flex gap-2">
                           <div className="w-1/2">
@@ -633,6 +705,23 @@ export default function TherapeuticsStep5_7() {
                             />
                           </div>
                         </div>
+                        <div className="w-full">
+                          <Label className="text-sm">Description</Label>
+                          <Textarea
+                            rows={3}
+                            placeholder="Enter associated study description..."
+                            value={item.description || ""}
+                            onChange={(e) =>
+                              updateComplexArrayItem(
+                                "step5_7",
+                                activeTab,
+                                idx,
+                                { description: e.target.value }
+                              )
+                            }
+                            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                          />
+                        </div>
                         <div className="flex gap-2">
                           <div className="w-1/2">
                             <Label className="text-sm">URL</Label>
@@ -725,11 +814,11 @@ export default function TherapeuticsStep5_7() {
                             size="sm"
                             onClick={() => {
                               const templates = {
-                                pipeline_data: { date: "", information: "", url: "", file: "", isVisible: true },
-                                press_releases: { date: "", title: "", url: "", file: "", isVisible: true },
-                                publications: { type: "", title: "", url: "", file: "", isVisible: true },
-                                trial_registries: { registry: "", identifier: "", url: "", file: "", isVisible: true },
-                                associated_studies: { type: "", title: "", url: "", file: "", isVisible: true },
+                                pipeline_data: { date: "", information: "", description: "", url: "", file: "", isVisible: true },
+                                press_releases: { date: "", title: "", description: "", url: "", file: "", isVisible: true },
+                                publications: { type: "", title: "", description: "", url: "", file: "", isVisible: true },
+                                trial_registries: { registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
+                                associated_studies: { type: "", title: "", description: "", url: "", file: "", isVisible: true },
                               };
                               addComplexArrayItem("step5_7", activeTab, templates[activeTab as keyof typeof templates]);
                             }}

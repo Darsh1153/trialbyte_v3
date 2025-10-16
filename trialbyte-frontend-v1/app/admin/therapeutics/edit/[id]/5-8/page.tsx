@@ -1,17 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Loader2, Plus, X } from "lucide-react";
-import NotesSection, { NoteItem } from "@/components/notes-section";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useEditTherapeuticForm } from "../../context/edit-form-context";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { formatDateTimeToMMDDYYYY } from "@/lib/date-utils";
+import FormProgress from "../../components/form-progress";
+import { Plus, X, Eye, EyeOff } from "lucide-react";
+import NotesSection, { NoteItem } from "@/components/notes-section";
+import CustomDateInput from "@/components/ui/custom-date-input";
+import TrialChangesLog from "@/components/trial-changes-log";
+import { useParams } from "next/navigation";
 
 export default function EditTherapeuticsStep5_8() {
   const {
@@ -24,25 +29,45 @@ export default function EditTherapeuticsStep5_8() {
     isLoading,
     isSaving,
   } = useEditTherapeuticForm();
+  const form = formData.step5_8;
+  const router = useRouter();
   const { toast } = useToast();
   const params = useParams();
-  const router = useRouter();
   const [isSavingStep, setIsSavingStep] = useState(false);
-  const form = formData.step5_8;
 
-  const handleSaveStep = async () => {
+  // Helper functions
+  const ensureString = (value: any): string => {
+    return value ? String(value).trim() : "";
+  };
+
+  const ensureNumber = (value: any, defaultValue: number = 0): number => {
+    const num = parseInt(String(value));
+    return isNaN(num) ? defaultValue : num;
+  };
+
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return new Date().toISOString().split("T")[0];
+    try {
+      return new Date(dateString).toISOString().split("T")[0];
+    } catch {
+      return new Date().toISOString().split("T")[0];
+    }
+  };
+
+  const handleSaveChanges = async () => {
     try {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
+      
       toast({
         title: "Success",
-        description: "Step 5-8 saved successfully!",
+        description: "Trial updated successfully",
+        duration: 5000,
       });
     } catch (error) {
-      console.error("Error saving step:", error);
       toast({
         title: "Error",
-        description: "Failed to save step. Please try again.",
+        description: "Failed to save trial. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -54,13 +79,13 @@ export default function EditTherapeuticsStep5_8() {
     try {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
+      
       toast({
         title: "Success",
         description: "Clinical trial updated successfully!",
       });
       router.push("/admin/therapeutics");
     } catch (error) {
-      console.error("Error finishing:", error);
       toast({
         title: "Error",
         description: "Failed to finish editing. Please try again.",
@@ -73,9 +98,9 @@ export default function EditTherapeuticsStep5_8() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#EAF8FF] to-white p-6">
+      <div className="space-y-4">
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
           <span className="ml-2">Loading trial data...</span>
         </div>
       </div>
@@ -83,98 +108,148 @@ export default function EditTherapeuticsStep5_8() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EAF8FF] to-white p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+    <div className="space-y-4">
+      <FormProgress currentStep={8} />
+
+      {/* Top Buttons */}
+      <div className="flex justify-between w-full gap-3">
             <Button
               variant="outline"
               onClick={() => router.push("/admin/therapeutics")}
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Clinical Trials
+          Cancel
+        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" asChild>
+            <Link href={`/admin/therapeutics/edit/${params.id}/5-7`}>Previous</Link>
             </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Edit Clinical Trial - Step 5-8</h1>
-              <p className="text-gray-600">Additional Information</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
             <Button
-              onClick={handleSaveStep}
+            className="text-white font-medium px-6 py-2"
+            style={{ backgroundColor: "#204B73" }}
+            onClick={handleSaveChanges}
               disabled={isSavingStep || isSaving}
-              className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
-            >
-              {isSavingStep || isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
+          >
+            {isSavingStep || isSaving ? "Saving..." : "Save Changes"}
             </Button>
             <Button
+            className="text-white font-medium px-6 py-2"
+            style={{ backgroundColor: "#059669" }}
               onClick={handleFinish}
               disabled={isSavingStep || isSaving}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isSavingStep || isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Finishing...
-                </>
-              ) : (
-                "Finish Editing"
-              )}
+          >
+            {isSavingStep || isSaving ? "Finishing..." : "Finish Editing"}
             </Button>
           </div>
         </div>
 
-        {/* Progress Indicator */}
-        <div className="flex items-center space-x-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((step) => (
-            <div
-              key={step}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step <= 8
-                  ? "bg-[#204B73] text-white"
-                  : "bg-gray-100 text-gray-400"
-              }`}
-            >
-              {step}
+      {/* Trial Creation & Modification Info */}
+      <Card className="border rounded-xl shadow-sm">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Creation Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-green-700">Trial Creation</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Created Date:</span>
+                  <span className="text-gray-600">
+                    {form.creationInfo?.createdDate 
+                      ? formatDateTimeToMMDDYYYY(form.creationInfo.createdDate)
+                      : 'Not available'
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Created User:</span>
+                  <span className="text-gray-600">{form.creationInfo?.createdUser || 'admin'}</span>
+                </div>
+              </div>
             </div>
-          ))}
+
+            {/* Modification Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-blue-700">Last Modification</h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Last Modified Date:</span>
+                  <span className="text-gray-600">
+                    {form.modificationInfo?.lastModifiedDate 
+                      ? formatDateTimeToMMDDYYYY(form.modificationInfo.lastModifiedDate)
+                      : 'Not available'
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Last Modified User:</span>
+                  <span className="text-gray-600">{form.modificationInfo?.lastModifiedUser || 'admin'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Total Modifications:</span>
+                  <span className="text-gray-600">{form.modificationInfo?.modificationCount || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Trial Changes Log */}
+      <TrialChangesLog changesLog={form.changesLog || []} />
+
+      {/* Review and Notes Section */}
+      <Card className="border rounded-xl shadow-sm">
+        <CardContent className="p-6 space-y-6">
+          {/* Full Review Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Checkbox id="fullReview" />
+              <Label htmlFor="fullReview">Full Review</Label>
+            </div>
+            <div className="space-y-2">
+              <Label>Full Review User</Label>
+              <Input placeholder="" className="border-gray-600 focus:border-gray-800 focus:ring-gray-800" />
+            </div>
+            <div className="space-y-2">
+              <Label>Next Review Date</Label>
+              <CustomDateInput 
+                placeholder="Month Day Year"
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
+            </div>
         </div>
 
-        {/* Edit Form */}
-        <Card className="bg-white shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-700">Additional Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
             {/* Notes Section */}
             <NotesSection
               title="Notes & Documentation"
-              notes={form.notes.map(note => ({
-                id: note.id || Date.now().toString(),
-                date: note.date || new Date().toISOString().split("T")[0],
+            notes={(form.notes || []).map(note => ({
+              id: note.id,
+              date: note.date,
                 type: note.type || "General",
-                content: note.content || "",
+              content: note.content,
                 sourceLink: note.sourceLink,
                 attachments: note.attachments,
-                isVisible: note.isVisible !== false
-              }))}
-              onAddNote={() => addNote("step5_8", "notes")}
+              isVisible: note.isVisible
+            }))}
+            onAddNote={() => {
+              const newNote = {
+                id: Date.now().toString(),
+                date: new Date().toISOString().split("T")[0],
+                type: "General",
+                content: "",
+                sourceLink: "",
+                attachments: [],
+                isVisible: true
+              };
+              addArrayItem("step5_8", "notes", newNote);
+            }}
               onUpdateNote={(index, updatedNote) => {
-                updateNote("step5_8", "notes", index, updatedNote);
-              }}
-              onRemoveNote={(index) => removeNote("step5_8", "notes", index)}
-              onToggleVisibility={(index) => toggleNoteVisibility("step5_8", "notes", index)}
+              updateArrayItem("step5_8", "notes", index, updatedNote);
+            }}
+            onRemoveNote={(index) => removeArrayItem("step5_8", "notes", index)}
+            onToggleVisibility={(index) => {
+              const currentNote = form.notes[index];
+              updateArrayItem("step5_8", "notes", index, { ...currentNote, isVisible: !currentNote.isVisible });
+            }}
               noteTypes={[
                 "General",
                 "Clinical",
@@ -190,125 +265,8 @@ export default function EditTherapeuticsStep5_8() {
                 "Other"
               ]}
             />
-
-            <div className="space-y-2">
-              <Label>Attachments</Label>
-              {form.attachments.map((attachment, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    value={attachment}
-                    onChange={(e) => updateArrayItem("step5_8", "attachments", index, e.target.value)}
-                    placeholder="Enter attachment URL or name"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_8", "attachments", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_8", "attachments", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Attachment
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Regulatory Links</Label>
-              {form.regulatory_links.map((link, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    value={link}
-                    onChange={(e) => updateArrayItem("step5_8", "regulatory_links", index, e.target.value)}
-                    placeholder="Enter regulatory link"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_8", "regulatory_links", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_8", "regulatory_links", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Regulatory Link
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Publication Links</Label>
-              {form.publication_links.map((link, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    value={link}
-                    onChange={(e) => updateArrayItem("step5_8", "publication_links", index, e.target.value)}
-                    placeholder="Enter publication link"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_8", "publication_links", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_8", "publication_links", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Publication Link
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Additional Resources</Label>
-              {form.additional_resources.map((resource, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    value={resource}
-                    onChange={(e) => updateArrayItem("step5_8", "additional_resources", index, e.target.value)}
-                    placeholder="Enter additional resource"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_8", "additional_resources", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_8", "additional_resources", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Additional Resource
-              </Button>
-            </div>
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

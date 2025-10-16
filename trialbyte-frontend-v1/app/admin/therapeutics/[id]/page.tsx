@@ -23,6 +23,7 @@ import Image from "next/image";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { 
   ChevronLeft, 
   ChevronRight,
@@ -1813,9 +1814,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
                               {trial.timing[0]?.start_date_estimated
-                                ? new Date(
-                                    trial.timing[0].start_date_estimated
-                                  ).toLocaleDateString()
+                                ? formatDateToMMDDYYYY(trial.timing[0].start_date_estimated)
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
@@ -1829,9 +1828,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
                               {trial.timing[0]?.trial_end_date_estimated
-                                ? new Date(
-                                    trial.timing[0].trial_end_date_estimated
-                                  ).toLocaleDateString()
+                                ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_estimated)
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
@@ -1853,9 +1850,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         </span>
                         <Badge className="bg-green-600 text-white">
                           {trial.timing[0]?.start_date_estimated
-                            ? new Date(
-                                trial.timing[0].start_date_estimated
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(trial.timing[0].start_date_estimated)
                             : "N/A"}
                         </Badge>
                       </div>
@@ -1865,9 +1860,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         </span>
                         <Badge className="bg-green-600 text-white">
                           {trial.timing[0]?.trial_end_date_estimated
-                            ? new Date(
-                                trial.timing[0].trial_end_date_estimated
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_estimated)
                             : "N/A"}
                         </Badge>
                       </div>
@@ -1938,9 +1931,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </span>
                           <span className="text-sm text-gray-700">
                             {trial.timing[0]?.start_date_estimated
-                              ? new Date(
-                                  trial.timing[0].start_date_estimated
-                                ).toLocaleDateString()
+                              ? formatDateToMMDDYYYY(trial.timing[0].start_date_estimated)
                               : "N/A"}
                           </span>
                         </div>
@@ -1950,9 +1941,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </span>
                           <span className="text-sm text-gray-700">
                             {trial.timing[0]?.trial_end_date_estimated
-                              ? new Date(
-                                  trial.timing[0].trial_end_date_estimated
-                                ).toLocaleDateString()
+                              ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_estimated)
                               : "N/A"}
                           </span>
                         </div>
@@ -2389,7 +2378,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                   </p>
                                   {parsedData.date && (
                                     <p className="text-xs text-gray-500">
-                                      Date: {new Date(parsedData.date).toLocaleDateString()}
+                                      Date: {formatDateToMMDDYYYY(parsedData.date)}
                                     </p>
                                   )}
                                 </div>
@@ -2646,9 +2635,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         </span>
                         <span className="text-xs text-gray-500">
                           {log.trial_added_date
-                            ? new Date(
-                                log.trial_added_date
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(log.trial_added_date)
                             : "N/A"}
                         </span>
               </div>

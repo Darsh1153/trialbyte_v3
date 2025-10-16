@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useRouter } from "next/navigation";
+import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import {
@@ -1897,9 +1898,7 @@ function ClinicalTrialsPage() {
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
                               {currentTrial.timing[0]?.start_date_estimated
-                                ? new Date(
-                                    currentTrial.timing[0].start_date_estimated
-                                  ).toLocaleDateString()
+                                ? formatDateToMMDDYYYY(currentTrial.timing[0].start_date_estimated)
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
@@ -1913,9 +1912,7 @@ function ClinicalTrialsPage() {
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
                               {currentTrial.timing[0]?.trial_end_date_estimated
-                                ? new Date(
-                                    currentTrial.timing[0].trial_end_date_estimated
-                                  ).toLocaleDateString()
+                                ? formatDateToMMDDYYYY(currentTrial.timing[0].trial_end_date_estimated)
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
@@ -1937,9 +1934,7 @@ function ClinicalTrialsPage() {
                         </span>
                         <Badge className="bg-green-600 text-white">
                           {currentTrial.timing[0]?.start_date_estimated
-                            ? new Date(
-                                currentTrial.timing[0].start_date_estimated
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(currentTrial.timing[0].start_date_estimated)
                             : "N/A"}
                         </Badge>
                       </div>
@@ -1949,9 +1944,7 @@ function ClinicalTrialsPage() {
                         </span>
                         <Badge className="bg-green-600 text-white">
                           {currentTrial.timing[0]?.trial_end_date_estimated
-                            ? new Date(
-                                currentTrial.timing[0].trial_end_date_estimated
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(currentTrial.timing[0].trial_end_date_estimated)
                             : "N/A"}
                         </Badge>
                       </div>
@@ -2022,9 +2015,7 @@ function ClinicalTrialsPage() {
                           </span>
                           <span className="text-sm text-gray-700">
                             {currentTrial.timing[0]?.start_date_estimated
-                              ? new Date(
-                                  currentTrial.timing[0].start_date_estimated
-                                ).toLocaleDateString()
+                              ? formatDateToMMDDYYYY(currentTrial.timing[0].start_date_estimated)
                               : "N/A"}
                           </span>
                         </div>
@@ -2034,9 +2025,7 @@ function ClinicalTrialsPage() {
                           </span>
                           <span className="text-sm text-gray-700">
                             {currentTrial.timing[0]?.trial_end_date_estimated
-                              ? new Date(
-                                  currentTrial.timing[0].trial_end_date_estimated
-                                ).toLocaleDateString()
+                              ? formatDateToMMDDYYYY(currentTrial.timing[0].trial_end_date_estimated)
                               : "N/A"}
                           </span>
                         </div>
@@ -2552,9 +2541,7 @@ function ClinicalTrialsPage() {
                         </span>
                         <span className="text-xs text-gray-500">
                           {log.trial_added_date
-                            ? new Date(
-                                log.trial_added_date
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(log.trial_added_date)
                             : "N/A"}
                         </span>
                       </div>
@@ -2565,9 +2552,7 @@ function ClinicalTrialsPage() {
                         <div>
                           <span className="font-medium">Last Modified:</span>{" "}
                           {log.last_modified_date
-                            ? new Date(
-                                log.last_modified_date
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(log.last_modified_date)
                             : "N/A"}
                         </div>
                         <div>
@@ -2581,9 +2566,7 @@ function ClinicalTrialsPage() {
                         <div>
                           <span className="font-medium">Next Review:</span>{" "}
                           {log.next_review_date
-                            ? new Date(
-                                log.next_review_date
-                              ).toLocaleDateString()
+                            ? formatDateToMMDDYYYY(log.next_review_date)
                             : "N/A"}
                         </div>
                       </div>

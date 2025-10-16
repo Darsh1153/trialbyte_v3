@@ -32,7 +32,7 @@ export interface TherapeuticFormData {
     summary: string;
     primaryOutcomeMeasures: string[];
     otherOutcomeMeasures: string[];
-    study_design_keywords: string;
+    study_design_keywords: string[];
     study_design: string;
     treatment_regimen: string;
     number_of_arms: string;
@@ -95,6 +95,17 @@ export interface TherapeuticFormData {
     site_regions: string[];
     site_contact_info: string[];
     trial_results: string[];
+    trial_outcome_content: string;
+    site_notes: Array<{
+      id: string;
+      date: string;
+      noteType: string;
+      content: string;
+      viewSource: string;
+      sourceType: string;
+      attachments: string[];
+      isVisible: boolean;
+    }>;
     results_available: boolean;
     endpoints_met: boolean;
     adverse_events_reported: boolean;
@@ -109,6 +120,7 @@ export interface TherapeuticFormData {
     interim_analysis_dates: string[];
     final_analysis_date: string;
     regulatory_submission_date: string;
+    notes: string[];
   };
 
   // Step 5-7: Results & Outcomes
@@ -120,6 +132,7 @@ export interface TherapeuticFormData {
     statistical_significance: string;
     adverse_events: string[];
     conclusion: string;
+    additional_notes: string;
     pipeline_data: Array<{
       id: string;
       date: string;
@@ -226,7 +239,7 @@ const initialFormState: TherapeuticFormData = {
     summary: "",
     primaryOutcomeMeasures: [""],
     otherOutcomeMeasures: [""],
-    study_design_keywords: "",
+    study_design_keywords: [],
     study_design: "",
     treatment_regimen: "",
     number_of_arms: "",
@@ -282,6 +295,17 @@ const initialFormState: TherapeuticFormData = {
     site_regions: [""],
     site_contact_info: [""],
     trial_results: [""],
+    trial_outcome_content: "",
+    site_notes: [{
+      id: "1",
+      date: "",
+      noteType: "",
+      content: "",
+      viewSource: "",
+      sourceType: "",
+      attachments: [],
+      isVisible: true,
+    }],
     results_available: false,
     endpoints_met: false,
     adverse_events_reported: false,
@@ -294,6 +318,7 @@ const initialFormState: TherapeuticFormData = {
     interim_analysis_dates: [""],
     final_analysis_date: "",
     regulatory_submission_date: "",
+    notes: [""],
   },
   step5_7: {
     primary_endpoint_results: "",
@@ -303,6 +328,7 @@ const initialFormState: TherapeuticFormData = {
     statistical_significance: "",
     adverse_events: [""],
     conclusion: "",
+    additional_notes: "",
     pipeline_data: [{
       id: "1",
       date: "",
@@ -535,6 +561,32 @@ interface TherapeuticFormContextType {
   ) => void;
   removeReference: (step: keyof TherapeuticFormData, field: string, index: number) => void;
   toggleReferenceVisibility: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => void;
+  addSiteNote: (step: keyof TherapeuticFormData, field: string) => void;
+  updateSiteNote: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => void;
+  removeSiteNote: (step: keyof TherapeuticFormData, field: string, index: number) => void;
+  toggleSiteNoteVisibility: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => void;
+  addInterimAnalysisNote: (step: keyof TherapeuticFormData, field: string) => void;
+  updateInterimAnalysisNote: (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => void;
+  removeInterimAnalysisNote: (step: keyof TherapeuticFormData, field: string, index: number) => void;
+  toggleInterimAnalysisNoteVisibility: (
     step: keyof TherapeuticFormData,
     field: string,
     index: number
@@ -1006,6 +1058,146 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  // Site note management functions
+  const addSiteNote = (step: keyof TherapeuticFormData, field: string) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newSiteNote = {
+      id: Date.now().toString(),
+      date: "",
+      noteType: "",
+      content: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newSiteNote],
+    });
+  };
+
+  const updateSiteNote = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const removeSiteNote = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.filter((_, idx) => idx !== index);
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleSiteNoteVisibility = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  // Interim analysis note management functions
+  const addInterimAnalysisNote = (step: keyof TherapeuticFormData, field: string) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const newInterimAnalysisNote = {
+      id: Date.now().toString(),
+      date: "",
+      noteType: "Analysis",
+      content: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newInterimAnalysisNote],
+    });
+  };
+
+  const updateInterimAnalysisNote = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const removeInterimAnalysisNote = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.filter((_, idx) => idx !== index);
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleInterimAnalysisNoteVisibility = (
+    step: keyof TherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    const currentArray = (formData[step] as any)[field] as any[];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
   // Change log management function
   const addChangeLog = (
     step: keyof TherapeuticFormData,
@@ -1102,7 +1294,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           summary: ensureString(allFormData.step5_2.summary),
           primary_outcome_measure: allFormData.step5_2.primaryOutcomeMeasures.filter(Boolean).join(", ") || "",
           other_outcome_measure: allFormData.step5_2.otherOutcomeMeasures.filter(Boolean).join(", ") || "",
-          study_design_keywords: ensureString(allFormData.step5_2.study_design_keywords),
+          study_design_keywords: allFormData.step5_2.study_design_keywords.filter(Boolean).join(", ") || "",
           study_design: ensureString(allFormData.step5_2.study_design),
           treatment_regimen: ensureString(allFormData.step5_2.treatment_regimen),
           number_of_arms: ensureNumber(allFormData.step5_2.number_of_arms, 1),
@@ -1123,14 +1315,14 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           trial_end_date_estimated: ensureString(allFormData.step5_6.study_end_date),
         },
         results: {
-          trial_outcome: ensureString(allFormData.step5_7.primary_endpoint_results),
+          trial_outcome: ensureString(allFormData.step5_5.trial_outcome_content) || ensureString(allFormData.step5_7.primary_endpoint_results),
           reference: ensureString(allFormData.step5_7.conclusion),
-          trial_results: allFormData.step5_7.secondary_endpoint_results.filter(Boolean).length > 0 
-            ? allFormData.step5_7.secondary_endpoint_results.filter(Boolean) 
-            : [],
-          adverse_event_reported: allFormData.step5_7.adverse_events.length > 0 ? "Yes" : "No",
-          adverse_event_type: allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || "",
-          treatment_for_adverse_events: ensureString(allFormData.step5_7.safety_results),
+          trial_results: allFormData.step5_5.trial_results.filter(Boolean).length > 0 
+            ? allFormData.step5_5.trial_results.filter(Boolean) 
+            : allFormData.step5_7.secondary_endpoint_results.filter(Boolean),
+          adverse_event_reported: allFormData.step5_5.adverse_events_reported ? "Yes" : "No",
+          adverse_event_type: allFormData.step5_5.site_contact_info[1] || allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || "",
+          treatment_for_adverse_events: allFormData.step5_5.site_contact_info[2] || ensureString(allFormData.step5_7.safety_results),
         },
         sites: {
           total: allFormData.step5_5.study_sites.filter(Boolean).length || 0,
@@ -1240,6 +1432,14 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     updateReference,
     removeReference,
     toggleReferenceVisibility,
+    addSiteNote,
+    updateSiteNote,
+    removeSiteNote,
+    toggleSiteNoteVisibility,
+    addInterimAnalysisNote,
+    updateInterimAnalysisNote,
+    removeInterimAnalysisNote,
+    toggleInterimAnalysisNoteVisibility,
     addChangeLog,
     resetForm,
     loadForm,

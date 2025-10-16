@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Check, ChevronsUpDown, X } from "lucide-react";
+import { Plus, Check, ChevronsUpDown, X, Eye, EyeOff, Calendar } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -15,9 +15,22 @@ import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import CustomDateInput from "@/components/ui/custom-date-input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function TherapeuticsStep5_5() {
-  const { formData, updateField, addArrayItem, removeArrayItem, updateArrayItem, saveTrial } = useTherapeuticForm();
+  const { 
+    formData, 
+    updateField, 
+    addArrayItem, 
+    removeArrayItem, 
+    updateArrayItem, 
+    addSiteNote,
+    updateSiteNote,
+    removeSiteNote,
+    toggleSiteNoteVisibility,
+    saveTrial 
+  } = useTherapeuticForm();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_5;
@@ -45,6 +58,28 @@ export default function TherapeuticsStep5_5() {
   ];
   const adverseReported = ["Yes", "No"];
   const adverseTypes = ["Mild", "Moderate", "Severe"];
+  
+  // Site note type options
+  const siteNoteTypes = [
+    "Interim",
+    "Full Results",
+    "Primary Endpoint Results",
+    "Analysis"
+  ];
+
+  // Source type options
+  const sourceTypes = [
+    "PubMed",
+    "Journals",
+    "Conferences"
+  ];
+
+  // Helper functions for site notes
+  const handleAddSiteNote = () => addSiteNote("step5_5", "site_notes");
+  const handleRemoveSiteNote = (index: number) => removeSiteNote("step5_5", "site_notes", index);
+  const handleUpdateSiteNote = (index: number, field: string, value: any) => {
+    updateSiteNote("step5_5", "site_notes", index, { [field]: value });
+  };
 
   const handleSaveChanges = async () => {
     try {
@@ -188,6 +223,21 @@ export default function TherapeuticsStep5_5() {
                 }
                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
+              
+              {/* Trial Outcome Results Content */}
+              <div className="space-y-2">
+                <Label>Trial Outcome Results Content</Label>
+                <Textarea
+                  rows={3}
+                  placeholder="Enter trial outcome results content here..."
+                  value={form.trial_outcome_content || ""}
+                  onChange={(e) =>
+                    updateField("step5_5", "trial_outcome_content", e.target.value)
+                  }
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+              
               <div className="flex gap-2 mt-2">
                 <div className="flex items-center gap-2 flex-1">
                   <Label className="whitespace-nowrap">Link</Label>
@@ -221,42 +271,152 @@ export default function TherapeuticsStep5_5() {
             </div>
           </div>
 
-          {/* Trial Results */}
-          <div className="space-y-2">
-            <Label>Trial Results</Label>
-            <div className="space-y-3">
-              {form.trial_results.map((result, index) => (
-                <div key={index} className="relative">
-                  <Textarea
-                    rows={3}
-                    placeholder="Enter trial results here..."
-                    value={result}
-                    onChange={(e) => updateArrayItem("step5_5", "trial_results", index, e.target.value)}
-                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-12"
-                  />
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    {form.trial_results.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="rounded-full h-8 w-8"
-                        onClick={() => removeArrayItem("step5_5", "trial_results", index)}
+          {/* Site Notes */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddSiteNote}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Note
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {form.site_notes.map((note, index) => (
+                <Card key={note.id} className={`border border-gray-200 ${!note.isVisible ? 'bg-gray-50 opacity-60' : 'bg-white'}`}>
+                  <CardContent className="p-6 space-y-4">
+                    {/* Site Note Header */}
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleSiteNoteVisibility("step5_5", "site_notes", index)}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          {note.isVisible ? (
+                            <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
+                          )}
+                        </Button>
+                        {form.site_notes.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveSiteNote(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Site Note Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Date */}
+                      <div className="space-y-2">
+                        <Label htmlFor={`site-note-date-${index}`}>Date</Label>
+                        <CustomDateInput
+                          value={note.date}
+                          onChange={(value) => handleUpdateSiteNote(index, "date", value)}
+                          placeholder="Select date"
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Note Type */}
+                      <div className="space-y-2">
+                        <Label htmlFor={`site-note-type-${index}`}>Result type</Label>
+                        <Select
+                          value={note.noteType}
+                          onValueChange={(value) => handleUpdateSiteNote(index, "noteType", value)}
+                        >
+                          <SelectTrigger className="border-gray-600 focus:border-gray-800 focus:ring-gray-800">
+                            <SelectValue placeholder="Select note type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {siteNoteTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="space-y-2">
+                      <Label htmlFor={`site-note-content-${index}`}>Content</Label>
+                      <Textarea
+                        rows={3}
+                        placeholder="Enter site note content..."
+                        value={note.content}
+                        onChange={(e) => handleUpdateSiteNote(index, "content", e.target.value)}
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+
+                    {/* View Source */}
+                    <div className="space-y-2">
+                      <Label htmlFor={`site-note-source-${index}`}>Source</Label>
+                      <Select
+                        value={note.sourceType}
+                        onValueChange={(value) => handleUpdateSiteNote(index, "sourceType", value)}
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full h-8 w-8"
-                      onClick={() => addArrayItem("step5_5", "trial_results")}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                        <SelectTrigger className="border-gray-600 focus:border-gray-800 focus:ring-gray-800">
+                          <SelectValue placeholder="Select source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sourceTypes.map((source) => (
+                            <SelectItem key={source} value={source}>
+                              {source}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Attachments */}
+                    <div className="space-y-2">
+                      <Label htmlFor={`site-note-attachments-${index}`}>Attachments</Label>
+                      <Input
+                        type="file"
+                        multiple
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const fileNames = Array.from(e.target.files).map(file => file.name);
+                            const currentAttachments = note.attachments || [];
+                            handleUpdateSiteNote(index, "attachments", [...currentAttachments, ...fileNames]);
+                          }
+                        }}
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                      {note.attachments && note.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {note.attachments.map((attachment, attachIndex) => (
+                            <span
+                              key={attachIndex}
+                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
+                            >
+                              {attachment}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>

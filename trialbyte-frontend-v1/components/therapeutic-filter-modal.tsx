@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -11,6 +11,7 @@ interface TherapeuticFilterModalProps {
   onOpenChange: (open: boolean) => void
   onApplyFilters: (filters: TherapeuticFilterState) => void
   currentFilters: TherapeuticFilterState
+  trials?: any[] // Add trials data for dynamic filtering
 }
 
 export interface TherapeuticFilterState {
@@ -31,27 +32,124 @@ export interface TherapeuticFilterState {
   trialRecordStatus: string[]
 }
 
-const filterCategories = {
-  therapeuticAreas: ["Oncology", "Cardiology", "Neurology", "Endocrinology", "Immunology", "Dermatology", "Hematology", "Pulmonology"],
-  statuses: ["Planned", "Active", "Completed", "Terminated", "Suspended", "Draft"],
-  diseaseTypes: ["Lung Cancer", "Breast Cancer", "Colorectal Cancer", "Melanoma", "Lymphoma", "Leukemia", "Prostate Cancer", "Ovarian Cancer"],
-  primaryDrugs: ["Paclitaxel", "Carboplatin", "Pembrolizumab", "Nivolumab", "Atezolizumab", "Bevacizumab", "Trastuzumab", "Rituximab"],
-  trialPhases: ["Phase I", "Phase I/II", "Phase II", "Phase II/III", "Phase III", "Phase IV"],
-  patientSegments: ["Adults", "Elderly", "Pediatric", "Treatment Naive", "Treatment Experienced"],
-  lineOfTherapy: ["First Line", "Second Line", "Third Line", "At least first line", "At least second line"],
-  countries: ["United States", "Germany", "France", "United Kingdom", "Italy", "Spain", "Canada", "Japan", "Australia", "Brazil"],
-  sponsorsCollaborators: ["Novartis", "Pfizer", "Roche", "Bristol Myers Squibb", "Merck", "Johnson & Johnson", "AstraZeneca", "Sanofi"],
-  sponsorFieldActivity: ["Pharmaceutical Company", "Biotechnology Company", "Academic Institution", "Contract Research Organization", "Government Agency"],
-  associatedCro: ["IQVIA", "Covance", "PPD", "Icon", "Syneos Health", "Parexel", "LabCorp", "Charles River"],
-  trialTags: ["Targeted", "Immunotherapy", "Combination", "Biomarker", "Precision Medicine", "Gene Therapy", "Cell Therapy"],
-  sex: ["Male", "Female", "Both"],
-  healthyVolunteers: ["Yes", "No"],
-  trialRecordStatus: ["Active", "Inactive", "Draft", "Under Review", "Approved", "Rejected"]
+// Function to extract unique values from trials data
+const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
+  const values = new Set<string>()
+  
+  trials.forEach(trial => {
+    let value = ''
+    
+    // Handle nested field paths
+    if (fieldPath.includes('.')) {
+      const [parent, child] = fieldPath.split('.')
+      if (parent === 'overview' && trial.overview) {
+        value = trial.overview[child] || ''
+      } else if (parent === 'criteria' && trial.criteria && trial.criteria.length > 0) {
+        value = trial.criteria[0][child] || ''
+      }
+    } else {
+      // Handle direct fields
+      switch (fieldPath) {
+        case 'therapeutic_area':
+          value = trial.overview?.therapeutic_area || ''
+          break
+        case 'status':
+          value = trial.overview?.status || ''
+          break
+        case 'disease_type':
+          value = trial.overview?.disease_type || ''
+          break
+        case 'primary_drugs':
+          value = trial.overview?.primary_drugs || ''
+          break
+        case 'trial_phase':
+          value = trial.overview?.trial_phase || ''
+          break
+        case 'patient_segment':
+          value = trial.overview?.patient_segment || ''
+          break
+        case 'line_of_therapy':
+          value = trial.overview?.line_of_therapy || ''
+          break
+        case 'countries':
+          value = trial.overview?.countries || ''
+          break
+        case 'sponsor_collaborators':
+          value = trial.overview?.sponsor_collaborators || ''
+          break
+        case 'sponsor_field_activity':
+          value = trial.overview?.sponsor_field_activity || ''
+          break
+        case 'associated_cro':
+          value = trial.overview?.associated_cro || ''
+          break
+        case 'trial_tags':
+          value = trial.overview?.trial_tags || ''
+          break
+        case 'sex':
+          value = trial.criteria?.[0]?.sex || ''
+          break
+        case 'healthy_volunteers':
+          value = trial.criteria?.[0]?.healthy_volunteers || ''
+          break
+        case 'trial_record_status':
+          value = trial.overview?.trial_record_status || ''
+          break
+      }
+    }
+    
+    if (value && value.trim()) {
+      values.add(value.trim())
+    }
+  })
+  
+  return Array.from(values).sort()
 }
 
-export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, currentFilters }: TherapeuticFilterModalProps) {
+export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, currentFilters, trials = [] }: TherapeuticFilterModalProps) {
   const [filters, setFilters] = useState<TherapeuticFilterState>(currentFilters)
   const [activeCategory, setActiveCategory] = useState<keyof TherapeuticFilterState>("therapeuticAreas")
+  const [filterCategories, setFilterCategories] = useState<Record<keyof TherapeuticFilterState, string[]>>({
+    therapeuticAreas: [],
+    statuses: [],
+    diseaseTypes: [],
+    primaryDrugs: [],
+    trialPhases: [],
+    patientSegments: [],
+    lineOfTherapy: [],
+    countries: [],
+    sponsorsCollaborators: [],
+    sponsorFieldActivity: [],
+    associatedCro: [],
+    trialTags: [],
+    sex: [],
+    healthyVolunteers: [],
+    trialRecordStatus: []
+  })
+
+  // Update filter categories when trials data changes
+  useEffect(() => {
+    if (trials.length > 0) {
+      const newFilterCategories = {
+        therapeuticAreas: getUniqueValues(trials, 'therapeutic_area'),
+        statuses: getUniqueValues(trials, 'status'),
+        diseaseTypes: getUniqueValues(trials, 'disease_type'),
+        primaryDrugs: getUniqueValues(trials, 'primary_drugs'),
+        trialPhases: getUniqueValues(trials, 'trial_phase'),
+        patientSegments: getUniqueValues(trials, 'patient_segment'),
+        lineOfTherapy: getUniqueValues(trials, 'line_of_therapy'),
+        countries: getUniqueValues(trials, 'countries'),
+        sponsorsCollaborators: getUniqueValues(trials, 'sponsor_collaborators'),
+        sponsorFieldActivity: getUniqueValues(trials, 'sponsor_field_activity'),
+        associatedCro: getUniqueValues(trials, 'associated_cro'),
+        trialTags: getUniqueValues(trials, 'trial_tags'),
+        sex: getUniqueValues(trials, 'sex'),
+        healthyVolunteers: getUniqueValues(trials, 'healthy_volunteers'),
+        trialRecordStatus: getUniqueValues(trials, 'trial_record_status')
+      }
+      setFilterCategories(newFilterCategories)
+    }
+  }, [trials])
 
   const handleSelectAll = (category: keyof TherapeuticFilterState) => {
     setFilters((prev) => ({

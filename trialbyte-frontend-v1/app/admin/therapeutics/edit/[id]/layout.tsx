@@ -14,7 +14,7 @@ export default function EditLayout({
   
   return (
     <EditTherapeuticFormProvider trialId={resolvedParams.id}>
-      {children}
+      <div className="min-h-screen bg-background">{children}</div>
     </EditTherapeuticFormProvider>
   );
 }

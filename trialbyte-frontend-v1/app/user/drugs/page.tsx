@@ -6,6 +6,7 @@ import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import {
@@ -282,18 +283,12 @@ export default function DrugsPage() {
 
   // Format date for display (from admin page)
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    return formatDateToMMDDYYYY(dateString);
   };
 
   // Get formatted date with full month name
   const formatDateWithMonth = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
-    });
+    return formatDateToMMDDYYYY(dateString);
   };
 
   // Scroll to section function

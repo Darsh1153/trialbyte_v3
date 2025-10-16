@@ -121,6 +121,20 @@ export function SaveQueryModal({
 
       const result = await response.json()
       
+      // Also save to localStorage as backup
+      const localQuery = {
+        id: result.id || Date.now().toString(),
+        title: title.trim(),
+        description: description.trim() || null,
+        query_data: queryData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+      existingQueries.push(localQuery)
+      localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
+      
       if (onSaveSuccess) {
         onSaveSuccess()
       }
@@ -128,7 +142,30 @@ export function SaveQueryModal({
       handleClose()
     } catch (error) {
       console.error("Error saving query:", error)
-      setError(error instanceof Error ? error.message : "Failed to save query")
+      
+      // Fallback to localStorage only
+      try {
+        const localQuery = {
+          id: Date.now().toString(),
+          title: title.trim(),
+          description: description.trim() || null,
+          query_data: queryData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+        
+        const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+        existingQueries.push(localQuery)
+        localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
+        
+        if (onSaveSuccess) {
+          onSaveSuccess()
+        }
+        
+        handleClose()
+      } catch (localError) {
+        setError(error instanceof Error ? error.message : "Failed to save query")
+      }
     } finally {
       setIsLoading(false)
     }

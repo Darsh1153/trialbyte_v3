@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Loader2, Plus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useEditTherapeuticForm } from "../../context/edit-form-context";
+import FormProgress from "../../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -29,19 +30,48 @@ export default function EditTherapeuticsStep5_3() {
   const [isSavingStep, setIsSavingStep] = useState(false);
   const form = formData.step5_3;
 
-  const handleSaveStep = async () => {
+  // Age From/To Options (0-150)
+  const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
+    value: i.toString(),
+    label: i.toString()
+  }));
+
+  // Age Unit Options
+  const ageUnitOptions: SearchableSelectOption[] = [
+    { value: "years", label: "Years" },
+    { value: "months", label: "Months" },
+    { value: "weeks", label: "Weeks" },
+    { value: "days", label: "Days" },
+  ];
+
+  // Sex Options
+  const genderOptions: SearchableSelectOption[] = [
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "both", label: "Both" },
+  ];
+
+  // Healthy Volunteers Options
+  const healthyVolunteersOptions: SearchableSelectOption[] = [
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" },
+    { value: "no_information", label: "No Information" },
+  ];
+
+  const handleSaveChanges = async () => {
     try {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
+      
       toast({
         title: "Success",
-        description: "Step 5-3 saved successfully!",
+        description: "Trial updated successfully",
+        duration: 5000,
       });
     } catch (error) {
-      console.error("Error saving step:", error);
       toast({
         title: "Error",
-        description: "Failed to save step. Please try again.",
+        description: "Failed to save trial. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -51,9 +81,9 @@ export default function EditTherapeuticsStep5_3() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#EAF8FF] to-white p-6">
+      <div className="space-y-4">
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
           <span className="ml-2">Loading trial data...</span>
         </div>
       </div>
@@ -61,239 +91,215 @@ export default function EditTherapeuticsStep5_3() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#EAF8FF] to-white p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/admin/therapeutics")}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Clinical Trials
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Edit Clinical Trial - Step 5-3</h1>
-              <p className="text-gray-600">Eligibility Criteria</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              onClick={handleSaveStep}
-              disabled={isSavingStep || isSaving}
-              className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
-            >
-              {isSavingStep || isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-            <Button asChild>
-              <Link href={`/admin/therapeutics/edit/${params.id}/5-4`}>
-                Next Step
-              </Link>
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <FormProgress currentStep={3} />
 
-        {/* Progress Indicator */}
-        <div className="flex items-center space-x-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((step) => (
-            <div
-              key={step}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step <= 3
-                  ? "bg-[#204B73] text-white"
-                  : step <= 8
-                  ? "bg-gray-200 text-gray-600"
-                  : "bg-gray-100 text-gray-400"
-              }`}
-            >
-              {step}
-            </div>
-          ))}
-        </div>
+      {/* Header Buttons */}
+      <div className="flex justify-end w-full gap-3">
+        <Button 
+          variant="outline"
+          onClick={() => router.push("/admin/therapeutics")}
+        >
+          Cancel
+        </Button>
+        <Button
+          className="text-white font-medium px-6 py-2"
+          style={{ backgroundColor: "#204B73" }}
+          onClick={handleSaveChanges}
+          disabled={isSavingStep || isSaving}
+        >
+          {isSavingStep || isSaving ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
 
-        {/* Edit Form */}
-        <Card className="bg-white shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-700">Eligibility Criteria</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Inclusion Criteria */}
+      <Card>
+        <CardContent className="space-y-6">
+          {/* Top section: Inclusion & Exclusion */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label>Inclusion Criteria</Label>
-              {form.inclusion_criteria.map((criteria, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Textarea
-                    value={criteria}
-                    onChange={(e) => updateArrayItem("step5_3", "inclusion_criteria", index, e.target.value)}
-                    placeholder="Enter inclusion criteria"
-                    rows={2}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_3", "inclusion_criteria", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_3", "inclusion_criteria", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Inclusion Criteria
-              </Button>
+              <Textarea
+                rows={5}
+                placeholder="Enter inclusion criteria"
+                value={form.inclusion_criteria?.[0] || ""}
+                onChange={(e) =>
+                  updateField("step5_3", "inclusion_criteria", [e.target.value])
+                }
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
             </div>
-
-            {/* Exclusion Criteria */}
             <div className="space-y-2">
               <Label>Exclusion Criteria</Label>
-              {form.exclusion_criteria.map((criteria, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Textarea
-                    value={criteria}
-                    onChange={(e) => updateArrayItem("step5_3", "exclusion_criteria", index, e.target.value)}
-                    placeholder="Enter exclusion criteria"
-                    rows={2}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_3", "exclusion_criteria", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_3", "exclusion_criteria", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Exclusion Criteria
-              </Button>
+              <Textarea
+                rows={5}
+                placeholder="Enter exclusion criteria"
+                value={form.exclusion_criteria?.[0] || ""}
+                onChange={(e) =>
+                  updateField("step5_3", "exclusion_criteria", [e.target.value])
+                }
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
             </div>
+          </div>
 
-            {/* Age Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Minimum Age</Label>
-                <Input
-                  value={form.age_min}
-                  onChange={(e) => updateField("step5_3", "age_min", e.target.value)}
-                  placeholder="Enter minimum age"
-                  type="number"
+          {/* Bottom section: Form fields */}
+
+          {/* Row 1: Age From + Subject Type */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Age From</Label>
+              <div className="flex gap-2">
+                <SearchableSelect
+                  options={ageNumberOptions}
+                  value={form.age_min || ""}
+                  onValueChange={(value) =>
+                    updateField("step5_3", "age_min", value)
+                  }
+                  placeholder="0"
+                  searchPlaceholder="Search age..."
+                  emptyMessage="No age found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Maximum Age</Label>
-                <Input
-                  value={form.age_max}
-                  onChange={(e) => updateField("step5_3", "age_max", e.target.value)}
-                  placeholder="Enter maximum age"
-                  type="number"
+                <SearchableSelect
+                  options={ageUnitOptions}
+                  value={form.biomarker_requirements[0] || ""}
+                  onValueChange={(value) => {
+                    const current = form.biomarker_requirements || [""];
+                    const updated = [...current];
+                    updated[0] = value;
+                    updateField("step5_3", "biomarker_requirements", updated);
+                  }}
+                  placeholder="Years"
+                  searchPlaceholder="Search unit..."
+                  emptyMessage="No unit found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
               </div>
             </div>
-
-            {/* Gender */}
             <div className="space-y-2">
-              <Label>Gender</Label>
+              <Label>Subject Type</Label>
               <Input
-                value={form.gender}
-                onChange={(e) => updateField("step5_3", "gender", e.target.value)}
-                placeholder="Enter gender requirements"
+                placeholder="Enter subject type..."
+                value={form.ecog_performance_status || ""}
+                onChange={(e) =>
+                  updateField("step5_3", "ecog_performance_status", e.target.value)
+                }
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
+          </div>
 
-            {/* ECOG Performance Status */}
+          {/* Row 2: Age To + Sex + Healthy Volunteers */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label>ECOG Performance Status</Label>
-              <Input
-                value={form.ecog_performance_status}
-                onChange={(e) => updateField("step5_3", "ecog_performance_status", e.target.value)}
-                placeholder="Enter ECOG performance status"
+              <Label>Age To</Label>
+              <div className="flex gap-2">
+                <SearchableSelect
+                  options={ageNumberOptions}
+                  value={form.age_max || ""}
+                  onValueChange={(value) =>
+                    updateField("step5_3", "age_max", value)
+                  }
+                  placeholder="150"
+                  searchPlaceholder="Search age..."
+                  emptyMessage="No age found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+                <SearchableSelect
+                  options={ageUnitOptions}
+                  value={form.biomarker_requirements[1] || ""}
+                  onValueChange={(value) => {
+                    const current = form.biomarker_requirements || [""];
+                    const updated = [...current];
+                    updated[1] = value;
+                    updateField("step5_3", "biomarker_requirements", updated);
+                  }}
+                  placeholder="Years"
+                  searchPlaceholder="Search unit..."
+                  emptyMessage="No unit found."
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Sex</Label>
+              <SearchableSelect
+                options={genderOptions}
+                value={form.gender || ""}
+                onValueChange={(v) => updateField("step5_3", "gender", v)}
+                placeholder="Select sex"
+                searchPlaceholder="Search sex..."
+                emptyMessage="No option found."
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
+              </div>
+              <div className="space-y-2">
+                <Label>Healthy Volunteers</Label>
+               <SearchableSelect
+                 options={healthyVolunteersOptions}
+                 value={form.prior_treatments[0] || ""}
+                 onValueChange={(v) =>
+                   updateField("step5_3", "prior_treatments", [v])
+                 }
+                 placeholder="Select"
+                 searchPlaceholder="Search..."
+                 emptyMessage="No option found."
+                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+               />
+              </div>
             </div>
+          </div>
 
-            {/* Prior Treatments */}
-            <div className="space-y-2">
-              <Label>Prior Treatments</Label>
-              {form.prior_treatments.map((treatment, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    value={treatment}
-                    onChange={(e) => updateArrayItem("step5_3", "prior_treatments", index, e.target.value)}
-                    placeholder="Enter prior treatment"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_3", "prior_treatments", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_3", "prior_treatments", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Prior Treatment
-              </Button>
-            </div>
+          {/* Row 3: Target Volunteers + Actual Enrolled + Next Button */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+             <div className="space-y-2">
+               <Label>Target No Of Volunteers</Label>
+               <Input
+                 type="number"
+                 placeholder="e.g., 50"
+                 value={form.biomarker_requirements[0] || ""}
+                 onChange={(e) => {
+                   const current = form.biomarker_requirements || [""];
+                   const updated = [...current];
+                   updated[0] = e.target.value;
+                   updateField("step5_3", "biomarker_requirements", updated);
+                 }}
+                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+               />
+             </div>
+             <div className="space-y-2">
+               <Label>Actual Enrolled Volunteers</Label>
+               <Input
+                 type="number"
+                 placeholder="e.g., 40"
+                 value={form.biomarker_requirements[1] || ""}
+                 onChange={(e) => {
+                   const current = form.biomarker_requirements || [""];
+                   const updated = [...current];
+                   updated[1] = e.target.value;
+                   updateField("step5_3", "biomarker_requirements", updated);
+                 }}
+                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+               />
+             </div>
+          </div>
 
-            {/* Biomarker Requirements */}
-            <div className="space-y-2">
-              <Label>Biomarker Requirements</Label>
-              {form.biomarker_requirements.map((biomarker, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    value={biomarker}
-                    onChange={(e) => updateArrayItem("step5_3", "biomarker_requirements", index, e.target.value)}
-                    placeholder="Enter biomarker requirement"
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeArrayItem("step5_3", "biomarker_requirements", index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => addArrayItem("step5_3", "biomarker_requirements", "")}
-                className="w-full"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Biomarker Requirement
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Next Button Row */}
+          <div className="flex justify-end">
+            <Button className="mt-6" asChild>
+              <Link href={`/admin/therapeutics/edit/${params.id}/5-4`}>Next</Link>
+            </Button>
+          </div>
+
+          {/* Previous button below */}
+          <div className="flex justify-start">
+            <Button variant="ghost" asChild>
+              <Link href={`/admin/therapeutics/edit/${params.id}/5-2`}>Previous</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

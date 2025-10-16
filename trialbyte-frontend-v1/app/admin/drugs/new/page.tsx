@@ -40,6 +40,8 @@ interface DrugFormData {
     regulator_designations: string;
     source_link: string;
     drug_record_status: string;
+    attachments: string[];
+    links: string[];
     drug_development_status_rows: Array<{
     disease_type: string;
       therapeutic_class: string;
@@ -113,6 +115,10 @@ export default function NewDrugPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("pipeline_data");
 
+  // State for attachment and link inputs
+  const [attachmentInput, setAttachmentInput] = useState("");
+  const [linkInput, setLinkInput] = useState("");
+
   // Options for searchable dropdowns
   const primaryNameOptions: SearchableSelectOption[] = [
     ...getPrimaryNameOptions().map(drug => ({
@@ -144,12 +150,6 @@ export default function NewDrugPage() {
     { value: "roche", label: "Roche" },
     { value: "merck", label: "Merck" },
     { value: "johnson_johnson", label: "Johnson & Johnson" },
-  ];
-
-  const otherActiveCompaniesOptions: SearchableSelectOption[] = [
-    { value: "multiple", label: "Multiple Companies" },
-    { value: "generic_manufacturers", label: "Generic Manufacturers" },
-    { value: "biosimilar_companies", label: "Biosimilar Companies" },
   ];
 
   const therapeuticAreaOptions: SearchableSelectOption[] = [
@@ -339,6 +339,8 @@ export default function NewDrugPage() {
       regulator_designations: "",
       source_link: "",
       drug_record_status: "",
+      attachments: [],
+      links: [],
       drug_development_status_rows: [],
     },
     drugActivity: {
@@ -691,7 +693,7 @@ export default function NewDrugPage() {
               <div className="space-y-2">
                 <Label htmlFor="other_active_companies" className="text-sm font-medium text-gray-700">Other Active Companies</Label>
                       <SearchableSelect
-                  options={otherActiveCompaniesOptions}
+                  options={originatorOptions}
                   value={content.overview.other_active_companies}
                   onValueChange={(value) =>
                     updateContent("overview", {
@@ -700,8 +702,8 @@ export default function NewDrugPage() {
                     })
                   }
                   placeholder="Select other active companies"
-                  searchPlaceholder="Search other active companies..."
-                  emptyMessage="No other active companies found."
+                  searchPlaceholder="Search companies..."
+                  emptyMessage="No companies found."
                   className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                       />
               </div>
@@ -980,35 +982,78 @@ export default function NewDrugPage() {
                       rows={3}
                       className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-20"
                     />
-                    {/* Add Attachments and Add Links positioned inside the textarea */}
-                    <div className="absolute bottom-2 left-2 flex gap-2">
+                    {/* Add Attachments and Add Links positioned outside the textarea */}
+                    <div className="mt-2 flex gap-2">
                       <div className="relative">
                         <Input
                           placeholder="Add attachments"
-                          className="w-32 h-8 text-xs border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-8"
+                          value={attachmentInput}
+                          onChange={(e) => setAttachmentInput(e.target.value)}
+                          className="w-40 h-8 text-xs border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-8"
                         />
-                      <Button
-                        type="button"
-                        size="icon"
-                          className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-gray-600 hover:bg-gray-700"
-                      >
+                        <Button
+                          type="button"
+                          size="icon"
+                          onClick={() => {
+                            console.log("Add attachment clicked, value:", attachmentInput);
+                            if (attachmentInput.trim()) {
+                              updateContent("overview", {
+                                ...content.overview,
+                                attachments: [...(content.overview.attachments || []), attachmentInput.trim()],
+                              });
+                              setAttachmentInput("");
+                              console.log("Attachment added successfully");
+                            }
+                          }}
+                          className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-gray-600 hover:bg-gray-700 z-10"
+                        >
                           <Plus className="h-3 w-3 text-white" />
-                      </Button>
-              </div>
+                        </Button>
+                      </div>
                       <div className="relative">
-                  <Input
+                        <Input
                           placeholder="Add links"
-                          className="w-32 h-8 text-xs border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-8"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                          className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-gray-600 hover:bg-gray-700"
-                    >
+                          value={linkInput}
+                          onChange={(e) => setLinkInput(e.target.value)}
+                          className="w-40 h-8 text-xs border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-8"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          onClick={() => {
+                            console.log("Add link clicked, value:", linkInput);
+                            if (linkInput.trim()) {
+                              updateContent("overview", {
+                                ...content.overview,
+                                links: [...(content.overview.links || []), linkInput.trim()],
+                              });
+                              setLinkInput("");
+                              console.log("Link added successfully");
+                            }
+                          }}
+                          className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-gray-600 hover:bg-gray-700 z-10"
+                        >
                           <Plus className="h-3 w-3 text-white" />
-                    </Button>
-                </div>
+                        </Button>
+                      </div>
                     </div>
+                    
+                    {/* Display added attachments and links */}
+                    {(content.overview.attachments && content.overview.attachments.length > 0) || (content.overview.links && content.overview.links.length > 0) ? (
+                      <div className="mt-2 p-2 bg-gray-50 rounded border">
+                        <div className="text-xs text-gray-600 mb-1">Added items:</div>
+                        {content.overview.attachments && content.overview.attachments.length > 0 && (
+                          <div className="text-xs">
+                            <span className="font-medium">Attachments:</span> {content.overview.attachments.join(", ")}
+                          </div>
+                        )}
+                        {content.overview.links && content.overview.links.length > 0 && (
+                          <div className="text-xs">
+                            <span className="font-medium">Links:</span> {content.overview.links.join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1017,6 +1062,7 @@ export default function NewDrugPage() {
                 <Button
                   type="button"
                     onClick={() => {
+                      console.log("Add row clicked");
                       const newRow = {
                         disease_type: "",
                         therapeutic_class: "",
@@ -1030,6 +1076,7 @@ export default function NewDrugPage() {
                         ...content.overview,
                         drug_development_status_rows: [...(content.overview.drug_development_status_rows || []), newRow],
                       });
+                      console.log("Row added successfully");
                     }}
                     className="text-white"
                   style={{ backgroundColor: '#204B73' }}

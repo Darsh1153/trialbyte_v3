@@ -32,13 +32,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "@/hooks/use-toast";
+import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { drugsApi } from "../../_lib/api";
-import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, RefreshCw } from "lucide-react";
+import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, RefreshCw, ChevronDown, Settings, Download, Save, ExternalLink, Maximize2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DrugAdvancedSearchModal, DrugSearchCriteria } from "@/components/drug-advanced-search-modal";
 import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal";
 import { DrugSaveQueryModal } from "@/components/drug-save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
+import { DrugCustomizeColumnModal, DrugColumnSettings, DEFAULT_DRUG_COLUMN_SETTINGS } from "@/components/drug-customize-column-modal";
 
 // Types based on the new API response
 interface DrugOverview {
@@ -169,6 +171,19 @@ export default function DrugsDashboardPage() {
   });
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
+  
+  // Sorting state
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  
+  // Multiple selection state
+  const [selectedDrugs, setSelectedDrugs] = useState<Set<string>>(new Set());
+  const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
+  
+  // Column customization state
+  const [customizeColumnModalOpen, setCustomizeColumnModalOpen] = useState(false);
+  const [columnSettings, setColumnSettings] = useState<DrugColumnSettings>(DEFAULT_DRUG_COLUMN_SETTINGS);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -583,6 +598,28 @@ export default function DrugsDashboardPage() {
     );
 
     return matchesSearchTerm && matchesAdvancedSearch && matchesFilters;
+  }).sort((a, b) => {
+    if (!sortField) return 0; // No sorting if no field selected
+
+    const aValue = getSortValue(a, sortField);
+    const bValue = getSortValue(b, sortField);
+
+    // Handle string comparisons
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const comparison = aValue.toLowerCase().localeCompare(bValue.toLowerCase());
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+
+    // Handle numeric comparisons
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+
+    // Mixed types - convert to string
+    const aStr = String(aValue).toLowerCase();
+    const bStr = String(bValue).toLowerCase();
+    const comparison = aStr.localeCompare(bStr);
+    return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   // Pagination logic
@@ -597,6 +634,152 @@ export default function DrugsDashboardPage() {
     setCurrentPage(1);
   }, [searchTerm, advancedSearchCriteria, appliedFilters, itemsPerPage]);
 
+  // Sorting functions
+  const getSortValue = (drug: DrugData, field: string): string | number => {
+    switch (field) {
+      case "drug_id": return drug.drug_over_id;
+      case "drug_name": return drug.overview.drug_name;
+      case "generic_name": return drug.overview.generic_name;
+      case "therapeutic_area": return drug.overview.therapeutic_area;
+      case "disease_type": return drug.overview.disease_type;
+      case "global_status": return drug.overview.global_status;
+      case "development_status": return drug.overview.development_status;
+      case "originator": return drug.overview.originator;
+      case "created_at": return drug.overview.created_at;
+      default: return "";
+    }
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle sort direction if same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new field and default to ascending
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const handleColumnSettingsChange = (newSettings: DrugColumnSettings) => {
+    setColumnSettings(newSettings);
+    // Save to localStorage
+    localStorage.setItem('adminDrugColumnSettings', JSON.stringify(newSettings));
+  };
+
+  // Multiple selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allDrugIds = new Set(paginatedDrugs.map(drug => drug.drug_over_id));
+      setSelectedDrugs(allDrugIds);
+      setIsSelectAllChecked(true);
+    } else {
+      setSelectedDrugs(new Set());
+      setIsSelectAllChecked(false);
+    }
+  };
+
+  const handleSelectDrug = (drugId: string, checked: boolean) => {
+    const newSelectedDrugs = new Set(selectedDrugs);
+    if (checked) {
+      newSelectedDrugs.add(drugId);
+    } else {
+      newSelectedDrugs.delete(drugId);
+    }
+    setSelectedDrugs(newSelectedDrugs);
+    
+    // Update select all checkbox state
+    setIsSelectAllChecked(newSelectedDrugs.size === paginatedDrugs.length);
+  };
+
+  const handleViewSelectedDrugs = (openInTabs: boolean = true) => {
+    if (selectedDrugs.size === 0) {
+      toast({
+        title: "No drugs selected",
+        description: "Please select at least one drug to view.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedDrugIds = Array.from(selectedDrugs);
+    
+    if (openInTabs) {
+      // Open in new tabs
+      selectedDrugIds.forEach(drugId => {
+        window.open(`/admin/drugs/${drugId}`, '_blank');
+      });
+    } else {
+      // Open in popup windows
+      selectedDrugIds.forEach((drugId, index) => {
+        const popup = window.open(
+          `/admin/drugs/${drugId}`,
+          `drug_${drugId}`,
+          `width=1200,height=800,scrollbars=yes,resizable=yes,left=${100 + (index * 50)},top=${100 + (index * 50)}`
+        );
+        if (!popup) {
+          toast({
+            title: "Popup blocked",
+            description: "Please allow popups for this site to open multiple drugs.",
+            variant: "destructive",
+          });
+        }
+      });
+    }
+
+    toast({
+      title: "Drugs opened",
+      description: `Opened ${selectedDrugIds.length} drug${selectedDrugIds.length > 1 ? 's' : ''} successfully.`,
+    });
+  };
+
+  const handleExportSelected = () => {
+    if (selectedDrugs.size === 0) {
+      toast({
+        title: "No drugs selected",
+        description: "Please select at least one drug to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const selectedDrugData = drugs.filter(drug => selectedDrugs.has(drug.drug_over_id));
+    
+    // Create CSV content
+    const csvContent = [
+      // Header
+      ['Drug ID', 'Drug Name', 'Generic Name', 'Therapeutic Area', 'Disease Type', 'Global Status', 'Development Status', 'Originator', 'Created Date'].join(','),
+      // Data rows
+      ...selectedDrugData.map(drug => [
+        drug.drug_over_id,
+        `"${drug.overview.drug_name || 'Untitled'}"`,
+        `"${drug.overview.generic_name || 'N/A'}"`,
+        `"${drug.overview.therapeutic_area || 'N/A'}"`,
+        `"${drug.overview.disease_type || 'N/A'}"`,
+        `"${drug.overview.global_status || 'Unknown'}"`,
+        `"${drug.overview.development_status || 'Unknown'}"`,
+        `"${drug.overview.originator || 'N/A'}"`,
+        `"${formatDate(drug.overview.created_at)}"`
+      ].join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `drugs_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export successful",
+      description: `Exported ${selectedDrugData.length} drug${selectedDrugData.length > 1 ? 's' : ''} to CSV.`,
+    });
+  };
+
   // Pagination handlers
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -609,6 +792,31 @@ export default function DrugsDashboardPage() {
 
   useEffect(() => {
     fetchDrugs();
+    
+    // Load column settings from localStorage
+    const savedSettings = localStorage.getItem('adminDrugColumnSettings');
+    if (savedSettings) {
+      try {
+        setColumnSettings(JSON.parse(savedSettings));
+      } catch (error) {
+        console.error('Error loading column settings:', error);
+      }
+    }
+  }, []);
+
+  // Close sort dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.relative')) {
+        setSortDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   // Check for URL refresh parameter
@@ -663,8 +871,7 @@ export default function DrugsDashboardPage() {
 
   // Format date for display
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
+    return formatDateToMMDDYYYY(dateString);
   };
 
   // Get status color
@@ -727,7 +934,7 @@ export default function DrugsDashboardPage() {
             onClick={() => setSaveQueryModalOpen(true)}
             className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
           >
-            <Clock className="h-4 w-4 mr-2" />
+            <Save className="h-4 w-4 mr-2" />
             Save Query
           </Button>
           <Button
@@ -816,6 +1023,265 @@ export default function DrugsDashboardPage() {
         )}
       </div>
 
+      {/* Selection Controls */}
+      {selectedDrugs.size > 0 && (
+        <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-blue-800">
+              {selectedDrugs.size} drug{selectedDrugs.size > 1 ? 's' : ''} selected
+            </span>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewSelectedDrugs(true)}
+                className="bg-white hover:bg-gray-50 text-blue-700 border-blue-300"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open in Tabs
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewSelectedDrugs(false)}
+                className="bg-white hover:bg-gray-50 text-blue-700 border-blue-300"
+              >
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Open in Popups
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportSelected}
+                className="bg-white hover:bg-gray-50 text-green-700 border-green-300"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Selected
+              </Button>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedDrugs(new Set());
+              setIsSelectAllChecked(false);
+            }}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            Clear Selection
+          </Button>
+        </div>
+      )}
+
+      {/* Sort By Dropdown */}
+      <div className="flex items-center space-x-2">
+        <div className="relative">
+          <Button
+            variant="outline"
+            onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+            className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+          >
+            <ChevronDown className="h-4 w-4 mr-2" />
+            Sort By
+            {sortField && (
+              <span className="ml-2 text-xs">
+                {sortDirection === "asc" ? "↑" : "↓"}
+              </span>
+            )}
+          </Button>
+          {sortDropdownOpen && (
+            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+              <div className="py-1">
+                <button
+                  onClick={() => {
+                    handleSort("drug_id");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "drug_id" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Drug ID</span>
+                    {sortField === "drug_id" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("drug_name");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "drug_name" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Drug Name</span>
+                    {sortField === "drug_name" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("generic_name");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "generic_name" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Generic Name</span>
+                    {sortField === "generic_name" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("therapeutic_area");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "therapeutic_area" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Therapeutic Area</span>
+                    {sortField === "therapeutic_area" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("disease_type");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "disease_type" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Disease Type</span>
+                    {sortField === "disease_type" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("global_status");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "global_status" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Global Status</span>
+                    {sortField === "global_status" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("development_status");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "development_status" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Development Status</span>
+                    {sortField === "development_status" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("originator");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "originator" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Originator</span>
+                    {sortField === "originator" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    handleSort("created_at");
+                    setSortDropdownOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                    sortField === "created_at" ? "bg-gray-100 font-semibold" : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>Created Date</span>
+                    {sortField === "created_at" && (
+                      <span className="text-xs">
+                        {sortDirection === "asc" ? "↑" : "↓"}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        {sortField && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setSortField("");
+              setSortDirection("asc");
+            }}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            Clear Sort
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          onClick={() => setCustomizeColumnModalOpen(true)}
+          className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Customize Columns
+        </Button>
+      </div>
+
       <div className="rounded-xl border bg-card">
         {refreshing && (
           <div className="flex items-center justify-center py-2 bg-blue-50 border-b">
@@ -827,45 +1293,68 @@ export default function DrugsDashboardPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
-                <TableHead>Drug ID</TableHead>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isSelectAllChecked}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                {columnSettings.drugId && <TableHead>Drug ID</TableHead>}
                 <TableHead>Drug Name</TableHead>
-                <TableHead>Generic Name</TableHead>
-                <TableHead>Therapeutic Area</TableHead>
-                <TableHead>Disease Type</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
+                {columnSettings.genericName && <TableHead>Generic Name</TableHead>}
+                {columnSettings.therapeuticArea && <TableHead>Therapeutic Area</TableHead>}
+                {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
+                {columnSettings.globalStatus && <TableHead>Status</TableHead>}
+                {columnSettings.createdDate && <TableHead>Created</TableHead>}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedDrugs.map((drug) => (
                 <TableRow key={drug.drug_over_id} className="hover:bg-muted/40">
-                  <TableCell className="font-mono text-sm">
-                    {drug.drug_over_id?.slice(0, 8)}...
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedDrugs.has(drug.drug_over_id)}
+                      onCheckedChange={(checked) => handleSelectDrug(drug.drug_over_id, checked as boolean)}
+                    />
                   </TableCell>
+                  {columnSettings.drugId && (
+                    <TableCell className="font-mono text-sm">
+                      {drug.drug_over_id?.slice(0, 8)}...
+                    </TableCell>
+                  )}
                   <TableCell className="font-medium">
                     {drug.overview.drug_name || ""}
                   </TableCell>
-                  <TableCell>{drug.overview.generic_name || ""}</TableCell>
-                  <TableCell>{drug.overview.therapeutic_area || ""}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {drug.overview.disease_type || ""}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={getStatusColor(
-                        drug.overview.is_approved ? "Approved" : "Pending"
-                      )}
-                    >
-                      {drug.overview.is_approved ? "Approved" : "Pending"}
-                    </Badge>
-                  </TableCell>
-
-                  <TableCell className="text-sm">
-                    {formatDate(drug.overview.created_at)}
-                  </TableCell>
+                  {columnSettings.genericName && (
+                    <TableCell>{drug.overview.generic_name || ""}</TableCell>
+                  )}
+                  {columnSettings.therapeuticArea && (
+                    <TableCell>{drug.overview.therapeutic_area || ""}</TableCell>
+                  )}
+                  {columnSettings.diseaseType && (
+                    <TableCell>
+                      <Badge variant="outline">
+                        {drug.overview.disease_type || ""}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {columnSettings.globalStatus && (
+                    <TableCell>
+                      <Badge
+                        className={getStatusColor(
+                          drug.overview.is_approved ? "Approved" : "Pending"
+                        )}
+                      >
+                        {drug.overview.is_approved ? "Approved" : "Pending"}
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {columnSettings.createdDate && (
+                    <TableCell className="text-sm">
+                      {formatDate(drug.overview.created_at)}
+                    </TableCell>
+                  )}
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       {/* View Details */}
@@ -1018,6 +1507,14 @@ export default function DrugsDashboardPage() {
         open={queryHistoryModalOpen}
         onOpenChange={setQueryHistoryModalOpen}
         onLoadQuery={handleLoadQuery}
+      />
+
+      {/* Drug Customize Column Modal */}
+      <DrugCustomizeColumnModal
+        open={customizeColumnModalOpen}
+        onOpenChange={setCustomizeColumnModalOpen}
+        columnSettings={columnSettings}
+        onColumnSettingsChange={handleColumnSettingsChange}
       />
     </div>
   );

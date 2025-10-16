@@ -83,18 +83,10 @@ export function CustomizeColumnModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md mx-auto bg-white rounded-lg shadow-lg">
-        <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
+        <DialogHeader className="border-b pb-4">
           <DialogTitle className="text-lg font-semibold text-gray-900">
             Customize column view
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="h-6 w-6 p-0 hover:bg-gray-100 rounded-full"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <div className="py-4">

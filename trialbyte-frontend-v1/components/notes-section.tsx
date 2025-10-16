@@ -27,6 +27,7 @@ export interface NoteItem {
   type: string;
   content: string;
   sourceLink?: string;
+  sourceType?: string;
   attachments?: string[];
   isVisible: boolean;
   isExpanded?: boolean;
@@ -40,23 +41,22 @@ export interface NotesSectionProps {
   onRemoveNote: (index: number) => void;
   onToggleVisibility?: (index: number) => void;
   noteTypes?: string[];
+  sourceTypes?: string[];
   className?: string;
   showAddButton?: boolean;
 }
 
 const DEFAULT_NOTE_TYPES = [
-  "General",
-  "Clinical",
-  "Regulatory",
-  "Safety",
-  "Efficacy",
-  "Protocol",
-  "Site",
-  "Patient",
-  "Adverse Event",
-  "Publication",
-  "Press Release",
-  "Other"
+  "Interim",
+  "Full Results",
+  "Primary Endpoint Results",
+  "Analysis"
+];
+
+const DEFAULT_SOURCE_TYPES = [
+  "PubMed",
+  "Journals",
+  "Conferences"
 ];
 
 export function NotesSection({
@@ -67,6 +67,7 @@ export function NotesSection({
   onRemoveNote,
   onToggleVisibility,
   noteTypes = DEFAULT_NOTE_TYPES,
+  sourceTypes = DEFAULT_SOURCE_TYPES,
   className = "",
   showAddButton = true
 }: NotesSectionProps) {
@@ -147,7 +148,7 @@ export function NotesSection({
                       <div className="flex items-center space-x-1 text-xs text-gray-500">
                         <Calendar className="h-3 w-3" />
                         <span>
-                          {note.date ? format(new Date(note.date), "MMM dd, yyyy") : "No date"}
+                          {note.date ? format(new Date(note.date), "MM-dd-yyyy") : "No date"}
                         </span>
                       </div>
                       
@@ -217,7 +218,7 @@ export function NotesSection({
                           <CustomDateInput
                             value={note.date}
                             onChange={(value) => onUpdateNote(originalIndex, { date: value })}
-                            placeholder="Month Day Year"
+                            placeholder="MM-DD-YYYY"
                             className="text-sm"
                           />
                         </div>
@@ -255,35 +256,24 @@ export function NotesSection({
                         />
                       </div>
                       
-                      {/* View Source Link */}
+                      {/* Source Dropdown */}
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">Source Link</Label>
-                        <div className="flex items-center space-x-2">
-                          <Input
-                            value={note.sourceLink || ""}
-                            onChange={(e) => onUpdateNote(originalIndex, { sourceLink: e.target.value })}
-                            placeholder="https://..."
-                            className="text-sm flex-1"
-                          />
-                          {note.sourceLink && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              asChild
-                            >
-                              <a
-                                href={note.sourceLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center space-x-1"
-                              >
-                                <LinkIcon className="h-4 w-4" />
-                                <span>View</span>
-                              </a>
-                            </Button>
-                          )}
-                        </div>
+                        <Label className="text-sm font-medium">Source</Label>
+                        <Select
+                          value={note.sourceType || ""}
+                          onValueChange={(value) => onUpdateNote(originalIndex, { sourceType: value })}
+                        >
+                          <SelectTrigger className="text-sm">
+                            <SelectValue placeholder="Select source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {sourceTypes.map((source) => (
+                              <SelectItem key={source} value={source}>
+                                {source}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       {/* Attachments */}
