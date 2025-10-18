@@ -1800,7 +1800,7 @@ export default function AdminTherapeuticsPage() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <Button variant="outline" size="sm" onClick={() => {
-                        router.push(`/admin/therapeutics/${trial.trial_id}`);
+                        router.push(`/admin/therapeutics/${trial.trial_id}`); 
                       }}>
                         <Eye className="h-4 w-4" />
                       </Button>
