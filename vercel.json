@@ -7,7 +7,10 @@
     },
     {
       "src": "trialbyte-backend-v1/api/index.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
+      }
     }
   ],
   "routes": [
@@ -19,10 +22,5 @@
       "src": "/(.*)",
       "dest": "trialbyte-frontend-v1/$1"
     }
-  ],
-  "functions": {
-    "trialbyte-backend-v1/api/index.js": {
-      "maxDuration": 30
-    }
-  }
+  ]
 }
