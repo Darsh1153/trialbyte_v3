@@ -7,16 +7,36 @@ class TherapeuticSitesRepository {
 
   async create(data) {
     const r = await this.pool.query(
-      'INSERT INTO "therapeutic_sites" (trial_id, total, notes) VALUES ($1,$2,$3) RETURNING *',
-      [data.trial_id, data.total || null, data.notes || null]
+      'INSERT INTO "therapeutic_sites" (trial_id, total, notes, study_sites, principal_investigators, site_status, site_countries, site_regions, site_contact_info) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+      [
+        data.trial_id, 
+        data.total || null, 
+        data.notes || null,
+        data.study_sites || null,
+        data.principal_investigators || null,
+        data.site_status || null,
+        data.site_countries || null,
+        data.site_regions || null,
+        data.site_contact_info || null
+      ]
     );
     return r.rows[0];
   }
 
   async createWithClient(client, data) {
     const r = await client.query(
-      'INSERT INTO "therapeutic_sites" (trial_id, total, notes) VALUES ($1,$2,$3) RETURNING *',
-      [data.trial_id, data.total || null, data.notes || null]
+      'INSERT INTO "therapeutic_sites" (trial_id, total, notes, study_sites, principal_investigators, site_status, site_countries, site_regions, site_contact_info) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+      [
+        data.trial_id, 
+        data.total || null, 
+        data.notes || null,
+        data.study_sites || null,
+        data.principal_investigators || null,
+        data.site_status || null,
+        data.site_countries || null,
+        data.site_regions || null,
+        data.site_contact_info || null
+      ]
     );
     return r.rows[0];
   }

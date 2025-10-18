@@ -29,6 +29,8 @@ class TherapeuticTimingRepository {
       "result_published_date_actual",
       "result_published_date_benchmark",
       "result_published_date_estimated",
+      "overall_duration_complete",
+      "overall_duration_publish",
     ];
     const placeholders = fields.map((_, idx) => `$${idx + 1}`).join(",");
     const query = `INSERT INTO "therapeutic_timing" (${fields.join(
@@ -65,6 +67,8 @@ class TherapeuticTimingRepository {
       "result_published_date_actual",
       "result_published_date_benchmark",
       "result_published_date_estimated",
+      "overall_duration_complete",
+      "overall_duration_publish",
     ];
     const placeholders = fields.map((_, idx) => `$${idx + 1}`).join(",");
     const query = `INSERT INTO "therapeutic_timing" (${fields.join(

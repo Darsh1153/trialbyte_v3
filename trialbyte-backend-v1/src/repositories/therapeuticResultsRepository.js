@@ -9,8 +9,9 @@ class TherapeuticResultsRepository {
     const query = `
       INSERT INTO "therapeutic_results" (
         trial_id, trial_outcome, reference, trial_results, adverse_event_reported,
-        adverse_event_type, treatment_for_adverse_events
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *
+        adverse_event_type, treatment_for_adverse_events, results_available, endpoints_met,
+        trial_outcome_content, trial_outcome_link, trial_outcome_attachment, site_notes
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *
     `;
     const values = [
       data.trial_id,
@@ -20,6 +21,12 @@ class TherapeuticResultsRepository {
       data.adverse_event_reported || null,
       data.adverse_event_type || null,
       data.treatment_for_adverse_events || null,
+      data.results_available || null,
+      data.endpoints_met || null,
+      data.trial_outcome_content || null,
+      data.trial_outcome_link || null,
+      data.trial_outcome_attachment || null,
+      data.site_notes ? JSON.stringify(data.site_notes) : null,
     ];
     const r = await this.pool.query(query, values);
     return r.rows[0];
@@ -29,8 +36,9 @@ class TherapeuticResultsRepository {
     const query = `
       INSERT INTO "therapeutic_results" (
         trial_id, trial_outcome, reference, trial_results, adverse_event_reported,
-        adverse_event_type, treatment_for_adverse_events
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *
+        adverse_event_type, treatment_for_adverse_events, results_available, endpoints_met,
+        trial_outcome_content, trial_outcome_link, trial_outcome_attachment, site_notes
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *
     `;
     const values = [
       data.trial_id,
@@ -40,6 +48,12 @@ class TherapeuticResultsRepository {
       data.adverse_event_reported || null,
       data.adverse_event_type || null,
       data.treatment_for_adverse_events || null,
+      data.results_available || null,
+      data.endpoints_met || null,
+      data.trial_outcome_content || null,
+      data.trial_outcome_link || null,
+      data.trial_outcome_attachment || null,
+      data.site_notes ? JSON.stringify(data.site_notes) : null,
     ];
     const r = await client.query(query, values);
     return r.rows[0];

@@ -6,21 +6,32 @@ class TherapeuticTrialOverviewRepository {
   }
 
   async create(data) {
+    // Generate TB-XXXXXX trial identifier if not provided or empty
+    let trialIdentifier = data.trial_identifier;
+    if (!trialIdentifier || (Array.isArray(trialIdentifier) && trialIdentifier.length === 0) || 
+        (Array.isArray(trialIdentifier) && trialIdentifier.every(id => !id || id.trim() === ''))) {
+      const generatedId = await this.generateTrialId();
+      trialIdentifier = [generatedId];
+    }
+
+    // Generate TB-XXXXXX trial_id for display purposes
+    const displayTrialId = await this.generateTrialId();
+
     const query = `
       INSERT INTO "therapeutic_trial_overview" (
         therapeutic_area, trial_identifier, trial_phase, status, primary_drugs, other_drugs,
         title, disease_type, patient_segment, line_of_therapy, reference_links, trial_tags,
         sponsor_collaborators, sponsor_field_activity, associated_cro, countries, region,
-        trial_record_status
+        trial_record_status, trial_id
       ) VALUES (
         $1,$2,$3,$4,$5,$6,
         $7,$8,$9,$10,$11,$12,
-        $13,$14,$15,$16,$17,$18
+        $13,$14,$15,$16,$17,$18,$19
       ) RETURNING *
     `;
     const values = [
       data.therapeutic_area || null,
-      data.trial_identifier || null,
+      trialIdentifier,
       data.trial_phase || null,
       data.status || null,
       data.primary_drugs || null,
@@ -37,27 +48,39 @@ class TherapeuticTrialOverviewRepository {
       data.countries || null,
       data.region || null,
       data.trial_record_status || null,
+      displayTrialId,
     ];
     const result = await this.pool.query(query, values);
     return result.rows[0];
   }
 
   async createWithClient(client, data) {
+    // Generate TB-XXXXXX trial identifier if not provided or empty
+    let trialIdentifier = data.trial_identifier;
+    if (!trialIdentifier || (Array.isArray(trialIdentifier) && trialIdentifier.length === 0) || 
+        (Array.isArray(trialIdentifier) && trialIdentifier.every(id => !id || id.trim() === ''))) {
+      const generatedId = await this.generateTrialId();
+      trialIdentifier = [generatedId];
+    }
+
+    // Generate TB-XXXXXX trial_id for display purposes
+    const displayTrialId = await this.generateTrialId();
+
     const query = `
       INSERT INTO "therapeutic_trial_overview" (
         therapeutic_area, trial_identifier, trial_phase, status, primary_drugs, other_drugs,
         title, disease_type, patient_segment, line_of_therapy, reference_links, trial_tags,
         sponsor_collaborators, sponsor_field_activity, associated_cro, countries, region,
-        trial_record_status
+        trial_record_status, trial_id
       ) VALUES (
         $1,$2,$3,$4,$5,$6,
         $7,$8,$9,$10,$11,$12,
-        $13,$14,$15,$16,$17,$18
+        $13,$14,$15,$16,$17,$18,$19
       ) RETURNING *
     `;
     const values = [
       data.therapeutic_area || null,
-      data.trial_identifier || null,
+      trialIdentifier,
       data.trial_phase || null,
       data.status || null,
       data.primary_drugs || null,
@@ -74,6 +97,7 @@ class TherapeuticTrialOverviewRepository {
       data.countries || null,
       data.region || null,
       data.trial_record_status || null,
+      displayTrialId,
     ];
     const result = await client.query(query, values);
     return result.rows[0];
@@ -119,6 +143,18 @@ class TherapeuticTrialOverviewRepository {
       [trialId]
     );
     return result.rowCount;
+  }
+
+  async generateTrialId() {
+    // Get the count of existing trials to determine the next number
+    const countResult = await this.pool.query(
+      'SELECT COUNT(*) as count FROM "therapeutic_trial_overview"'
+    );
+    const count = parseInt(countResult.rows[0].count) + 1;
+    
+    // Format as TB-XXXXXX (6 digits with leading zeros)
+    const formattedNumber = count.toString().padStart(6, '0');
+    return `TB-${formattedNumber}`;
   }
 }
 

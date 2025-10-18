@@ -633,6 +633,9 @@ const createWithAllData = async (req, res) => {
     return res.status(StatusCodes.CREATED).json({
       message: "Trial created successfully with all data",
       trial_id,
+      trial_identifier: createdOverview.trial_identifier && createdOverview.trial_identifier.length > 0 
+        ? createdOverview.trial_identifier[0] 
+        : null,
       data: createdData,
     });
   } catch (error) {
