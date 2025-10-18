@@ -1,7 +1,7 @@
 // API service for dropdown management
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5002/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5002';
 
 export interface DropdownCategory {
   id: number;
@@ -38,7 +38,7 @@ class DropdownManagementAPI {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/dropdown-management${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/dropdown-management${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
