@@ -1031,15 +1031,7 @@ export default function DrugsDashboardPage() {
               {selectedDrugs.size} drug{selectedDrugs.size > 1 ? 's' : ''} selected
             </span>
             <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleViewSelectedDrugs(true)}
-                className="bg-white hover:bg-gray-50 text-blue-700 border-blue-300"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open in Tabs
-              </Button>
+              
               <Button
                 variant="outline"
                 size="sm"

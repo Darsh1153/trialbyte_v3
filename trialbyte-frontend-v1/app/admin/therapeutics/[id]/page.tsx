@@ -44,6 +44,8 @@ import {
   ChevronDown,
   LogOut,
   Link as LinkIcon,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Suspense } from "react";
 
@@ -166,6 +168,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showBackendView, setShowBackendView] = useState(false);
   const { toast } = useToast();
 
   // Refs for each section
@@ -743,6 +746,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
             <Button className="bg-blue-600 hover:bg-blue-700 text-white">
               <FileText className="h-4 w-4 mr-2" />
               Trial Details
+            </Button>
+            <Button 
+              onClick={() => setShowBackendView(true)}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              Backend View
             </Button>
           </div>
           <div className="flex items-center space-x-4">
@@ -2534,6 +2545,102 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
       <Toaster />
+
+      {/* Backend View Modal */}
+      <Dialog open={showBackendView} onOpenChange={setShowBackendView}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Backend View - Trial {trial?.trial_id}</span>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                  Raw Data
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (trial) {
+                      navigator.clipboard.writeText(JSON.stringify(trial, null, 2));
+                      toast({
+                        title: "Copied to Clipboard",
+                        description: "Trial data has been copied to clipboard.",
+                      });
+                    }
+                  }}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Copy JSON
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (trial) {
+                      const dataStr = JSON.stringify(trial, null, 2);
+                      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                      const exportFileDefaultName = `trial_${trial.trial_id}_backend_data.json`;
+                      const linkElement = document.createElement('a');
+                      linkElement.setAttribute('href', dataUri);
+                      linkElement.setAttribute('download', exportFileDefaultName);
+                      linkElement.click();
+                      toast({
+                        title: "Download Complete",
+                        description: "Trial backend data has been downloaded.",
+                      });
+                    }
+                  }}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Download
+                </Button>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[70vh]">
+            {trial ? (
+              <div className="space-y-4">
+                {/* Trial Overview */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-3">Trial Overview</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="font-medium">Trial ID:</span> {trial.trial_id}
+                    </div>
+                    <div>
+                      <span className="font-medium">Title:</span> {trial.overview.title}
+                    </div>
+                    <div>
+                      <span className="font-medium">Status:</span> {trial.overview.status}
+                    </div>
+                    <div>
+                      <span className="font-medium">Phase:</span> {trial.overview.trial_phase}
+                    </div>
+                    <div>
+                      <span className="font-medium">Therapeutic Area:</span> {trial.overview.therapeutic_area}
+                    </div>
+                    <div>
+                      <span className="font-medium">Disease Type:</span> {trial.overview.disease_type}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Raw JSON Data */}
+                <div className="bg-gray-900 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-white mb-3">Raw Trial Data (JSON)</h3>
+                  <pre className="text-green-400 text-sm font-mono whitespace-pre-wrap overflow-auto max-h-96">
+                    {JSON.stringify(trial, null, 2)}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600">No trial data available</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Filter Dialog */}
       <Dialog open={showFilterDialog} onOpenChange={setShowFilterDialog}>

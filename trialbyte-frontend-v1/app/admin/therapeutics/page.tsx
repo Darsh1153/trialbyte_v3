@@ -1508,15 +1508,7 @@ export default function AdminTherapeuticsPage() {
               {selectedTrials.size} trial{selectedTrials.size > 1 ? 's' : ''} selected
             </span>
             <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleViewSelectedTrials(true)}
-                className="bg-white hover:bg-gray-50 text-blue-700 border-blue-300"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open in Tabs
-              </Button>
+              
               <Button
                 variant="outline"
                 size="sm"
@@ -1808,18 +1800,7 @@ export default function AdminTherapeuticsPage() {
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
                       <Button variant="outline" size="sm" onClick={() => {
-                        const popup = window.open(
-                          `/admin/therapeutics/${trial.trial_id}/backend`,
-                          `trial_backend_${trial.trial_id}`,
-                          `width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no`
-                        );
-                        if (!popup) {
-                          toast({
-                            title: "Popup blocked",
-                            description: "Please allow popups for this site to view trial backend data.",
-                            variant: "destructive",
-                          });
-                        }
+                        router.push(`/admin/therapeutics/${trial.trial_id}`);
                       }}>
                         <Eye className="h-4 w-4" />
                       </Button>
