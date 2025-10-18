@@ -14,6 +14,8 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import CustomDateInput from "@/components/ui/custom-date-input"
 import { MultiTagInput } from "@/components/ui/multi-tag-input"
+import { SaveQueryModal } from "@/components/save-query-modal"
+import { TherapeuticFilterState } from "@/components/therapeutic-filter-modal"
 
 // Define TherapeuticTrial interface locally
 interface TherapeuticTrial {
@@ -110,6 +112,7 @@ interface TherapeuticAdvancedSearchModalProps {
   onOpenChange: (open: boolean) => void
   onApplySearch: (criteria: TherapeuticSearchCriteria[]) => void
   trials?: TherapeuticTrial[] // Add trials data for dynamic dropdowns
+  currentFilters?: TherapeuticFilterState // Add current filters for save query functionality
 }
 
 export interface TherapeuticSearchCriteria {
@@ -469,7 +472,7 @@ const dateFields = [
   "updated_at"
 ]
 
-export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySearch, trials = [] }: TherapeuticAdvancedSearchModalProps) {
+export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySearch, trials = [], currentFilters }: TherapeuticAdvancedSearchModalProps) {
   const [criteria, setCriteria] = useState<TherapeuticSearchCriteria[]>([
     {
       id: "1",
@@ -480,6 +483,7 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
     }
   ])
   const [savedQueriesOpen, setSavedQueriesOpen] = useState(false)
+  const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false)
   const [savedQueries, setSavedQueries] = useState<any[]>([])
   const [therapeuticData, setTherapeuticData] = useState<TherapeuticTrial[]>([])
   const [loading, setLoading] = useState(false)
@@ -594,7 +598,8 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
   const renderValueInput = (criterion: TherapeuticSearchCriteria) => {
     const fieldOptionsForField = fieldOptions[criterion.field]
     const isDateField = dateFields.includes(criterion.field)
-    const dynamicValues = getFieldValues(criterion.field)
+    // Exclude title field from getting dynamic values - it should be a text input
+    const dynamicValues = criterion.field === 'title' ? [] : getFieldValues(criterion.field)
     
     // Special handling for trial_tags - use multi-tag input
     if (criterion.field === "trial_tags") {
@@ -807,24 +812,7 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
   }
 
   const handleSaveQuery = () => {
-    // Create a readable query name
-    const queryName = `Therapeutic Advanced Search (${criteria.length} criteria) - ${formatDateToMMDDYYYY(new Date().toISOString())}`;
-    
-    // Save to localStorage for demo purposes
-    const savedQueries = JSON.parse(localStorage.getItem('therapeuticSearchQueries') || '[]');
-    const newQuery = {
-      id: Date.now().toString(),
-      name: queryName,
-      criteria: criteria,
-      createdAt: new Date().toISOString()
-    };
-    
-    savedQueries.push(newQuery);
-    localStorage.setItem('therapeuticSearchQueries', JSON.stringify(savedQueries));
-    
-    // Show feedback
-    alert(`Query saved as: ${queryName}`);
-    console.log("Saving therapeutic query:", criteria)
+    setSaveQueryModalOpen(true)
   }
 
   return (
@@ -1082,6 +1070,31 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Save Query Modal */}
+      <SaveQueryModal
+        open={saveQueryModalOpen}
+        onOpenChange={setSaveQueryModalOpen}
+        currentFilters={currentFilters || {
+          therapeuticAreas: [],
+          statuses: [],
+          diseaseTypes: [],
+          primaryDrugs: [],
+          trialPhases: [],
+          patientSegments: [],
+          lineOfTherapy: [],
+          countries: [],
+          sponsorsCollaborators: [],
+          sponsorFieldActivity: [],
+          associatedCro: [],
+          trialTags: [],
+          sex: [],
+          healthyVolunteers: [],
+          trialRecordStatus: []
+        }}
+        currentSearchCriteria={criteria}
+        searchTerm=""
+      />
     </>
   )
 }

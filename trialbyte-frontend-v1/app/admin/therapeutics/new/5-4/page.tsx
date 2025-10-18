@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, Eye, EyeOff, Upload, FileText, Image, Calculator, Calendar } from "lucide-react";
+import { Plus, X, Eye, EyeOff, Upload, FileText, Image, Calculator, Calendar, ArrowLeft, ArrowRight } from "lucide-react";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
@@ -20,14 +20,25 @@ export default function TherapeuticsStep5_4() {
   const [isSaving, setIsSaving] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorData, setCalculatorData] = useState({
-    startDate: "",
-    enrollmentClosedDate: "",
-    trialEndDate: "",
-    resultPublishedDate: "",
-    inclusionPeriod: "",
-    resultDuration: "",
-    overallDurationComplete: "",
-    overallDurationPublish: ""
+    date: "",
+    duration: "",
+    frequency: "days",
+    outputDate: ""
+  });
+
+  // State for Duration to Months Converter
+  const [durationConverterData, setDurationConverterData] = useState({
+    duration: "",
+    frequency: "days",
+    outputMonths: ""
+  });
+
+  // State for Enhanced Date Calculator
+  const [enhancedCalculatorData, setEnhancedCalculatorData] = useState({
+    date: "",
+    duration: "",
+    frequency: "months",
+    outputDate: ""
   });
   const form = formData.step5_4;
 
@@ -41,33 +52,10 @@ export default function TherapeuticsStep5_4() {
     if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
     
     const diffTime = Math.abs(d2.getTime() - d1.getTime());
-    const diffMonths = Math.round(diffTime / (1000 * 60 * 60 * 24 * 30.44)); // Average days per month
+    const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44); // Average days per month - keep as decimal
     return diffMonths;
   };
 
-  const calculateBackwardDate = (endDate: string, durationMonths: number): string => {
-    if (!endDate || !durationMonths) return "";
-    
-    const end = new Date(endDate);
-    if (isNaN(end.getTime())) return "";
-    
-    const start = new Date(end);
-    start.setMonth(start.getMonth() - durationMonths);
-    
-    return start.toISOString().split('T')[0];
-  };
-
-  const calculateForwardDate = (startDate: string, durationMonths: number): string => {
-    if (!startDate || !durationMonths) return "";
-    
-    const start = new Date(startDate);
-    if (isNaN(start.getTime())) return "";
-    
-    const end = new Date(start);
-    end.setMonth(end.getMonth() + durationMonths);
-    
-    return end.toISOString().split('T')[0];
-  };
 
   // Auto-calculation logic based on confidence levels
   const performAutoCalculations = (row: string, column: string, value: string) => {
@@ -86,8 +74,21 @@ export default function TherapeuticsStep5_4() {
       const enrollmentClosedDate = column === "Enrollment Closed Date" ? value : getValue(row, "Enrollment Closed Date");
       
       if (startDate && enrollmentClosedDate) {
+        // Validate that start date is not greater than enrollment closed date
+        const start = new Date(startDate);
+        const enrollment = new Date(enrollmentClosedDate);
+        
+        if (start > enrollment) {
+          toast({
+            title: "Date Validation Error",
+            description: `Start date (${startDate}) cannot be greater than enrollment closure date (${enrollmentClosedDate})`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
-        updateTableValue(row, "Inclusion Period", inclusionPeriod.toString());
+        updateTableValue(row, "Inclusion Period", inclusionPeriod.toFixed(2));
       }
     }
 
@@ -97,8 +98,21 @@ export default function TherapeuticsStep5_4() {
       const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
       
       if (trialEndDate && resultPublishedDate) {
+        // Validate that trial end date is not greater than result published date
+        const trialEnd = new Date(trialEndDate);
+        const resultPublished = new Date(resultPublishedDate);
+        
+        if (trialEnd > resultPublished) {
+          toast({
+            title: "Date Validation Error",
+            description: `Trial end date (${trialEndDate}) cannot be greater than result published date (${resultPublishedDate})`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
-        updateTableValue(row, "Result Duration", resultDuration.toString());
+        updateTableValue(row, "Result Duration", resultDuration.toFixed(2));
       }
     }
 
@@ -109,7 +123,7 @@ export default function TherapeuticsStep5_4() {
       
       if (startDate && trialEndDate) {
         const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
-        updateField("step5_4", "estimated_enrollment", overallDurationComplete.toString());
+        updateField("step5_4", "estimated_enrollment", overallDurationComplete.toFixed(2));
       }
     }
 
@@ -120,7 +134,7 @@ export default function TherapeuticsStep5_4() {
       
       if (startDate && resultPublishedDate) {
         const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
-        updateField("step5_4", "actual_enrollment", overallDurationPublish.toString());
+        updateField("step5_4", "actual_enrollment", overallDurationPublish.toFixed(2));
       }
     }
 
@@ -130,62 +144,199 @@ export default function TherapeuticsStep5_4() {
       const primaryOutcomeDuration = getValue("actual", "Primary Outcome Duration");
       
       if (trialEndDate && primaryOutcomeDuration) {
-        const enrollmentClosedDate = calculateBackwardDate(trialEndDate, parseInt(primaryOutcomeDuration));
-        updateTableValue("estimated", "Enrollment Closed Date", enrollmentClosedDate);
-        
-        // Calculate inclusion period for estimated row
-        const startDate = getValue("estimated", "Start Date");
-        if (startDate) {
-          const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
-          updateTableValue("estimated", "Inclusion Period", inclusionPeriod.toString());
+        // Calculate enrollment closed date by subtracting duration from trial end date
+        const end = new Date(trialEndDate);
+        if (!isNaN(end.getTime())) {
+          const start = new Date(end);
+          start.setMonth(start.getMonth() - parseInt(primaryOutcomeDuration));
+          const enrollmentClosedDate = start.toISOString().split('T')[0];
+          updateTableValue("estimated", "Enrollment Closed Date", enrollmentClosedDate);
+          
+          // Calculate inclusion period for estimated row
+          const startDate = getValue("estimated", "Start Date");
+          if (startDate) {
+            const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
+            updateTableValue("estimated", "Inclusion Period", inclusionPeriod.toString());
+          }
         }
       }
     }
   };
 
-  // Manual calculator functions
-  const calculateManualValues = () => {
-    const { startDate, enrollmentClosedDate, trialEndDate, resultPublishedDate } = calculatorData;
+  // New calculator functions for forward/backward date calculation
+  const calculateForwardDate = () => {
+    if (!calculatorData.date || !calculatorData.duration) return;
     
-    if (startDate && enrollmentClosedDate) {
-      const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
-      setCalculatorData(prev => ({ ...prev, inclusionPeriod: inclusionPeriod.toString() }));
+    const startDate = new Date(calculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    
+    const duration = parseFloat(calculatorData.duration);
+    if (isNaN(duration)) return;
+    
+    const resultDate = new Date(startDate);
+    
+    // Add duration based on frequency
+    if (calculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() + duration);
+    } else if (calculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() + (duration * 7));
+    } else if (calculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() + duration);
     }
     
-    if (trialEndDate && resultPublishedDate) {
-      const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
-      setCalculatorData(prev => ({ ...prev, resultDuration: resultDuration.toString() }));
-    }
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
     
-    if (startDate && trialEndDate) {
-      const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
-      setCalculatorData(prev => ({ ...prev, overallDurationComplete: overallDurationComplete.toString() }));
-    }
-    
-    if (startDate && resultPublishedDate) {
-      const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
-      setCalculatorData(prev => ({ ...prev, overallDurationPublish: overallDurationPublish.toString() }));
-    }
+    setCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
   };
 
-  const applyCalculatorValues = () => {
-    if (calculatorData.inclusionPeriod) {
-      updateTableValue("estimated", "Inclusion Period", calculatorData.inclusionPeriod);
-    }
-    if (calculatorData.resultDuration) {
-      updateTableValue("estimated", "Result Duration", calculatorData.resultDuration);
-    }
-    if (calculatorData.overallDurationComplete) {
-      updateField("step5_4", "estimated_enrollment", calculatorData.overallDurationComplete);
-    }
-    if (calculatorData.overallDurationPublish) {
-      updateField("step5_4", "actual_enrollment", calculatorData.overallDurationPublish);
+  const calculateBackwardDate = () => {
+    if (!calculatorData.date || !calculatorData.duration) return;
+    
+    const startDate = new Date(calculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    
+    const duration = parseFloat(calculatorData.duration);
+    if (isNaN(duration)) return;
+    
+    const resultDate = new Date(startDate);
+    
+    // Subtract duration based on frequency
+    if (calculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() - duration);
+    } else if (calculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() - (duration * 7));
+    } else if (calculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() - duration);
     }
     
-    setShowCalculator(false);
-    toast({
-      title: "Success",
-      description: "Calculated values have been applied to the form",
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
+    
+    setCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
+  };
+
+  const clearCalculator = () => {
+    setCalculatorData({
+      date: "",
+      duration: "",
+      frequency: "days",
+      outputDate: ""
+    });
+  };
+
+  // Duration to Months Converter functions
+  const calculateDurationToMonths = () => {
+    if (!durationConverterData.duration) return;
+    
+    const duration = parseFloat(durationConverterData.duration);
+    if (isNaN(duration)) return;
+    
+    let months = 0;
+    
+    if (durationConverterData.frequency === "days") {
+      months = duration / 30;
+    } else if (durationConverterData.frequency === "weeks") {
+      months = duration / 4;
+    }
+    
+    setDurationConverterData(prev => ({
+      ...prev,
+      outputMonths: months.toFixed(2)
+    }));
+  };
+
+  const clearDurationConverter = () => {
+    setDurationConverterData({
+      duration: "",
+      frequency: "days",
+      outputMonths: ""
+    });
+  };
+
+  // Enhanced Date Calculator functions
+  const calculateEnhancedForwardDate = () => {
+    if (!enhancedCalculatorData.date || !enhancedCalculatorData.duration) return;
+    
+    const startDate = new Date(enhancedCalculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    
+    const duration = parseFloat(enhancedCalculatorData.duration);
+    if (isNaN(duration)) return;
+    
+    const resultDate = new Date(startDate);
+    
+    // Add duration based on frequency
+    if (enhancedCalculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() + duration);
+    } else if (enhancedCalculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() + (duration * 7));
+    } else if (enhancedCalculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() + duration);
+    }
+    
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
+    
+    setEnhancedCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
+  };
+
+  const calculateEnhancedBackwardDate = () => {
+    if (!enhancedCalculatorData.date || !enhancedCalculatorData.duration) return;
+    
+    const startDate = new Date(enhancedCalculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    
+    const duration = parseFloat(enhancedCalculatorData.duration);
+    if (isNaN(duration)) return;
+    
+    const resultDate = new Date(startDate);
+    
+    // Subtract duration based on frequency
+    if (enhancedCalculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() - duration);
+    } else if (enhancedCalculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() - (duration * 7));
+    } else if (enhancedCalculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() - duration);
+    }
+    
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
+    
+    setEnhancedCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
+  };
+
+  const clearEnhancedCalculator = () => {
+    setEnhancedCalculatorData({
+      date: "",
+      duration: "",
+      frequency: "months",
+      outputDate: ""
     });
   };
 
@@ -240,9 +391,21 @@ export default function TherapeuticsStep5_4() {
   // Handle file upload for attachments
   const handleFileUpload = (index: number, files: FileList | null) => {
     if (files) {
-      const fileNames = Array.from(files).map(file => file.name);
+      const fileData = Array.from(files).map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: URL.createObjectURL(file), // Create a local URL for preview
+        lastModified: file.lastModified
+      }));
+      
       const currentAttachments = form.references[index]?.attachments || [];
-      handleUpdateReference(index, "attachments", [...currentAttachments, ...fileNames]);
+      handleUpdateReference(index, "attachments", [...currentAttachments, ...fileData]);
+      
+      toast({
+        title: "Files uploaded",
+        description: `${files.length} file(s) uploaded successfully`,
+      });
     }
   };
 
@@ -253,13 +416,12 @@ export default function TherapeuticsStep5_4() {
       
       if (result.success) {
         // Get the first trial identifier for the success message
-        const trialId = formData.step5_1.trial_identifier && formData.step5_1.trial_identifier.length > 0 
-          ? formData.step5_1.trial_identifier[0] 
-          : "Trial";
+        // Use the generated trial identifier from the response
+        const trialId = result.trialIdentifier || "Trial";
         
         toast({
           title: "Success",
-          description: `${trialId} created successfully`,
+          description: `A trial with ID of ${trialId} is created`,
           duration: 5000,
         });
       } else {
@@ -358,158 +520,6 @@ export default function TherapeuticsStep5_4() {
               </table>
             </div>
 
-            {/* Manual Calculator */}
-            {showCalculator && (
-              <Card className="border-blue-200 bg-blue-50">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Calculator className="h-5 w-5 text-blue-600" />
-                    <h4 className="text-lg font-semibold text-blue-800">Date Calculator</h4>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Input Dates */}
-                    <div className="space-y-4">
-                      <h5 className="font-medium text-gray-700">Input Dates</h5>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label>Start Date</Label>
-                          <CustomDateInput
-                            value={calculatorData.startDate}
-                            onChange={(value) => setCalculatorData(prev => ({ ...prev, startDate: value }))}
-                            placeholder="Select start date"
-                            className="w-full"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label>Enrollment Closed Date</Label>
-                          <CustomDateInput
-                            value={calculatorData.enrollmentClosedDate}
-                            onChange={(value) => setCalculatorData(prev => ({ ...prev, enrollmentClosedDate: value }))}
-                            placeholder="Select enrollment closed date"
-                            className="w-full"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label>Trial End Date</Label>
-                          <CustomDateInput
-                            value={calculatorData.trialEndDate}
-                            onChange={(value) => setCalculatorData(prev => ({ ...prev, trialEndDate: value }))}
-                            placeholder="Select trial end date"
-                            className="w-full"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label>Result Published Date</Label>
-                          <CustomDateInput
-                            value={calculatorData.resultPublishedDate}
-                            onChange={(value) => setCalculatorData(prev => ({ ...prev, resultPublishedDate: value }))}
-                            placeholder="Select result published date"
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Calculated Durations */}
-                    <div className="space-y-4">
-                      <h5 className="font-medium text-gray-700">Calculated Durations (Months)</h5>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="calc-inclusion-period">Inclusion Period</Label>
-                          <Input
-                            id="calc-inclusion-period"
-                            value={calculatorData.inclusionPeriod}
-                            readOnly
-                            className="w-full bg-gray-100"
-                            placeholder="Auto-calculated"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">Difference between start date and enrollment closed date</p>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="calc-result-duration">Result Duration</Label>
-                          <Input
-                            id="calc-result-duration"
-                            value={calculatorData.resultDuration}
-                            readOnly
-                            className="w-full bg-gray-100"
-                            placeholder="Auto-calculated"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">Difference between trial end date and result published date</p>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="calc-overall-complete">Overall Duration to Complete</Label>
-                          <Input
-                            id="calc-overall-complete"
-                            value={calculatorData.overallDurationComplete}
-                            readOnly
-                            className="w-full bg-gray-100"
-                            placeholder="Auto-calculated"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">Difference between start date and trial end date</p>
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="calc-overall-publish">Overall Duration to Publish Results</Label>
-                          <Input
-                            id="calc-overall-publish"
-                            value={calculatorData.overallDurationPublish}
-                            readOnly
-                            className="w-full bg-gray-100"
-                            placeholder="Auto-calculated"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">Difference between start date and result published date</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-3 mt-6">
-                    <Button
-                      type="button"
-                      onClick={calculateManualValues}
-                      className="flex items-center gap-2"
-                    >
-                      <Calculator className="h-4 w-4" />
-                      Calculate Durations
-                    </Button>
-                    
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={applyCalculatorValues}
-                      disabled={!calculatorData.inclusionPeriod && !calculatorData.resultDuration && !calculatorData.overallDurationComplete && !calculatorData.overallDurationPublish}
-                    >
-                      Apply to Form
-                    </Button>
-                    
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setCalculatorData({
-                        startDate: "",
-                        enrollmentClosedDate: "",
-                        trialEndDate: "",
-                        resultPublishedDate: "",
-                        inclusionPeriod: "",
-                        resultDuration: "",
-                        overallDurationComplete: "",
-                        overallDurationPublish: ""
-                      })}
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Overall Duration Fields */}
@@ -545,6 +555,295 @@ export default function TherapeuticsStep5_4() {
               <span className="text-sm text-gray-500">(months)</span>
             </div>
           </div>
+
+          {/* Date Calculator */}
+          {showCalculator && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Calculator className="h-5 w-5 text-blue-600" />
+                  <h4 className="text-lg font-semibold text-blue-800">Date Calculator</h4>
+                </div>
+                
+                <div className="space-y-6">
+                  {/* Calculator Input Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    {/* Date Input */}
+                    <div className="space-y-2">
+                      <Label>Date</Label>
+                      <CustomDateInput
+                        value={calculatorData.date}
+                        onChange={(value) => setCalculatorData(prev => ({ ...prev, date: value }))}
+                        placeholder="Select date"
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Duration Input */}
+                    <div className="space-y-2">
+                      <Label>Duration</Label>
+                      <Input
+                        type="number"
+                        value={calculatorData.duration}
+                        onChange={(e) => setCalculatorData(prev => ({ ...prev, duration: e.target.value }))}
+                        placeholder="Enter duration"
+                        className="w-full"
+                      />
+                    </div>
+
+                    {/* Frequency Select */}
+                    <div className="space-y-2">
+                      <Label>Frequency</Label>
+                      <Select
+                        value={calculatorData.frequency}
+                        onValueChange={(value) => setCalculatorData(prev => ({ ...prev, frequency: value }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="days">Days</SelectItem>
+                          <SelectItem value="weeks">Weeks</SelectItem>
+                          <SelectItem value="months">Months</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Output Date */}
+                    <div className="space-y-2">
+                      <Label>Output Date</Label>
+                      <Input
+                        value={calculatorData.outputDate}
+                        readOnly
+                        className="w-full bg-gray-100"
+                        placeholder="Calculated date"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Calculation Buttons */}
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      type="button"
+                      onClick={calculateBackwardDate}
+                      className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+                      disabled={!calculatorData.date || !calculatorData.duration}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      BW Calculate
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      onClick={calculateForwardDate}
+                      className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+                      disabled={!calculatorData.date || !calculatorData.duration}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      FW Calculate
+                    </Button>
+                  </div>
+
+                  {/* Clear Button */}
+                  <div className="flex justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={clearCalculator}
+                      className="flex items-center gap-2"
+                    >
+                      <X className="h-4 w-4" />
+                      Clear All
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Duration to Months Converter */}
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Calculator className="h-5 w-5 text-green-600" />
+                <h4 className="text-lg font-semibold text-green-800">Duration to Months Converter</h4>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Converter Input Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  {/* Duration Input */}
+                  <div className="space-y-2">
+                    <Label>Enter Duration</Label>
+                    <Input
+                      type="number"
+                      value={durationConverterData.duration}
+                      onChange={(e) => setDurationConverterData(prev => ({ ...prev, duration: e.target.value }))}
+                      placeholder="Enter duration"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Frequency Select */}
+                  <div className="space-y-2">
+                    <Label>Select Frequency</Label>
+                    <Select
+                      value={durationConverterData.frequency}
+                      onValueChange={(value) => setDurationConverterData(prev => ({ ...prev, frequency: value }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days">Days</SelectItem>
+                        <SelectItem value="weeks">Weeks</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Output Months */}
+                  <div className="space-y-2">
+                    <Label>Output (in Months)</Label>
+                    <Input
+                      value={durationConverterData.outputMonths}
+                      readOnly
+                      className="w-full bg-gray-100"
+                      placeholder="Calculated months"
+                    />
+                  </div>
+                </div>
+
+                {/* Calculate Button */}
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    onClick={calculateDurationToMonths}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-2"
+                    disabled={!durationConverterData.duration}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Calculate
+                  </Button>
+                </div>
+
+                {/* Clear Button */}
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={clearDurationConverter}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Enhanced Forward/Backward Date Calculator */}
+          <Card className="border-purple-200 bg-purple-50">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Calculator className="h-5 w-5 text-purple-600" />
+                <h4 className="text-lg font-semibold text-purple-800">Enhanced Forward/Backward Date Calculator</h4>
+              </div>
+              
+              <div className="space-y-4">
+                {/* Enhanced Calculator Input Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                  {/* Date Input */}
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <CustomDateInput
+                      value={enhancedCalculatorData.date}
+                      onChange={(value) => setEnhancedCalculatorData(prev => ({ ...prev, date: value }))}
+                      placeholder="Select date"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Duration Input */}
+                  <div className="space-y-2">
+                    <Label>Duration (in months)</Label>
+                    <Input
+                      type="number"
+                      value={enhancedCalculatorData.duration}
+                      onChange={(e) => setEnhancedCalculatorData(prev => ({ ...prev, duration: e.target.value }))}
+                      placeholder="Enter duration"
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* Frequency Select */}
+                  <div className="space-y-2">
+                    <Label>Frequency</Label>
+                    <Select
+                      value={enhancedCalculatorData.frequency}
+                      onValueChange={(value) => setEnhancedCalculatorData(prev => ({ ...prev, frequency: value }))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days">Days</SelectItem>
+                        <SelectItem value="weeks">Weeks</SelectItem>
+                        <SelectItem value="months">Months</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Output Date */}
+                  <div className="space-y-2">
+                    <Label>Output Date</Label>
+                    <Input
+                      value={enhancedCalculatorData.outputDate}
+                      readOnly
+                      className="w-full bg-gray-100"
+                      placeholder="Calculated date"
+                    />
+                  </div>
+                </div>
+
+                {/* Calculation Buttons */}
+                <div className="flex gap-4 justify-center">
+                  <Button
+                    type="button"
+                    onClick={calculateEnhancedBackwardDate}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
+                    disabled={!enhancedCalculatorData.date || !enhancedCalculatorData.duration}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    BW Calculate
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    onClick={calculateEnhancedForwardDate}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
+                    disabled={!enhancedCalculatorData.date || !enhancedCalculatorData.duration}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    FW Calculate
+                  </Button>
+                </div>
+
+                {/* Clear Button */}
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={clearEnhancedCalculator}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* References */}
           <div className="space-y-4">
@@ -683,40 +982,153 @@ export default function TherapeuticsStep5_4() {
                       {/* Display uploaded files */}
                       {reference.attachments && reference.attachments.length > 0 && (
                         <div className="mt-2 space-y-1">
-                          {reference.attachments.map((attachment, attIndex) => (
-                            <div key={attIndex} className="flex items-center gap-2 text-sm text-gray-600">
-                              {attachment.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                <Image className="h-4 w-4" />
-                              ) : (
-                                <FileText className="h-4 w-4" />
-                              )}
-                              <span>{attachment}</span>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  const updatedAttachments = reference.attachments.filter((_, i) => i !== attIndex);
-                                  handleUpdateReference(index, "attachments", updatedAttachments);
-                                }}
-                                className="text-red-500 hover:text-red-700 p-0 h-auto"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
+                          {reference.attachments.map((attachment, attIndex) => {
+                            // Handle both old format (string) and new format (object)
+                            const fileName = typeof attachment === 'string' ? attachment : (attachment as any).name;
+                            const fileUrl = typeof attachment === 'object' ? (attachment as any).url : null;
+                            const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                            
+                            return (
+                              <div key={attIndex} className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                                {isImage ? (
+                                  <Image className="h-4 w-4 text-blue-600" />
+                                ) : (
+                                  <FileText className="h-4 w-4 text-gray-600" />
+                                )}
+                                <span className="flex-1">{fileName}</span>
+                                {fileUrl && isImage && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      // Open image in new tab for preview
+                                      window.open(fileUrl, '_blank');
+                                    }}
+                                    className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                                  >
+                                    Preview
+                                  </Button>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const updatedAttachments = reference.attachments.filter((_, i) => i !== attIndex);
+                                    handleUpdateReference(index, "attachments", updatedAttachments);
+                                  }}
+                                  className="text-red-500 hover:text-red-700 p-0 h-auto"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
 
                     {/* Preview Section */}
-                    {reference.content && (
+                    {(reference.content || (reference.attachments && reference.attachments.length > 0)) && (
                       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                         <Label className="text-sm font-medium text-gray-700 mb-2 block">Preview</Label>
                         <div className="prose prose-sm max-w-none">
-                          <p className="text-gray-800 whitespace-pre-wrap">{reference.content}</p>
+                          {/* Content Preview */}
+                          {reference.content && (
+                            <p className="text-gray-800 whitespace-pre-wrap">{reference.content}</p>
+                          )}
+                          
+                          {/* Attachments Preview */}
+                          {reference.attachments && reference.attachments.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {reference.attachments.map((attachment, attIndex) => {
+                                // Handle both old format (string) and new format (object)
+                                const fileName = typeof attachment === 'string' ? attachment : (attachment as any).name;
+                                const fileUrl = typeof attachment === 'object' ? (attachment as any).url : null;
+                                const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                                
+                                if (isImage && fileUrl) {
+                                  // For images with URL, show actual preview
+                                  return (
+                                    <div key={attIndex} className="border border-gray-200 rounded-lg p-2 bg-white">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Image className="h-4 w-4 text-blue-600" />
+                                        <span className="text-sm font-medium text-gray-700">{fileName}</span>
+                                      </div>
+                                      <div className="relative">
+                                        <img
+                                          src={fileUrl}
+                                          alt={fileName}
+                                          className="w-full max-w-md h-auto rounded border border-gray-200"
+                                          onError={(e) => {
+                                            // Fallback if image fails to load
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                            const fallback = target.nextElementSibling as HTMLElement;
+                                            if (fallback) fallback.style.display = 'block';
+                                          }}
+                                        />
+                                        <div className="hidden text-center py-4 bg-gray-100 rounded border-2 border-dashed border-gray-300">
+                                          <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                                          <p className="text-sm text-gray-500">
+                                            Image preview failed to load
+                                          </p>
+                                          <p className="text-xs text-gray-400 mt-1">
+                                            {fileName}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                } else if (isImage) {
+                                  // For images without URL (old format), show placeholder
+                                  return (
+                                    <div key={attIndex} className="border border-gray-200 rounded-lg p-2 bg-white">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <Image className="h-4 w-4 text-blue-600" />
+                                        <span className="text-sm font-medium text-gray-700">{fileName}</span>
+                                      </div>
+                                      <div className="text-center py-4 bg-gray-100 rounded border-2 border-dashed border-gray-300">
+                                        <Image className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                                        <p className="text-sm text-gray-500">
+                                          Image preview not available
+                                        </p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {fileName}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  // For non-image files, show file info
+                                  return (
+                                    <div key={attIndex} className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded">
+                                      <FileText className="h-4 w-4 text-gray-600" />
+                                      <span className="text-sm text-gray-700">{fileName}</span>
+                                      {fileUrl && (
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          className="text-blue-600 hover:text-blue-800 p-0 h-auto ml-auto"
+                                          onClick={() => {
+                                            window.open(fileUrl, '_blank');
+                                          }}
+                                        >
+                                          Open
+                                        </Button>
+                                      )}
+                                    </div>
+                                  );
+                                }
+                              })}
+                            </div>
+                          )}
+                          
+                          {/* View Source Link */}
                           {reference.viewSource && (
-                            <div className="mt-2">
+                            <div className="mt-3">
                               <a
                                 href={reference.viewSource}
                                 target="_blank"

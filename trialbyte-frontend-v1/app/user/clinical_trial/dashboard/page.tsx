@@ -55,6 +55,7 @@ interface TherapeuticTrial {
     id: string;
     therapeutic_area: string;
     trial_identifier: string[];
+    trial_id?: string; // New field for TB-XXXXXX format
     trial_phase: string;
     status: string;
     primary_drugs: string;
@@ -493,7 +494,7 @@ export default function ClinicalTrialDashboard() {
   const getFavoriteTrialsData = () => {
     return trials.filter(trial => favoriteTrials.includes(trial.trial_id)).map(trial => ({
       id: trial.trial_id,
-      trialId: `#${trial.trial_id.slice(0, 6)}`,
+      trialId: trial.overview.trial_id || `#${trial.trial_id.slice(0, 6)}`,
       therapeuticArea: trial.overview.therapeutic_area,
       diseaseType: trial.overview.disease_type,
       primaryDrug: trial.overview.primary_drugs,
@@ -525,7 +526,7 @@ export default function ClinicalTrialDashboard() {
                     onClick={(e) => e.stopPropagation()} // Prevent card click when clicking checkbox
                   />
                   <span className="text-blue-600 font-medium">
-                    #{trial.trial_id.slice(0, 6)}
+                    {trial.overview.trial_id || `#${trial.trial_id.slice(0, 6)}`}
                   </span>
                 </div>
                 <Badge className={getStatusColor(trial.overview.status)}>
@@ -1092,7 +1093,7 @@ export default function ClinicalTrialDashboard() {
                               onClick={(e) => e.stopPropagation()} // Prevent row click when clicking checkbox
                             />
                             <span className="text-blue-600 font-medium">
-                              #{trial.trial_id.slice(0, 6)}
+                              {trial.overview.trial_id || '#' + trial.trial_id.slice(0, 6)}
                             </span>
                           </div>
                         </TableCell>

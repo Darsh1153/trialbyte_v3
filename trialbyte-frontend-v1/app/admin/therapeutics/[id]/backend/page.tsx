@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Maximize2, Minimize2, X, Eye, EyeOff } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Maximize2, Minimize2, X, Eye, EyeOff, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
-import { useEditTherapeuticForm } from "../../edit/context/edit-form-context";
-import FormProgress from "../../edit/components/form-progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Types based on the API response
 interface TherapeuticTrial {
@@ -65,12 +65,36 @@ interface TherapeuticTrial {
     healthy_volunteers: string;
     target_no_volunteers: number;
     actual_enrolled_volunteers: number | null;
+    ecog_performance_status: string | null;
+    prior_treatments: string | null;
+    biomarker_requirements: string | null;
   }>;
   timing: Array<{
     id: string;
     trial_id: string;
+    start_date_actual: string | null;
+    start_date_benchmark: string | null;
     start_date_estimated: string | null;
+    inclusion_period_actual: string | null;
+    inclusion_period_benchmark: string | null;
+    inclusion_period_estimated: string | null;
+    enrollment_closed_actual: string | null;
+    enrollment_closed_benchmark: string | null;
+    enrollment_closed_estimated: string | null;
+    primary_outcome_duration_actual: string | null;
+    primary_outcome_duration_benchmark: string | null;
+    primary_outcome_duration_estimated: string | null;
+    trial_end_date_actual: string | null;
+    trial_end_date_benchmark: string | null;
     trial_end_date_estimated: string | null;
+    result_duration_actual: string | null;
+    result_duration_benchmark: string | null;
+    result_duration_estimated: string | null;
+    result_published_date_actual: string | null;
+    result_published_date_benchmark: string | null;
+    result_published_date_estimated: string | null;
+    overall_duration_complete: string | null;
+    overall_duration_publish: string | null;
   }>;
   results: Array<{
     id: string;
@@ -81,12 +105,31 @@ interface TherapeuticTrial {
     adverse_event_reported: string;
     adverse_event_type: string | null;
     treatment_for_adverse_events: string | null;
+      results_available: string | null;
+      endpoints_met: string | null;
+      trial_outcome_content: string | null;
+      trial_outcome_link: string | null;
+      trial_outcome_attachment: string | null;
+      site_notes: Array<{
+        date: string;
+        type: string;
+        content: string;
+        sourceLink: string;
+        sourceType: string;
+        attachments: string[];
+      }> | null;
   }>;
   sites: Array<{
     id: string;
     trial_id: string;
     total: number;
     notes: string;
+    study_sites: string[] | null;
+    principal_investigators: string[] | null;
+    site_status: string | null;
+    site_countries: string[] | null;
+    site_regions: string[] | null;
+    site_contact_info: string[] | null;
   }>;
   other: Array<{
     id: string;
@@ -113,6 +156,96 @@ interface TherapeuticTrial {
   }>;
 }
 
+// Form Progress Component (Read-only version matching creation phase)
+const FormProgress = ({ currentStep }: { currentStep: number }) => {
+  const steps = [
+    { number: 1, title: "Trial Overview", path: "#overview" },
+    { number: 2, title: "Outcome Measured", path: "#outcomes" },
+    { number: 3, title: "Participation Criteria", path: "#criteria" },
+    { number: 4, title: "Timing", path: "#timing" },
+    { number: 5, title: "Results", path: "#results" },
+    { number: 6, title: "Sites", path: "#sites" },
+    { number: 7, title: "Other Sources", path: "#other" },
+    { number: 8, title: "Logs", path: "#logs" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg" style={{ backgroundColor: '#61CCFA66' }}>
+        <div className="flex">
+          {steps.map((step) => {
+            const isActive = currentStep === step.number;
+            return (
+              <div
+                key={step.number}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
+                  isActive
+                    ? "text-white border-b-transparent"
+                    : "text-gray-700 border-b-transparent"
+                }`}
+                style={{
+                  backgroundColor: isActive ? '#204B73' : 'transparent'
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  {step.title}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Read-only SearchableSelect component
+const ReadOnlySearchableSelect = ({ 
+  value, 
+  options, 
+  placeholder = "No selection" 
+}: { 
+  value: string; 
+  options: SearchableSelectOption[]; 
+  placeholder?: string;
+}) => {
+  const selectedOption = options.find(option => option.value === value);
+  return (
+    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+      {selectedOption ? selectedOption.label : placeholder}
+    </div>
+  );
+};
+
+// Read-only Input component
+const ReadOnlyInput = ({ value, placeholder = "No data" }: { value: string; placeholder?: string }) => (
+  <Input 
+    value={value || placeholder} 
+    readOnly 
+    className="bg-gray-50 text-gray-700 border-gray-300" 
+  />
+);
+
+// Read-only Textarea component
+const ReadOnlyTextarea = ({ value, placeholder = "No data", rows = 3 }: { value: string; placeholder?: string; rows?: number }) => (
+  <Textarea 
+    value={value || placeholder} 
+    readOnly 
+    className="bg-gray-50 text-gray-700 border-gray-300 resize-none" 
+    rows={rows}
+  />
+);
+
+// Read-only Switch component
+const ReadOnlySwitch = ({ checked }: { checked: boolean }) => (
+  <div className="flex items-center space-x-2">
+    <div className={`w-11 h-6 rounded-full transition-colors ${checked ? 'bg-blue-600' : 'bg-gray-300'}`}>
+      <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'} mt-0.5`} />
+    </div>
+    <span className="text-sm text-gray-700">{checked ? 'Yes' : 'No'}</span>
+  </div>
+);
+
 export default function TherapeuticBackendView({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -120,6 +253,8 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(true);
   const [isMaximized, setIsMaximized] = useState(false);
   const [showRawData, setShowRawData] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [activeOtherSourceTab, setActiveOtherSourceTab] = useState("pipeline_data");
 
   // Resolve params
   const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null);
@@ -159,95 +294,114 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
             trial_id: data.trial_id,
             overview: {
               id: data.data.overview.id,
-              therapeutic_area: data.data.overview.therapeutic_area || "N/A",
+              therapeutic_area: data.data.overview.therapeutic_area || "",
               trial_identifier: data.data.overview.trial_identifier || [],
-              trial_phase: data.data.overview.trial_phase || "N/A",
-              status: data.data.overview.status || "N/A",
-              primary_drugs: data.data.overview.primary_drugs || "N/A",
-              other_drugs: data.data.overview.other_drugs || "N/A",
-              title: data.data.overview.title || "N/A",
-              disease_type: data.data.overview.disease_type || "N/A",
-              patient_segment: data.data.overview.patient_segment || "N/A",
-              line_of_therapy: data.data.overview.line_of_therapy || "N/A",
+              trial_phase: data.data.overview.trial_phase || "",
+              status: data.data.overview.status || "",
+              primary_drugs: data.data.overview.primary_drugs || "",
+              other_drugs: data.data.overview.other_drugs || "",
+              title: data.data.overview.title || "",
+              disease_type: data.data.overview.disease_type || "",
+              patient_segment: data.data.overview.patient_segment || "",
+              line_of_therapy: data.data.overview.line_of_therapy || "",
               reference_links: data.data.overview.reference_links || [],
-              trial_tags: data.data.overview.trial_tags || "N/A",
-              sponsor_collaborators: data.data.overview.sponsor_collaborators || "N/A",
-              sponsor_field_activity: data.data.overview.sponsor_field_activity || "N/A",
-              associated_cro: data.data.overview.associated_cro || "N/A",
-              countries: data.data.overview.countries || "N/A",
-              region: data.data.overview.region || "N/A",
-              trial_record_status: data.data.overview.trial_record_status || "N/A",
-              created_at: data.data.overview.created_at || "N/A",
-              updated_at: data.data.overview.updated_at || "N/A",
+              trial_tags: data.data.overview.trial_tags || "",
+              sponsor_collaborators: data.data.overview.sponsor_collaborators || "",
+              sponsor_field_activity: data.data.overview.sponsor_field_activity || "",
+              associated_cro: data.data.overview.associated_cro || "",
+              countries: data.data.overview.countries || "",
+              region: data.data.overview.region || "",
+              trial_record_status: data.data.overview.trial_record_status || "",
+              created_at: data.data.overview.created_at || "",
+              updated_at: data.data.overview.updated_at || "",
             },
             outcomes: data.data.outcomes.map((outcome: any) => ({
               id: outcome.id,
               trial_id: outcome.trial_id,
-              purpose_of_trial: outcome.purpose_of_trial || "N/A",
-              summary: outcome.summary || "N/A",
-              primary_outcome_measure: outcome.primary_outcome_measure || "N/A",
-              other_outcome_measure: outcome.other_outcome_measure || "N/A",
-              study_design_keywords: outcome.study_design_keywords || "N/A",
-              study_design: outcome.study_design || "N/A",
-              treatment_regimen: outcome.treatment_regimen || "N/A",
+              purpose_of_trial: outcome.purpose_of_trial || "",
+              summary: outcome.summary || "",
+              primary_outcome_measure: outcome.primary_outcome_measure || "",
+              other_outcome_measure: outcome.other_outcome_measure || "",
+              study_design_keywords: outcome.study_design_keywords || "",
+              study_design: outcome.study_design || "",
+              treatment_regimen: outcome.treatment_regimen || "",
               number_of_arms: outcome.number_of_arms || 0,
             })),
             criteria: data.data.criteria.map((criterion: any) => ({
               id: criterion.id,
               trial_id: criterion.trial_id,
-              inclusion_criteria: criterion.inclusion_criteria || "N/A",
-              exclusion_criteria: criterion.exclusion_criteria || "N/A",
-              age_from: criterion.age_from || "N/A",
-              subject_type: criterion.subject_type || "N/A",
-              age_to: criterion.age_to || "N/A",
-              sex: criterion.sex || "N/A",
-              healthy_volunteers: criterion.healthy_volunteers || "N/A",
+              inclusion_criteria: criterion.inclusion_criteria || "",
+              exclusion_criteria: criterion.exclusion_criteria || "",
+              age_from: criterion.age_from || "",
+              subject_type: criterion.subject_type || "",
+              age_to: criterion.age_to || "",
+              sex: criterion.sex || "",
+              healthy_volunteers: criterion.healthy_volunteers || "",
               target_no_volunteers: criterion.target_no_volunteers || 0,
               actual_enrolled_volunteers: criterion.actual_enrolled_volunteers || null,
             })),
             timing: data.data.timing.map((timing: any) => ({
               id: timing.id,
               trial_id: timing.trial_id,
+              start_date_actual: timing.start_date_actual || null,
+              start_date_benchmark: timing.start_date_benchmark || null,
               start_date_estimated: timing.start_date_estimated || null,
+              inclusion_period_actual: timing.inclusion_period_actual || null,
+              inclusion_period_benchmark: timing.inclusion_period_benchmark || null,
+              inclusion_period_estimated: timing.inclusion_period_estimated || null,
+              enrollment_closed_actual: timing.enrollment_closed_actual || null,
+              enrollment_closed_benchmark: timing.enrollment_closed_benchmark || null,
+              enrollment_closed_estimated: timing.enrollment_closed_estimated || null,
+              primary_outcome_duration_actual: timing.primary_outcome_duration_actual || null,
+              primary_outcome_duration_benchmark: timing.primary_outcome_duration_benchmark || null,
+              primary_outcome_duration_estimated: timing.primary_outcome_duration_estimated || null,
+              trial_end_date_actual: timing.trial_end_date_actual || null,
+              trial_end_date_benchmark: timing.trial_end_date_benchmark || null,
               trial_end_date_estimated: timing.trial_end_date_estimated || null,
+              result_duration_actual: timing.result_duration_actual || null,
+              result_duration_benchmark: timing.result_duration_benchmark || null,
+              result_duration_estimated: timing.result_duration_estimated || null,
+              result_published_date_actual: timing.result_published_date_actual || null,
+              result_published_date_benchmark: timing.result_published_date_benchmark || null,
+              result_published_date_estimated: timing.result_published_date_estimated || null,
             })),
             results: data.data.results.map((result: any) => ({
               id: result.id,
               trial_id: result.trial_id,
-              trial_outcome: result.trial_outcome || "N/A",
-              reference: result.reference || "N/A",
+              trial_outcome: result.trial_outcome || "",
+              reference: result.reference || "",
               trial_results: result.trial_results || [],
-              adverse_event_reported: result.adverse_event_reported || "N/A",
-              adverse_event_type: result.adverse_event_type || "N/A",
-              treatment_for_adverse_events: result.treatment_for_adverse_events || "N/A",
+              adverse_event_reported: result.adverse_event_reported || "",
+              adverse_event_type: result.adverse_event_type || "",
+              treatment_for_adverse_events: result.treatment_for_adverse_events || "",
             })),
             sites: data.data.sites.map((site: any) => ({
               id: site.id,
               trial_id: site.trial_id,
               total: site.total || 0,
-              notes: site.notes || "N/A",
+              notes: site.notes || "",
             })),
             other: data.data.other.map((other: any) => ({
               id: other.id,
               trial_id: other.trial_id,
-              data: other.data || "N/A",
+              data: other.data || "",
             })),
             logs: data.data.logs.map((log: any) => ({
               id: log.id,
               trial_id: log.trial_id,
-              trial_changes_log: log.trial_changes_log || "N/A",
-              trial_added_date: log.trial_added_date || "N/A",
-              last_modified_date: log.last_modified_date || "N/A",
-              last_modified_user: log.last_modified_user || "N/A",
-              full_review_user: log.full_review_user || "N/A",
-              next_review_date: log.next_review_date || "N/A",
+              trial_changes_log: log.trial_changes_log || "",
+              trial_added_date: log.trial_added_date || "",
+              last_modified_date: log.last_modified_date || "",
+              last_modified_user: log.last_modified_user || "",
+              full_review_user: log.full_review_user || "",
+              next_review_date: log.next_review_date || "",
             })),
             notes: data.data.notes.map((note: any) => ({
               id: note.id,
               trial_id: note.trial_id,
-              date_type: note.date_type || "N/A",
-              notes: note.notes || "N/A",
-              link: note.link || "N/A",
+              date_type: note.date_type || "",
+              notes: note.notes || "",
+              link: note.link || "",
               attachments: (() => {
                 if (Array.isArray(note.attachments)) {
                   return note.attachments;
@@ -294,11 +448,9 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
   const toggleMaximize = () => {
     setIsMaximized(!isMaximized);
     if (!isMaximized) {
-      // Maximize window
       window.moveTo(0, 0);
       window.resizeTo(screen.width, screen.height);
     } else {
-      // Restore window
       window.resizeTo(1200, 800);
       window.moveTo(100, 100);
     }
@@ -338,13 +490,244 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
   };
 
   const formatDate = (dateString: string | null) => {
-    if (!dateString || dateString === "N/A") return "N/A";
+    if (!dateString || dateString === "") return "No date";
     try {
       return new Date(dateString).toLocaleDateString();
     } catch {
       return dateString;
     }
   };
+
+  // Dropdown options (same as creation phase)
+  const therapeuticAreaOptions: SearchableSelectOption[] = [
+    { value: "autoimmune", label: "Autoimmune" },
+    { value: "cardiovascular", label: "Cardiovascular" },
+    { value: "endocrinology", label: "Endocrinology" },
+    { value: "gastrointestinal", label: "Gastrointestinal" },
+    { value: "infectious", label: "Infectious" },
+    { value: "oncology", label: "Oncology" },
+    { value: "gastroenterology", label: "Gastroenterology" },
+    { value: "dermatology", label: "Dermatology" },
+    { value: "vaccines", label: "Vaccines" },
+    { value: "cns_neurology", label: "CNS/Neurology" },
+    { value: "ophthalmology", label: "Ophthalmology" },
+    { value: "immunology", label: "Immunology" },
+    { value: "rheumatology", label: "Rheumatology" },
+    { value: "haematology", label: "Haematology" },
+    { value: "nephrology", label: "Nephrology" },
+    { value: "urology", label: "Urology" },
+  ];
+
+  const trialPhaseOptions: SearchableSelectOption[] = [
+    { value: "phase_i", label: "Phase I" },
+    { value: "phase_i_ii", label: "Phase I/II" },
+    { value: "phase_ii", label: "Phase II" },
+    { value: "phase_ii_iii", label: "Phase II/III" },
+    { value: "phase_iii", label: "Phase III" },
+    { value: "phase_iii_iv", label: "Phase III/IV" },
+    { value: "phase_iv", label: "Phase IV" },
+  ];
+
+  const statusOptions: SearchableSelectOption[] = [
+    { value: "planned", label: "Planned" },
+    { value: "open", label: "Open" },
+    { value: "closed", label: "Closed" },
+    { value: "completed", label: "Completed" },
+    { value: "terminated", label: "Terminated" },
+    { value: "suspended", label: "Suspended" },
+    { value: "not_yet_recruiting", label: "Not yet recruiting" },
+    { value: "recruiting", label: "Recruiting" },
+    { value: "active", label: "Active" },
+  ];
+
+  const diseaseTypeOptions: SearchableSelectOption[] = [
+    { value: "acute_lymphocytic_leukemia", label: "Acute Lymphocytic Leukemia" },
+    { value: "acute_myelogenous_leukemia", label: "Acute Myelogenous Leukemia" },
+    { value: "anal", label: "Anal" },
+    { value: "appendiceal", label: "Appendiceal" },
+    { value: "basal_skin_cell_carcinoma", label: "Basal Skin Cell Carcinoma" },
+    { value: "bladder", label: "Bladder" },
+    { value: "breast", label: "Breast" },
+    { value: "cervical", label: "Cervical" },
+    { value: "cholangiocarcinoma", label: "Cholangiocarcinoma (Bile duct)" },
+    { value: "chronic_lymphocytic_leukemia", label: "Chronic Lymphocytic Leukemia" },
+    { value: "colorectal", label: "Colorectal" },
+    { value: "endometrial", label: "Endometrial" },
+    { value: "esophageal", label: "Esophageal" },
+    { value: "gastric", label: "Gastric" },
+    { value: "head_neck", label: "Head/Neck" },
+    { value: "hodgkins_lymphoma", label: "Hodgkin's Lymphoma" },
+    { value: "liver", label: "Liver" },
+    { value: "lung_non_small_cell", label: "Lung Non-small cell" },
+    { value: "lung_small_cell", label: "Lung Small Cell" },
+    { value: "melanoma", label: "Melanoma" },
+    { value: "multiple_myeloma", label: "Multiple Myeloma" },
+    { value: "non_hodgkins_lymphoma", label: "Non-Hodgkin's Lymphoma" },
+    { value: "ovarian", label: "Ovarian" },
+    { value: "pancreas", label: "Pancreas" },
+    { value: "prostate", label: "Prostate" },
+    { value: "renal", label: "Renal" },
+    { value: "thyroid", label: "Thyroid" },
+    { value: "unspecified_cancer", label: "Unspecified Cancer" },
+  ];
+
+  const patientSegmentOptions: SearchableSelectOption[] = [
+    { value: "children", label: "Children" },
+    { value: "adults", label: "Adults" },
+    { value: "healthy_volunteers", label: "Healthy Volunteers" },
+    { value: "unknown", label: "Unknown" },
+    { value: "first_line", label: "First Line" },
+    { value: "second_line", label: "Second Line" },
+    { value: "adjuvant", label: "Adjuvant" },
+    { value: "early_stage", label: "Early Stage" },
+    { value: "locally_advanced", label: "Locally Advanced" },
+    { value: "metastatic", label: "Metastatic" },
+    { value: "geriatric", label: "Geriatric" },
+    { value: "pediatric", label: "Pediatric" },
+  ];
+
+  const lineOfTherapyOptions: SearchableSelectOption[] = [
+    { value: "first_line", label: "1 – First Line" },
+    { value: "second_line", label: "2 – Second Line" },
+    { value: "at_least_second_line", label: "2+ - At least second line" },
+    { value: "at_least_third_line", label: "3+ - At least third line" },
+    { value: "neo_adjuvant", label: "Neo-Adjuvant" },
+    { value: "adjuvant", label: "Adjuvant" },
+    { value: "maintenance_consolidation", label: "Maintenance/Consolidation" },
+    { value: "at_least_first_line", label: "1+ - At least first line" },
+    { value: "unknown", label: "Unknown" },
+  ];
+
+  const countriesOptions: SearchableSelectOption[] = [
+    { value: "united_states", label: "United States" },
+    { value: "canada", label: "Canada" },
+    { value: "united_kingdom", label: "United Kingdom" },
+    { value: "germany", label: "Germany" },
+    { value: "france", label: "France" },
+    { value: "italy", label: "Italy" },
+    { value: "spain", label: "Spain" },
+    { value: "japan", label: "Japan" },
+    { value: "china", label: "China" },
+    { value: "india", label: "India" },
+    { value: "australia", label: "Australia" },
+    { value: "brazil", label: "Brazil" },
+    { value: "mexico", label: "Mexico" },
+    { value: "south_korea", label: "South Korea" },
+    { value: "switzerland", label: "Switzerland" },
+    { value: "netherlands", label: "Netherlands" },
+    { value: "belgium", label: "Belgium" },
+    { value: "sweden", label: "Sweden" },
+    { value: "norway", label: "Norway" },
+    { value: "denmark", label: "Denmark" },
+  ];
+
+  const sponsorOptions: SearchableSelectOption[] = [
+    { value: "Pfizer", label: "Pfizer" },
+    { value: "Novartis", label: "Novartis" },
+    { value: "AstraZeneca", label: "AstraZeneca" },
+    { value: "Merck", label: "Merck" },
+    { value: "Roche", label: "Roche" },
+    { value: "Johnson & Johnson", label: "Johnson & Johnson" },
+    { value: "Bristol Myers Squibb", label: "Bristol Myers Squibb" },
+    { value: "Gilead", label: "Gilead" },
+    { value: "AbbVie", label: "AbbVie" },
+    { value: "Amgen", label: "Amgen" },
+  ];
+
+  const sponsorFieldOptions: SearchableSelectOption[] = [
+    { value: "pharmaceutical_company", label: "Pharmaceutical Company" },
+    { value: "university_academy", label: "University/Academy" },
+    { value: "investigator", label: "Investigator" },
+    { value: "cro", label: "CRO" },
+    { value: "hospital", label: "Hospital" },
+    { value: "biotechnology", label: "Biotechnology" },
+    { value: "academic", label: "Academic" },
+    { value: "government", label: "Government" },
+    { value: "non_profit", label: "Non-profit" },
+  ];
+
+  const croOptions: SearchableSelectOption[] = [
+    { value: "IQVIA", label: "IQVIA" },
+    { value: "Syneos", label: "Syneos" },
+    { value: "PPD", label: "PPD" },
+    { value: "Parexel", label: "Parexel" },
+    { value: "ICON", label: "ICON" },
+    { value: "PRA Health Sciences", label: "PRA Health Sciences" },
+    { value: "Covance", label: "Covance" },
+    { value: "Medpace", label: "Medpace" },
+    { value: "Pharm-Olam", label: "Pharm-Olam" },
+    { value: "Worldwide Clinical Trials", label: "Worldwide Clinical Trials" },
+  ];
+
+  const regionOptions: SearchableSelectOption[] = [
+    { value: "north_america", label: "North America" },
+    { value: "europe", label: "Europe" },
+    { value: "asia_pacific", label: "Asia Pacific" },
+    { value: "latin_america", label: "Latin America" },
+    { value: "africa", label: "Africa" },
+    { value: "middle_east", label: "Middle East" },
+  ];
+
+  const trialRecordStatusOptions: SearchableSelectOption[] = [
+    { value: "development_in_progress", label: "Development In Progress (DIP)" },
+    { value: "in_production", label: "In Production (IP)" },
+    { value: "update_in_progress", label: "Update In Progress (UIP)" },
+    { value: "active", label: "Active" },
+    { value: "completed", label: "Completed" },
+    { value: "terminated", label: "Terminated" },
+    { value: "suspended", label: "Suspended" },
+  ];
+
+  const trialTagsOptions: SearchableSelectOption[] = [
+    { value: "biomarker_efficacy", label: "Biomarker-Efficacy" },
+    { value: "biomarker_toxicity", label: "Biomarker-Toxicity" },
+    { value: "expanded_access", label: "Expanded Access" },
+    { value: "expanded_indication", label: "Expanded Indication" },
+    { value: "first_in_human", label: "First in Human" },
+    { value: "investigator_initiated", label: "Investigator-Initiated" },
+    { value: "io_cytotoxic_combination", label: "IO/Cytotoxic Combination" },
+    { value: "io_hormonal_combination", label: "IO/Hormonal Combination" },
+    { value: "io_io_combination", label: "IO/IO Combination" },
+    { value: "io_other_combination", label: "IO/Other Combination" },
+    { value: "io_radiotherapy_combination", label: "IO/Radiotherapy Combination" },
+    { value: "io_targeted_combination", label: "IO/Targeted Combination" },
+    { value: "microdosing", label: "Microdosing" },
+    { value: "pgx_biomarker_identification", label: "PGX-Biomarker Identification/Evaluation" },
+    { value: "pgx_pathogen", label: "PGX-Pathogen" },
+    { value: "pgx_patient_preselection", label: "PGX-Patient Preselection/Stratification" },
+    { value: "post_marketing_commitment", label: "Post-Marketing Commitment" },
+    { value: "registration", label: "Registration" },
+    { value: "randomized", label: "Randomized" },
+    { value: "double_blind", label: "Double-blind" },
+    { value: "placebo_controlled", label: "Placebo-controlled" },
+    { value: "open_label", label: "Open-label" },
+    { value: "multicenter", label: "Multicenter" },
+  ];
+
+  const genderOptions: SearchableSelectOption[] = [
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "both", label: "Both" },
+    { value: "all", label: "All" },
+  ];
+
+  const healthyVolunteersOptions: SearchableSelectOption[] = [
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" },
+    { value: "no_information", label: "No Information" },
+  ];
+
+  const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
+    value: i.toString(),
+    label: i.toString()
+  }));
+
+  const ageUnitOptions: SearchableSelectOption[] = [
+    { value: "years", label: "Years" },
+    { value: "months", label: "Months" },
+    { value: "weeks", label: "Weeks" },
+    { value: "days", label: "Days" },
+  ];
 
   if (loading) {
     return (
@@ -462,44 +845,68 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
             </CardContent>
           </Card>
         ) : (
-          /* Structured Data Display using Edit UI Components */
-          <div className="p-4">
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-8">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="outcomes">Outcomes</TabsTrigger>
-                <TabsTrigger value="criteria">Criteria</TabsTrigger>
-                <TabsTrigger value="timing">Timing</TabsTrigger>
-                <TabsTrigger value="results">Results</TabsTrigger>
-                <TabsTrigger value="sites">Sites</TabsTrigger>
-                <TabsTrigger value="logs">Logs</TabsTrigger>
-                <TabsTrigger value="notes">Notes</TabsTrigger>
-              </TabsList>
+          /* Structured Data Display using Creation Phase UI Style */
+          <div className="space-y-4">
+            <FormProgress currentStep={currentStep} />
+            
+            {/* Step Navigation Buttons */}
+            <div className="flex justify-between items-center px-4">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                disabled={currentStep === 1}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+              <span className="text-sm text-gray-600">
+                Step {currentStep} of 8
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(Math.min(8, currentStep + 1))}
+                disabled={currentStep === 8}
+              >
+                Next
+                <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+              </Button>
+            </div>
 
-              {/* Overview Tab - Using Edit UI Style */}
-              <TabsContent value="overview" className="space-y-4">
+            {/* Step Content */}
+            <div className="px-4">
+              {currentStep === 1 && (
+                /* Step 1: Trial Overview - Exact match to creation phase */
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Trial Overview</CardTitle>
-                  </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Row 1: therapeutic area / trial identifier / phase */}
                     <div className="grid gap-4 md:grid-cols-3">
                       <div className="space-y-2">
-                        <Label>Clinical Trials</Label>
-                        <Input value={trial.overview.therapeutic_area} readOnly className="bg-gray-50" />
+                        <Label>Therapeutic Area</Label>
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.therapeutic_area}
+                          options={therapeuticAreaOptions}
+                          placeholder="No therapeutic area selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Trial Identifier</Label>
                         <div className="space-y-2">
-                          {trial.overview.trial_identifier.map((identifier, index) => (
-                            <Input key={index} value={identifier} readOnly className="bg-gray-50" />
-                          ))}
+                          {trial.overview.trial_identifier.length > 0 ? (
+                            trial.overview.trial_identifier.map((identifier, index) => (
+                              <ReadOnlyInput key={index} value={identifier} />
+                            ))
+                          ) : (
+                            <ReadOnlyInput value="" placeholder="No trial identifier" />
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label>Trial Phase</Label>
-                        <Input value={trial.overview.trial_phase} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.trial_phase}
+                          options={trialPhaseOptions}
+                          placeholder="No trial phase selected"
+                        />
                       </div>
                     </div>
 
@@ -507,37 +914,53 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     <div className="grid gap-4 md:grid-cols-3">
                       <div className="space-y-2">
                         <Label>Status</Label>
-                        <Input value={trial.overview.status} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.status}
+                          options={statusOptions}
+                          placeholder="No status selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Primary Drugs</Label>
-                        <Input value={trial.overview.primary_drugs} readOnly className="bg-gray-50" />
+                        <ReadOnlyInput value={trial.overview.primary_drugs} />
                       </div>
                       <div className="space-y-2">
                         <Label>Other Drugs</Label>
-                        <Input value={trial.overview.other_drugs} readOnly className="bg-gray-50" />
+                        <ReadOnlyInput value={trial.overview.other_drugs} />
                       </div>
                     </div>
 
                     {/* Title */}
                     <div className="space-y-2">
                       <Label>Title</Label>
-                      <Textarea value={trial.overview.title} readOnly className="bg-gray-50" rows={3} />
+                      <ReadOnlyTextarea value={trial.overview.title} rows={3} />
                     </div>
 
                     {/* Row 3: disease type / patient segment / line of therapy */}
                     <div className="grid gap-4 md:grid-cols-3">
                       <div className="space-y-2">
                         <Label>Disease Type</Label>
-                        <Input value={trial.overview.disease_type} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.disease_type}
+                          options={diseaseTypeOptions}
+                          placeholder="No disease type selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Patient Segment</Label>
-                        <Input value={trial.overview.patient_segment} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.patient_segment}
+                          options={patientSegmentOptions}
+                          placeholder="No patient segment selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Line Of Therapy</Label>
-                        <Input value={trial.overview.line_of_therapy} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.line_of_therapy}
+                          options={lineOfTherapyOptions}
+                          placeholder="No line of therapy selected"
+                        />
                       </div>
                     </div>
 
@@ -546,14 +969,22 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                       <div className="space-y-2 md:col-span-2">
                         <Label>Reference Links</Label>
                         <div className="space-y-2">
-                          {trial.overview.reference_links.map((link, index) => (
-                            <Input key={index} value={link} readOnly className="bg-gray-50" />
-                          ))}
+                          {trial.overview.reference_links.length > 0 ? (
+                            trial.overview.reference_links.map((link, index) => (
+                              <ReadOnlyInput key={index} value={link} />
+                            ))
+                          ) : (
+                            <ReadOnlyInput value="" placeholder="No reference links" />
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label>Trial Tags</Label>
-                        <Input value={trial.overview.trial_tags} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.trial_tags}
+                          options={trialTagsOptions}
+                          placeholder="No trial tags selected"
+                        />
                       </div>
                     </div>
 
@@ -561,15 +992,27 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     <div className="grid gap-4 md:grid-cols-3">
                       <div className="space-y-2">
                         <Label>Sponsor & Collaborators</Label>
-                        <Input value={trial.overview.sponsor_collaborators} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.sponsor_collaborators}
+                          options={sponsorOptions}
+                          placeholder="No sponsor selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Sponsor Field of Activity</Label>
-                        <Input value={trial.overview.sponsor_field_activity} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.sponsor_field_activity}
+                          options={sponsorFieldOptions}
+                          placeholder="No sponsor field selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Associated CRO</Label>
-                        <Input value={trial.overview.associated_cro} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.associated_cro}
+                          options={croOptions}
+                          placeholder="No CRO selected"
+                        />
                       </div>
                     </div>
 
@@ -577,15 +1020,27 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     <div className="grid gap-4 md:grid-cols-3">
                       <div className="space-y-2">
                         <Label>Countries</Label>
-                        <Input value={trial.overview.countries} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.countries}
+                          options={countriesOptions}
+                          placeholder="No country selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Region</Label>
-                        <Input value={trial.overview.region} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.region}
+                          options={regionOptions}
+                          placeholder="No region selected"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Trial Record Status</Label>
-                        <Input value={trial.overview.trial_record_status} readOnly className="bg-gray-50" />
+                        <ReadOnlySearchableSelect
+                          value={trial.overview.trial_record_status}
+                          options={trialRecordStatusOptions}
+                          placeholder="No record status selected"
+                        />
                       </div>
                     </div>
 
@@ -593,282 +1048,887 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
                         <Label>Created At</Label>
-                        <Input value={formatDate(trial.overview.created_at)} readOnly className="bg-gray-50" />
+                        <ReadOnlyInput value={formatDate(trial.overview.created_at)} />
                       </div>
                       <div className="space-y-2">
                         <Label>Updated At</Label>
-                        <Input value={formatDate(trial.overview.updated_at)} readOnly className="bg-gray-50" />
+                        <ReadOnlyInput value={formatDate(trial.overview.updated_at)} />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              )}
 
-              {/* Outcomes Tab */}
-              <TabsContent value="outcomes" className="space-y-4">
-                {trial.outcomes.map((outcome, index) => (
-                  <Card key={outcome.id}>
-                    <CardHeader>
-                      <CardTitle>Outcome {index + 1}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+              {currentStep === 2 && (
+                /* Step 2: Outcome Measured - Exact match to creation phase layout */
+                <Card>
+                  <CardContent className="space-y-6">
+                    {/* Purpose of Trial */}
                       <div className="space-y-2">
                         <Label>Purpose of Trial</Label>
-                        <Textarea value={outcome.purpose_of_trial} readOnly className="bg-gray-50" rows={3} />
+                      <ReadOnlyTextarea value={trial.outcomes[0]?.purpose_of_trial || ""} rows={3} />
                       </div>
+
+                    {/* Summary */}
                       <div className="space-y-2">
                         <Label>Summary</Label>
-                        <Textarea value={outcome.summary} readOnly className="bg-gray-50" rows={4} />
+                      <ReadOnlyTextarea value={trial.outcomes[0]?.summary || ""} rows={4} />
                       </div>
+
+                    {/* Primary Outcome Measures */}
                       <div className="space-y-2">
-                        <Label>Primary Outcome Measure</Label>
-                        <Textarea value={outcome.primary_outcome_measure} readOnly className="bg-gray-50" rows={2} />
-                      </div>
+                      <Label>Primary Outcome Measures</Label>
                       <div className="space-y-2">
-                        <Label>Other Outcome Measure</Label>
-                        <Textarea value={outcome.other_outcome_measure} readOnly className="bg-gray-50" rows={2} />
+                        {trial.outcomes[0]?.primary_outcome_measure ? (
+                          <div className="flex gap-2">
+                            <ReadOnlyTextarea value={trial.outcomes[0]?.primary_outcome_measure || ""} rows={2} />
                       </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <ReadOnlyTextarea value="" placeholder="No primary outcome measures" rows={2} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Other Outcome Measures */}
+                      <div className="space-y-2">
+                      <Label>Other Outcome Measures</Label>
+                      <div className="space-y-2">
+                        {trial.outcomes[0]?.other_outcome_measure ? (
+                          <div className="flex gap-2">
+                            <ReadOnlyTextarea value={trial.outcomes[0]?.other_outcome_measure || ""} rows={2} />
+                      </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <ReadOnlyTextarea value="" placeholder="No other outcome measures" rows={2} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Study Design Keywords and Study Design - Side by Side */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Study Design Keywords</Label>
-                        <Input value={outcome.study_design_keywords} readOnly className="bg-gray-50" />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                          {trial.outcomes[0]?.study_design_keywords || "No keywords selected"}
                       </div>
+                      </div>
+
                       <div className="space-y-2">
                         <Label>Study Design</Label>
-                        <Textarea value={outcome.study_design} readOnly className="bg-gray-50" rows={4} />
+                        <ReadOnlyTextarea value={trial.outcomes[0]?.study_design || ""} rows={8} />
                       </div>
+                    </div>
+
+                    {/* Treatment Regimen */}
                       <div className="space-y-2">
                         <Label>Treatment Regimen</Label>
-                        <Textarea value={outcome.treatment_regimen} readOnly className="bg-gray-50" rows={3} />
+                      <ReadOnlyTextarea value={trial.outcomes[0]?.treatment_regimen || ""} rows={3} />
                       </div>
+
+                    {/* Number of Arms */}
                       <div className="space-y-2">
                         <Label>Number of Arms</Label>
-                        <Input value={outcome.number_of_arms.toString()} readOnly className="bg-gray-50" />
+                      <div className="w-32">
+                        <ReadOnlyInput value={trial.outcomes[0]?.number_of_arms?.toString() || ""} />
+                      </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </TabsContent>
+              )}
 
-              {/* Criteria Tab */}
-              <TabsContent value="criteria" className="space-y-4">
-                {trial.criteria.map((criterion, index) => (
-                  <Card key={criterion.id}>
-                    <CardHeader>
-                      <CardTitle>Criteria {index + 1}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+              {currentStep === 3 && (
+                /* Step 3: Participation Criteria - Exact match to creation phase layout */
+                <Card>
+                  <CardContent className="space-y-6">
+                    {/* Top section: Inclusion & Exclusion */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label>Inclusion Criteria</Label>
-                        <Textarea value={criterion.inclusion_criteria} readOnly className="bg-gray-50" rows={4} />
+                        <ReadOnlyTextarea value={trial.criteria[0]?.inclusion_criteria || ""} rows={5} />
                       </div>
                       <div className="space-y-2">
                         <Label>Exclusion Criteria</Label>
-                        <Textarea value={criterion.exclusion_criteria} readOnly className="bg-gray-50" rows={4} />
+                        <ReadOnlyTextarea value={trial.criteria[0]?.exclusion_criteria || ""} rows={5} />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    </div>
+
+                    {/* Bottom section: Form fields */}
+
+                    {/* Row 1: Age From + Subject Type */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label>Age From</Label>
-                          <Input value={criterion.age_from} readOnly className="bg-gray-50" />
+                        <div className="flex gap-2">
+                          <ReadOnlySearchableSelect
+                            value={trial.criteria[0]?.age_from || ""}
+                            options={ageNumberOptions}
+                            placeholder="0"
+                          />
+                          <ReadOnlySearchableSelect
+                            value="years"
+                            options={ageUnitOptions}
+                            placeholder="Years"
+                          />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Age To</Label>
-                          <Input value={criterion.age_to} readOnly className="bg-gray-50" />
                         </div>
                         <div className="space-y-2">
                           <Label>Subject Type</Label>
-                          <Input value={criterion.subject_type} readOnly className="bg-gray-50" />
+                        <ReadOnlyInput value={trial.criteria[0]?.subject_type || ""} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                    {/* Row 2: Age To + Sex + Healthy Volunteers */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label>Age To</Label>
+                        <div className="flex gap-2">
+                          <ReadOnlySearchableSelect
+                            value={trial.criteria[0]?.age_to || ""}
+                            options={ageNumberOptions}
+                            placeholder="150"
+                          />
+                          <ReadOnlySearchableSelect
+                            value="years"
+                            options={ageUnitOptions}
+                            placeholder="Years"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-4">
                         <div className="space-y-2">
                           <Label>Sex</Label>
-                          <Input value={criterion.sex} readOnly className="bg-gray-50" />
+                          <ReadOnlySearchableSelect
+                            value={trial.criteria[0]?.sex || ""}
+                            options={genderOptions}
+                            placeholder="No sex selected"
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>Healthy Volunteers</Label>
-                          <Input value={criterion.healthy_volunteers} readOnly className="bg-gray-50" />
+                          <ReadOnlySearchableSelect
+                            value={trial.criteria[0]?.healthy_volunteers || ""}
+                            options={healthyVolunteersOptions}
+                            placeholder="No selection"
+                          />
                         </div>
-                        <div className="space-y-2">
-                          <Label>Target Volunteers</Label>
-                          <Input value={criterion.target_no_volunteers.toString()} readOnly className="bg-gray-50" />
                         </div>
                       </div>
-                      {criterion.actual_enrolled_volunteers && (
+
+                    {/* Row 3: Target Volunteers + Actual Enrolled */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                      <div className="space-y-2">
+                        <Label>Target No Of Volunteers</Label>
+                        <ReadOnlyInput value={trial.criteria[0]?.target_no_volunteers?.toString() || ""} />
+                      </div>
                         <div className="space-y-2">
                           <Label>Actual Enrolled Volunteers</Label>
-                          <Input value={criterion.actual_enrolled_volunteers.toString()} readOnly className="bg-gray-50" />
+                        <ReadOnlyInput value={trial.criteria[0]?.actual_enrolled_volunteers?.toString() || ""} />
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </TabsContent>
+                    </div>
 
-              {/* Timing Tab */}
-              <TabsContent value="timing" className="space-y-4">
-                {trial.timing.map((timing, index) => (
-                  <Card key={timing.id}>
-                    <CardHeader>
-                      <CardTitle>Timing {index + 1}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Row 4: ECOG Performance Status + Prior Treatments */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label>Start Date Estimated</Label>
-                          <Input value={formatDate(timing.start_date_estimated) || ""} readOnly className="bg-gray-50" />
+                        <Label>ECOG Performance Status</Label>
+                        <ReadOnlyInput value={trial.criteria[0]?.ecog_performance_status || ""} placeholder="No status selected" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Trial End Date Estimated</Label>
-                          <Input value={formatDate(timing.trial_end_date_estimated) || ""} readOnly className="bg-gray-50" />
+                        <Label>Prior Treatments</Label>
+                        <ReadOnlyTextarea value={trial.criteria[0]?.prior_treatments || ""} rows={3} placeholder="No treatments specified" />
+                      </div>
+                    </div>
+
+                    {/* Row 5: Biomarker Requirements */}
+                    <div className="grid grid-cols-1 gap-6">
+                      <div className="space-y-2">
+                        <Label>Biomarker Requirements</Label>
+                        <ReadOnlyTextarea value={trial.criteria[0]?.biomarker_requirements || ""} rows={3} placeholder="No biomarker requirements specified" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </TabsContent>
+              )}
 
-              {/* Results Tab */}
-              <TabsContent value="results" className="space-y-4">
-                {trial.results.map((result, index) => (
-                  <Card key={result.id}>
-                    <CardHeader>
-                      <CardTitle>Result {index + 1}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+              {currentStep === 4 && (
+                /* Step 4: Timing - Exact match to creation phase layout */
+                <Card>
+                  <CardContent className="space-y-8">
+                    {/* Top Table */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Timing</h3>
+                        </div>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr>
+                              <th className="text-left p-2"></th>
+                              <th className="text-left p-2 text-sm font-medium">Start Date</th>
+                              <th className="text-left p-2 text-sm font-medium">Inclusion Period</th>
+                              <th className="text-left p-2 text-sm font-medium">Enrollment Closed Date</th>
+                              <th className="text-left p-2 text-sm font-medium">Primary Outcome Duration</th>
+                              <th className="text-left p-2 text-sm font-medium">Trial End Date</th>
+                              <th className="text-left p-2 text-sm font-medium">Result Duration</th>
+                              <th className="text-left p-2 text-sm font-medium">Result Published Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td className="p-2 font-medium">Actual</td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.start_date_actual)} />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.inclusion_period_actual || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.enrollment_closed_actual)} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.primary_outcome_duration_actual || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.trial_end_date_actual)} />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.result_duration_actual || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.result_published_date_actual)} placeholder="No data" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-medium">Benchmark</td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.start_date_benchmark)} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.inclusion_period_benchmark || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.enrollment_closed_benchmark)} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.primary_outcome_duration_benchmark || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.trial_end_date_benchmark)} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.result_duration_benchmark || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.result_published_date_benchmark)} placeholder="No data" />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-medium">Estimated</td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.start_date_estimated)} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.inclusion_period_estimated || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.enrollment_closed_estimated)} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.primary_outcome_duration_estimated || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.trial_end_date_estimated)} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={trial.timing[0]?.result_duration_estimated || ""} placeholder="No data" />
+                              </td>
+                              <td className="p-2">
+                                <ReadOnlyInput value={formatDate(trial.timing[0]?.result_published_date_estimated)} placeholder="No data" />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Overall Duration Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                      <div className="flex items-center gap-2">
+                        <Label className="whitespace-nowrap">
+                          Overall duration to Complete
+                        </Label>
+                        <div className="w-24">
+                          <ReadOnlyInput value={trial.timing[0]?.overall_duration_complete || ""} placeholder="Months" />
+                        </div>
+                        <span className="text-sm text-gray-500">(months)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="whitespace-nowrap">
+                          Overall duration to publish result
+                        </Label>
+                        <div className="w-24">
+                          <ReadOnlyInput value={trial.timing[0]?.overall_duration_publish || ""} placeholder="Months" />
+                        </div>
+                        <span className="text-sm text-gray-500">(months)</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+              )}
+
+              {currentStep === 5 && (
+                /* Step 5: Results - Exact match to creation phase layout */
+                <Card>
+                  <CardContent className="space-y-6">
+                    {/* Toggles */}
+                    <div className="flex flex-wrap items-center gap-6 mt-4">
+                        <div className="flex items-center gap-2">
+                          <Label>Results Available</Label>
+                          <ReadOnlySwitch checked={trial.results[0]?.results_available === "Yes"} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label>Endpoints met</Label>
+                          <ReadOnlySwitch checked={trial.results[0]?.endpoints_met === "Yes"} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label>Adverse Events Reported</Label>
+                          <ReadOnlySwitch checked={trial.results[0]?.adverse_event_reported === "Yes"} />
+                        </div>
+                    </div>
+
+                    {/* Trial Outcome + Reference */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {/* Trial Outcome */}
                       <div className="space-y-2">
                         <Label>Trial Outcome</Label>
-                        <Textarea value={result.trial_outcome} readOnly className="bg-gray-50" rows={3} />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                          {trial.results[0]?.trial_outcome || "No outcome selected"}
                       </div>
-                      <div className="space-y-2">
-                        <Label>Reference</Label>
-                        <Input value={result.reference} readOnly className="bg-gray-50" />
                       </div>
+
+                      {/* Trial Outcome Reference */}
+                        <div className="space-y-2 border rounded-md p-2">
+                          <Label>Trial Outcome Reference</Label>
+                          <ReadOnlyInput value={formatDate(trial.results[0]?.reference) || ""} placeholder="No date selected" />
+                          
+                          {/* Trial Outcome Results Content */}
                       <div className="space-y-2">
-                        <Label>Trial Results</Label>
+                            <Label>Trial Outcome Results Content</Label>
+                            <ReadOnlyTextarea value={trial.results[0]?.trial_outcome_content || ""} rows={3} placeholder="No data" />
+                      </div>
+                          
+                          <div className="flex gap-2 mt-2">
+                            <div className="flex items-center gap-2 flex-1">
+                              <Label className="whitespace-nowrap">Link</Label>
+                              <ReadOnlyInput value={trial.results[0]?.trial_outcome_link || ""} placeholder="No data" />
+                            </div>
+                            <div className="flex items-center gap-2 flex-1">
+                              <Label className="whitespace-nowrap">Attachments</Label>
+                              <ReadOnlyInput value={trial.results[0]?.trial_outcome_attachment === "Yes" ? "Yes" : "No"} placeholder="No attachments" />
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+
+                    {/* Site Notes */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-gray-900">Site Notes</h4>
+                      </div>
+
+                        <div className="space-y-4">
+                          {trial.results[0]?.site_notes && trial.results[0].site_notes.length > 0 ? (
+                            trial.results[0].site_notes.map((note: any, index: number) => (
+                              <Card key={index} className="border border-gray-200 bg-white">
+                                <CardContent className="p-6 space-y-4">
+                                  {/* Site Note Header */}
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
+                                  </div>
+
+                                  {/* Site Note Fields */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Date */}
+                      <div className="space-y-2">
+                                      <Label>Date</Label>
+                                      <ReadOnlyInput value={formatDate(note.date) || ""} placeholder="No date selected" />
+                                    </div>
+
+                                    {/* Note Type */}
                         <div className="space-y-2">
-                          {result.trial_results.map((res, idx) => (
-                            <Input key={idx} value={res} readOnly className="bg-gray-50" />
-                          ))}
+                                      <Label>Result type</Label>
+                                      <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                                        {note.type || "No type selected"}
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  </div>
+
+                                  {/* Content */}
                         <div className="space-y-2">
+                                    <Label>Content</Label>
+                                    <ReadOnlyTextarea value={note.content || ""} placeholder="No content" rows={3} />
+                        </div>
+
+                                  {/* View Source */}
+                        <div className="space-y-2">
+                                    <Label>Source</Label>
+                                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                                      {note.sourceLink || "No source selected"}
+                        </div>
+                                  </div>
+
+                                  {/* Attachments */}
+                        <div className="space-y-2">
+                                    <Label>Attachments</Label>
+                                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                                      {note.attachments && note.attachments.length > 0 ? note.attachments.join(", ") : "No attachments"}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                            ))
+                          ) : (
+                            <div className="text-center py-8 text-gray-500">
+                              No site notes available
+                            </div>
+                          )}
+                        </div>
+                    </div>
+
+                    {/* Adverse Event */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {/* Adverse Event Reported */}
+                      <div className="space-y-2">
                           <Label>Adverse Event Reported</Label>
-                          <Input value={result.adverse_event_reported} readOnly className="bg-gray-50" />
-                        </div>
-                        <div className="space-y-2">
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                          {trial.results[0]?.adverse_event_reported || "No option selected"}
+                      </div>
+                      </div>
+
+                      {/* Adverse Event Type */}
+                      <div className="space-y-2">
                           <Label>Adverse Event Type</Label>
-                          <Input value={result.adverse_event_type || "N/A"} readOnly className="bg-gray-50" />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                          {trial.results[0]?.adverse_event_type || "No type selected"}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Treatment For Adverse Events */}
                         <div className="space-y-2">
-                          <Label>Treatment for Adverse Events</Label>
-                          <Input value={result.treatment_for_adverse_events || "N/A"} readOnly className="bg-gray-50" />
+                      <Label>Treatment For Adverse Events</Label>
+                      <ReadOnlyTextarea value={trial.results[0]?.treatment_for_adverse_events || ""} rows={3} />
+                      </div>
+                    </CardContent>
+                  </Card>
+              )}
+
+              {currentStep === 6 && (
+                /* Step 6: Sites - Exact match to creation phase layout */
+                <Card>
+                  <CardContent className="space-y-6">
+                    {/* Total No of Sites */}
+                    <div className="space-y-2 mt-4">
+                      <Label>Total No of Sites</Label>
+                      <div className="w-32">
+                        <ReadOnlyInput value={trial.sites[0]?.total?.toString() || ""} />
+                      </div>
+                    </div>
+
+                    {/* Study Sites */}
+                      <div className="space-y-2">
+                      <Label>Study Sites</Label>
+                      <div className="space-y-2">
+                        {trial.sites[0]?.study_sites && trial.sites[0].study_sites.length > 0 ? (
+                          trial.sites[0].study_sites.map((site: string, index: number) => (
+                            <ReadOnlyInput key={index} value={site} />
+                          ))
+                        ) : (
+                          <ReadOnlyInput value="" placeholder="No sites specified" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Principal Investigators */}
+                        <div className="space-y-2">
+                      <Label>Principal Investigators</Label>
+                      <div className="space-y-2">
+                        {trial.sites[0]?.principal_investigators && trial.sites[0].principal_investigators.length > 0 ? (
+                          trial.sites[0].principal_investigators.map((investigator: string, index: number) => (
+                            <ReadOnlyInput key={index} value={investigator} />
+                          ))
+                        ) : (
+                          <ReadOnlyInput value="" placeholder="No investigators specified" />
+                        )}
+                        </div>
+                    </div>
+
+                    {/* Site Status */}
+                        <div className="space-y-2">
+                      <Label>Site Status</Label>
+                      <ReadOnlyInput value={trial.sites[0]?.site_status || ""} placeholder="No status specified" />
+                        </div>
+
+                    {/* Site Countries */}
+                    <div className="space-y-2">
+                      <Label>Site Countries</Label>
+                      <div className="space-y-2">
+                        {trial.sites[0]?.site_countries && trial.sites[0].site_countries.length > 0 ? (
+                          trial.sites[0].site_countries.map((country: string, index: number) => (
+                            <ReadOnlyInput key={index} value={country} />
+                          ))
+                        ) : (
+                          <ReadOnlyInput value="" placeholder="No countries specified" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Site Regions */}
+                        <div className="space-y-2">
+                      <Label>Site Regions</Label>
+                      <div className="space-y-2">
+                        {trial.sites[0]?.site_regions && trial.sites[0].site_regions.length > 0 ? (
+                          trial.sites[0].site_regions.map((region: string, index: number) => (
+                            <ReadOnlyInput key={index} value={region} />
+                          ))
+                        ) : (
+                          <ReadOnlyInput value="" placeholder="No regions specified" />
+                        )}
+                        </div>
+                    </div>
+
+                    {/* Site Contact Info */}
+                        <div className="space-y-2">
+                      <Label>Site Contact Info</Label>
+                      <div className="space-y-2">
+                        {trial.sites[0]?.site_contact_info && trial.sites[0].site_contact_info.length > 0 ? (
+                          trial.sites[0].site_contact_info.map((contact: string, index: number) => (
+                            <ReadOnlyInput key={index} value={contact} />
+                          ))
+                        ) : (
+                          <ReadOnlyInput value="" placeholder="No contact info specified" />
+                        )}
+                        </div>
+                      </div>
+
+                    {/* Simple Notes Section */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-base font-medium">Notes</Label>
+                      </div>
+
+                      <div className="space-y-3">
+                        {trial.sites[0]?.notes ? (
+                          <div className="relative">
+                            <ReadOnlyTextarea value={trial.sites[0]?.notes || ""} rows={3} />
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <ReadOnlyTextarea value="" placeholder="No notes available" rows={3} />
+                          </div>
+                        )}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </TabsContent>
+              )}
 
-              {/* Sites Tab */}
-              <TabsContent value="sites" className="space-y-4">
-                {trial.sites.map((site, index) => (
-                  <Card key={site.id}>
-                    <CardHeader>
-                      <CardTitle>Site {index + 1}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Total Sites</Label>
-                        <Input value={site.total.toString()} readOnly className="bg-gray-50" />
+              {currentStep === 7 && (
+                /* Step 7: Other Sources - Exact match to creation phase layout */
+                <Card>
+                  <CardContent className="space-y-6">
+                    {/* Tab Navigation */}
+                    <div className="flex gap-2 border-b pb-2">
+                      <Button
+                        type="button"
+                        variant={activeOtherSourceTab === "pipeline_data" ? "default" : "outline"}
+                        className={`text-sm px-4 py-2 ${
+                          activeOtherSourceTab === "pipeline_data"
+                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                        onClick={() => setActiveOtherSourceTab("pipeline_data")}
+                      >
+                        Pipeline Data
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={activeOtherSourceTab === "press_releases" ? "default" : "outline"}
+                        className={`text-sm px-4 py-2 ${
+                          activeOtherSourceTab === "press_releases"
+                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                        onClick={() => setActiveOtherSourceTab("press_releases")}
+                      >
+                        Press Releases
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={activeOtherSourceTab === "publications" ? "default" : "outline"}
+                        className={`text-sm px-4 py-2 ${
+                          activeOtherSourceTab === "publications"
+                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                        onClick={() => setActiveOtherSourceTab("publications")}
+                      >
+                        Publications
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={activeOtherSourceTab === "trial_registries" ? "default" : "outline"}
+                        className={`text-sm px-4 py-2 ${
+                          activeOtherSourceTab === "trial_registries"
+                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                        onClick={() => setActiveOtherSourceTab("trial_registries")}
+                      >
+                        Trial Registries
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={activeOtherSourceTab === "associated_studies" ? "default" : "outline"}
+                        className={`text-sm px-4 py-2 ${
+                          activeOtherSourceTab === "associated_studies"
+                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                            : "text-gray-600 hover:text-gray-800"
+                        }`}
+                        onClick={() => setActiveOtherSourceTab("associated_studies")}
+                      >
+                        Associated Studies
+                      </Button>
                       </div>
+
+                    {/* Active Tab Content */}
                       <div className="space-y-2">
-                        <Label>Notes</Label>
-                        <Textarea value={site.notes} readOnly className="bg-gray-50" rows={3} />
+                      <Label className="text-base font-medium">
+                        {activeOtherSourceTab === "pipeline_data" && "Pipeline Data"}
+                        {activeOtherSourceTab === "press_releases" && "Press Releases"}
+                        {activeOtherSourceTab === "publications" && "Publications"}
+                        {activeOtherSourceTab === "trial_registries" && "Trial Registries"}
+                        {activeOtherSourceTab === "associated_studies" && "Associated Studies"}
+                      </Label>
+
+                      <div className="space-y-4">
+                        {/* Pipeline Data */}
+                        {activeOtherSourceTab === "pipeline_data" && (
+                          <div className="space-y-2 p-4 border rounded-lg bg-white">
+                            <div className="space-y-3">
+                              <div className="w-full">
+                                <Label className="text-sm">Pipeline Data</Label>
+                                <ReadOnlyTextarea value={trial.other[0]?.data || ""} placeholder="No pipeline data available" rows={6} />
+                      </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Press Releases */}
+                        {activeOtherSourceTab === "press_releases" && (
+                          <div className="space-y-2 p-4 border rounded-lg bg-white">
+                            <div className="space-y-3">
+                              <div className="w-full">
+                                <Label className="text-sm">Press Release Data</Label>
+                                <ReadOnlyTextarea value={trial.other[0]?.data || ""} placeholder="No press release data available" rows={6} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Publications */}
+                        {activeOtherSourceTab === "publications" && (
+                          <div className="space-y-2 p-4 border rounded-lg bg-white">
+                            <div className="space-y-3">
+                              <div className="w-full">
+                                <Label className="text-sm">Publication Data</Label>
+                                <ReadOnlyTextarea value={trial.other[0]?.data || ""} placeholder="No publication data available" rows={6} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Trial Registries */}
+                        {activeOtherSourceTab === "trial_registries" && (
+                          <div className="space-y-2 p-4 border rounded-lg bg-white">
+                            <div className="space-y-3">
+                              <div className="w-full">
+                                <Label className="text-sm">Trial Registry Data</Label>
+                                <ReadOnlyTextarea value={trial.other[0]?.data || ""} placeholder="No trial registry data available" rows={6} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Associated Studies */}
+                        {activeOtherSourceTab === "associated_studies" && (
+                          <div className="space-y-2 p-4 border rounded-lg bg-white">
+                            <div className="space-y-3">
+                              <div className="w-full">
+                                <Label className="text-sm">Associated Studies Data</Label>
+                                <ReadOnlyTextarea value={trial.other[0]?.data || ""} placeholder="No associated studies data available" rows={6} />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </TabsContent>
+              )}
 
-              {/* Logs Tab */}
-              <TabsContent value="logs" className="space-y-4">
-                {trial.logs.map((log, index) => (
-                  <Card key={log.id}>
-                    <CardHeader>
-                      <CardTitle>Log {index + 1}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Trial Changes Log</Label>
-                        <Textarea value={log.trial_changes_log} readOnly className="bg-gray-50" rows={4} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {currentStep === 8 && (
+                /* Step 8: Logs - Exact match to creation phase layout */
+                <Card>
+                  <CardContent className="space-y-6">
+                    {/* Trial Creation & Modification Info */}
+                    <Card className="border rounded-xl shadow-sm">
+                      <CardContent className="p-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Creation Information */}
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-green-700">Trial Creation</h3>
                         <div className="space-y-2">
-                          <Label>Trial Added Date</Label>
-                          <Input value={formatDate(log.trial_added_date)} readOnly className="bg-gray-50" />
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">Created Date:</span>
+                                <span className="text-gray-600">
+                                  {formatDate(trial.logs[0]?.trial_added_date)}
+                                </span>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Last Modified Date</Label>
-                          <Input value={formatDate(log.last_modified_date)} readOnly className="bg-gray-50" />
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">Created User:</span>
+                                <span className="text-gray-600">admin</span>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            </div>
+                          </div>
+
+                          {/* Modification Information */}
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-semibold text-blue-700">Last Modification</h3>
                         <div className="space-y-2">
-                          <Label>Last Modified User</Label>
-                          <Input value={log.last_modified_user ?? ""} readOnly className="bg-gray-50" />
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">Last Modified Date:</span>
+                                <span className="text-gray-600">
+                                  {formatDate(trial.logs[0]?.last_modified_date)}
+                                </span>
+                        </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">Last Modified User:</span>
+                                <span className="text-gray-600">{trial.logs[0]?.last_modified_user || "admin"}</span>
+                      </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">Total Modifications:</span>
+                                <span className="text-gray-600">1</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Trial Changes Log */}
+                    <Card className="border rounded-xl shadow-sm">
+                      <CardContent className="p-6">
+                        <h3 className="text-lg font-semibold mb-4">Trial Changes Log</h3>
+                        <div className="space-y-2">
+                          <ReadOnlyTextarea value={trial.logs[0]?.trial_changes_log || ""} rows={4} />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Review and Notes Section */}
+                    <Card className="border rounded-xl shadow-sm">
+                      <CardContent className="p-6 space-y-6">
+                        {/* Full Review Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border border-gray-300 rounded bg-gray-50"></div>
+                            <Label>Full Review</Label>
                         </div>
                         <div className="space-y-2">
                           <Label>Full Review User</Label>
-                          <Input value={log.full_review_user ?? ""} readOnly className="bg-gray-50" />
-                        </div>
+                            <ReadOnlyInput value={trial.logs[0]?.full_review_user || ""} />
                       </div>
                       <div className="space-y-2">
                         <Label>Next Review Date</Label>
-                        <Input value={formatDate(log.next_review_date)} readOnly className="bg-gray-50" />
+                            <ReadOnlyInput value={formatDate(trial.logs[0]?.next_review_date)} />
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </TabsContent>
+                        </div>
 
-              {/* Notes Tab */}
-              <TabsContent value="notes" className="space-y-4">
-                {trial.notes.map((note, index) => (
-                  <Card key={note.id}>
-                    <CardHeader>
-                      <CardTitle>Note {index + 1}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                        {/* Notes Section */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-semibold">Notes & Documentation</h3>
+                          <div className="space-y-4">
+                            {trial.notes.length > 0 ? (
+                              trial.notes.map((note, index) => (
+                                <Card key={note.id} className="border border-gray-200 bg-white">
+                                  <CardContent className="p-6 space-y-4">
+                                    {/* Note Header */}
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
+                                    </div>
+
+                                    {/* Note Fields */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      {/* Date */}
                         <div className="space-y-2">
-                          <Label>Date Type</Label>
-                          <Input value={note.date_type} readOnly className="bg-gray-50" />
+                                        <Label>Date</Label>
+                                        <ReadOnlyInput value={formatDate(note.date_type)} />
                         </div>
+
+                                      {/* Note Type */}
                         <div className="space-y-2">
-                          <Label>Link</Label>
-                          <Input value={note.link} readOnly className="bg-gray-50" />
+                                        <Label>Note Type</Label>
+                                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                                          General
                         </div>
                       </div>
+                                    </div>
+
+                                    {/* Content */}
                       <div className="space-y-2">
-                        <Label>Notes</Label>
-                        <Textarea value={note.notes} readOnly className="bg-gray-50" rows={4} />
+                                      <Label>Content</Label>
+                                      <ReadOnlyTextarea value={note.notes || ""} rows={3} />
                       </div>
-                      {note.attachments && note.attachments.length > 0 && (
+
+                                    {/* Link */}
+                                    <div className="space-y-2">
+                                      <Label>Source Link</Label>
+                                      <ReadOnlyInput value={note.link || ""} />
+                                    </div>
+
+                                    {/* Attachments */}
                         <div className="space-y-2">
                           <Label>Attachments</Label>
                           <div className="space-y-2">
-                            {note.attachments.map((attachment, idx) => (
-                              <Input key={idx} value={attachment} readOnly className="bg-gray-50" />
-                            ))}
+                                        {note.attachments && note.attachments.length > 0 ? (
+                                          note.attachments.map((attachment, attachIndex) => (
+                                            <ReadOnlyInput key={attachIndex} value={attachment} />
+                                          ))
+                                        ) : (
+                                          <ReadOnlyInput value="" placeholder="No attachments" />
+                                        )}
                           </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              ))
+                            ) : (
+                              <div className="text-center py-8 text-gray-500">
+                                No notes available
                         </div>
                       )}
+                          </div>
+                        </div>
                     </CardContent>
                   </Card>
-                ))}
-              </TabsContent>
-            </Tabs>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         )}
       </div>

@@ -186,7 +186,13 @@ export function QueryHistoryModal({
 
   const loadQuery = (query: SavedQuery) => {
     if (onLoadQuery && query.query_data) {
-      onLoadQuery(query.query_data)
+      // Pass the complete query object instead of just query_data
+      onLoadQuery({
+        ...query.query_data,
+        queryId: query.id,
+        queryTitle: query.title,
+        queryDescription: query.description
+      })
       toast({
         title: "Query Loaded",
         description: `"${query.title}" has been applied to your current view`,

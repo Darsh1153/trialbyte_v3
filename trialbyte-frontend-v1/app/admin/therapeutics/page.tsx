@@ -43,6 +43,7 @@ import { TherapeuticAdvancedSearchModal, TherapeuticSearchCriteria } from "@/com
 import { TherapeuticFilterModal, TherapeuticFilterState } from "@/components/therapeutic-filter-modal";
 import { SaveQueryModal } from "@/components/save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
+import { QueryLogsModal } from "@/components/query-logs-modal";
 import { CustomizeColumnModal, ColumnSettings, DEFAULT_COLUMN_SETTINGS } from "@/components/customize-column-modal";
 
 // Types based on the API response
@@ -52,6 +53,7 @@ interface TherapeuticTrial {
     id: string;
     therapeutic_area: string;
     trial_identifier: string[];
+    trial_id?: string; // New field for TB-XXXXXX format
     trial_phase: string;
     status: string;
     primary_drugs: string;
@@ -181,10 +183,71 @@ export default function AdminTherapeuticsPage() {
     trialTags: [],
     sex: [],
     healthyVolunteers: [],
-    trialRecordStatus: []
+    trialRecordStatus: [],
+    // Additional fields from trial creation form
+    otherDrugs: [],
+    regions: [],
+    ageMin: [],
+    ageMax: [],
+    subjectType: [],
+    ecogPerformanceStatus: [],
+    priorTreatments: [],
+    biomarkerRequirements: [],
+    estimatedEnrollment: [],
+    actualEnrollment: [],
+    enrollmentStatus: [],
+    recruitmentPeriod: [],
+    studyCompletionDate: [],
+    primaryCompletionDate: [],
+    populationDescription: [],
+    studySites: [],
+    principalInvestigators: [],
+    siteStatus: [],
+    siteCountries: [],
+    siteRegions: [],
+    siteContactInfo: [],
+    trialResults: [],
+    trialOutcomeContent: [],
+    resultsAvailable: [],
+    endpointsMet: [],
+    adverseEventsReported: [],
+    studyStartDate: [],
+    firstPatientIn: [],
+    lastPatientIn: [],
+    studyEndDate: [],
+    interimAnalysisDates: [],
+    finalAnalysisDate: [],
+    regulatorySubmissionDate: [],
+    purposeOfTrial: [],
+    summary: [],
+    primaryOutcomeMeasures: [],
+    otherOutcomeMeasures: [],
+    studyDesignKeywords: [],
+    studyDesign: [],
+    treatmentRegimen: [],
+    numberOfArms: [],
+    inclusionCriteria: [],
+    exclusionCriteria: [],
+    ageFrom: [],
+    ageTo: [],
+    gender: [],
+    targetNoVolunteers: [],
+    actualEnrolledVolunteers: [],
+    startDateEstimated: [],
+    trialEndDateEstimated: [],
+    trialOutcome: [],
+    adverseEventReported: [],
+    adverseEventType: [],
+    treatmentForAdverseEvents: [],
+    totalSites: [],
+    siteNotes: [],
+    publicationType: [],
+    registryName: [],
+    studyType: []
   });
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
+  const [queryLogsModalOpen, setQueryLogsModalOpen] = useState(false);
   
   // Sorting state
   const [sortField, setSortField] = useState<string>("");
@@ -438,6 +501,8 @@ export default function AdminTherapeuticsPage() {
   const handleAdvancedSearch = (criteria: TherapeuticSearchCriteria[]) => {
     console.log('Advanced search criteria:', criteria);
     
+    const startTime = Date.now();
+    
     // Debug: Check if any trials contain "bladder" in any field
     const bladderTrials = trials.filter(trial => {
       const searchText = JSON.stringify(trial).toLowerCase();
@@ -453,11 +518,35 @@ export default function AdminTherapeuticsPage() {
     })));
     
     setAdvancedSearchCriteria(criteria);
+    
+    // Log advanced search execution
+    const executionTime = Date.now() - startTime;
+    const queryLog = {
+      id: Date.now().toString(),
+      queryId: 'advanced_search_' + Date.now(),
+      queryTitle: 'Advanced Search',
+      queryDescription: `Advanced search with ${criteria.length} criteria`,
+      executedAt: new Date().toISOString(),
+      executedBy: 'current_user',
+      queryType: 'advanced_search' as const,
+      criteria: criteria,
+      filters: appliedFilters,
+      searchTerm: searchTerm,
+      resultCount: trials.length, // This will be updated after filtering
+      executionTime: executionTime
+    };
+    
+    // Save to localStorage
+    const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
+    existingLogs.unshift(queryLog);
+    localStorage.setItem('queryExecutionLogs', JSON.stringify(existingLogs));
   };
 
   // Handle load query from history
   const handleLoadQuery = (queryData: any) => {
     console.log('Loading query data:', queryData);
+    
+    const startTime = Date.now();
     
     // Load search criteria if available
     if (queryData.searchCriteria && Array.isArray(queryData.searchCriteria)) {
@@ -474,6 +563,28 @@ export default function AdminTherapeuticsPage() {
       setSearchTerm(queryData.searchTerm);
     }
     
+    // Log query execution with proper metadata
+    const executionTime = Date.now() - startTime;
+    const queryLog = {
+      id: Date.now().toString(),
+      queryId: queryData.queryId || 'unknown',
+      queryTitle: queryData.queryTitle || 'Unknown Query',
+      queryDescription: queryData.queryDescription || null,
+      executedAt: new Date().toISOString(),
+      executedBy: 'current_user', // You can replace this with actual user info
+      queryType: 'saved_query' as const,
+      criteria: queryData.searchCriteria,
+      filters: queryData.filters,
+      searchTerm: queryData.searchTerm,
+      resultCount: trials.length, // This will be updated after filtering
+      executionTime: executionTime
+    };
+    
+    // Save to localStorage
+    const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
+    existingLogs.unshift(queryLog); // Add to beginning of array
+    localStorage.setItem('queryExecutionLogs', JSON.stringify(existingLogs));
+    
     toast({
       title: "Query Loaded",
       description: "Query has been loaded successfully",
@@ -482,8 +593,33 @@ export default function AdminTherapeuticsPage() {
 
   // Handle filter application
   const handleApplyFilters = (filters: TherapeuticFilterState) => {
+    const startTime = Date.now();
+    
     setAppliedFilters(filters);
     const activeFilterCount = Object.values(filters).reduce((count, arr) => count + arr.length, 0);
+    
+    // Log filter execution
+    const executionTime = Date.now() - startTime;
+    const queryLog = {
+      id: Date.now().toString(),
+      queryId: 'filter_' + Date.now(),
+      queryTitle: 'Filter Application',
+      queryDescription: `Applied ${activeFilterCount} filter criteria`,
+      executedAt: new Date().toISOString(),
+      executedBy: 'current_user',
+      queryType: 'filter' as const,
+      criteria: advancedSearchCriteria,
+      filters: filters,
+      searchTerm: searchTerm,
+      resultCount: trials.length, // This will be updated after filtering
+      executionTime: executionTime
+    };
+    
+    // Save to localStorage
+    const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
+    existingLogs.unshift(queryLog);
+    localStorage.setItem('queryExecutionLogs', JSON.stringify(existingLogs));
+    
     if (activeFilterCount > 0) {
       toast({
         title: "Filters Applied",
@@ -684,7 +820,7 @@ export default function AdminTherapeuticsPage() {
 
       // For dropdown fields, if the operator is "contains" but we're searching for exact values,
       // we should use exact matching instead
-      if (dropdownFields.includes(field) && operator === "contains") {
+      if (dropdownFields.includes(field) && (operator === "contains" || operator === "is")) {
         const searchValue = typeof value === 'string' ? value.toLowerCase() : '';
         
         // Check if the search value matches exactly or if it's a partial match within the field
@@ -702,16 +838,21 @@ export default function AdminTherapeuticsPage() {
             return true;
           }
           
-          // Check for partial matches (e.g., "Phase 3" should match "Phase III")
+          // For "is" operator, only do exact matching after normalization
+          if (operator === "is") {
+            return false; // No partial matching for "is" operator
+          }
+          
+          // Check for partial matches (e.g., "Phase 3" should match "Phase III") - only for "contains"
           const phaseEquivalents = {
-            'phase i': ['phase 1', 'phase i', 'phase 1/2'],
-            'phase ii': ['phase 2', 'phase ii', 'phase 2/3'],
-            'phase iii': ['phase 3', 'phase iii'],
-            'phase iv': ['phase 4', 'phase iv'],
-            'phase 1': ['phase i', 'phase 1', 'phase 1/2'],
-            'phase 2': ['phase ii', 'phase 2', 'phase 2/3'],
-            'phase 3': ['phase iii', 'phase 3'],
-            'phase 4': ['phase iv', 'phase 4']
+            'phase i': ['phase 1', 'phase i', 'phase 1/2', 'phase_i', 'phase_1', 'phase_i_ii', 'phase_1_2'],
+            'phase ii': ['phase 2', 'phase ii', 'phase 2/3', 'phase_ii', 'phase_2', 'phase_ii_iii', 'phase_2_3'],
+            'phase iii': ['phase 3', 'phase iii', 'phase_iii', 'phase_3', 'phase_iii_iv', 'phase_3_4'],
+            'phase iv': ['phase 4', 'phase iv', 'phase_iv', 'phase_4'],
+            'phase 1': ['phase i', 'phase 1', 'phase 1/2', 'phase_i', 'phase_1', 'phase_i_ii', 'phase_1_2'],
+            'phase 2': ['phase ii', 'phase 2', 'phase 2/3', 'phase_ii', 'phase_2', 'phase_ii_iii', 'phase_2_3'],
+            'phase 3': ['phase iii', 'phase 3', 'phase_iii', 'phase_3', 'phase_iii_iv', 'phase_3_4'],
+            'phase 4': ['phase iv', 'phase 4', 'phase_iv', 'phase_4']
           };
           
           // Check if search value matches any equivalent
@@ -802,7 +943,7 @@ export default function AdminTherapeuticsPage() {
   // Sorting functions
   const getSortValue = (trial: TherapeuticTrial, field: string): string | number => {
     switch (field) {
-      case "trial_id": return trial.trial_id;
+      case "trial_id": return trial.overview.trial_id || trial.trial_id;
       case "therapeutic_area": return trial.overview?.therapeutic_area || "";
       case "disease_type": return trial.overview?.disease_type || "";
       case "primary_drug": return trial.overview?.primary_drugs || "";
@@ -995,11 +1136,27 @@ export default function AdminTherapeuticsPage() {
 
     window.addEventListener('focus', handleFocus);
 
+    // Listen for custom refresh event from edit pages
+    const handleRefreshFromEdit = () => {
+      console.log('Refresh triggered from edit page, refreshing data...');
+      fetchTrials(true);
+    };
+
+    window.addEventListener('refreshFromEdit', handleRefreshFromEdit);
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('refreshFromEdit', handleRefreshFromEdit);
     };
   }, []);
+
+  // Debug: Log trials data when filter modal opens
+  useEffect(() => {
+    if (filterModalOpen) {
+      console.log('Main page: Passing trials to filter modal:', trials.length, trials)
+    }
+  }, [filterModalOpen, trials]);
 
   // Close sort dropdown when clicking outside
   useEffect(() => {
@@ -1199,6 +1356,14 @@ export default function AdminTherapeuticsPage() {
           </Button>
           <Button
             variant="outline"
+            onClick={() => setQueryLogsModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Query Logs
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setIsAdvancedSearchOpen(true)}
             className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
           >
@@ -1265,7 +1430,67 @@ export default function AdminTherapeuticsPage() {
                 trialTags: [],
                 sex: [],
                 healthyVolunteers: [],
-                trialRecordStatus: []
+                trialRecordStatus: [],
+                // Additional fields from trial creation form
+                otherDrugs: [],
+                regions: [],
+                ageMin: [],
+                ageMax: [],
+                subjectType: [],
+                ecogPerformanceStatus: [],
+                priorTreatments: [],
+                biomarkerRequirements: [],
+                estimatedEnrollment: [],
+                actualEnrollment: [],
+                enrollmentStatus: [],
+                recruitmentPeriod: [],
+                studyCompletionDate: [],
+                primaryCompletionDate: [],
+                populationDescription: [],
+                studySites: [],
+                principalInvestigators: [],
+                siteStatus: [],
+                siteCountries: [],
+                siteRegions: [],
+                siteContactInfo: [],
+                trialResults: [],
+                trialOutcomeContent: [],
+                resultsAvailable: [],
+                endpointsMet: [],
+                adverseEventsReported: [],
+                studyStartDate: [],
+                firstPatientIn: [],
+                lastPatientIn: [],
+                studyEndDate: [],
+                interimAnalysisDates: [],
+                finalAnalysisDate: [],
+                regulatorySubmissionDate: [],
+                purposeOfTrial: [],
+                summary: [],
+                primaryOutcomeMeasures: [],
+                otherOutcomeMeasures: [],
+                studyDesignKeywords: [],
+                studyDesign: [],
+                treatmentRegimen: [],
+                numberOfArms: [],
+                inclusionCriteria: [],
+                exclusionCriteria: [],
+                ageFrom: [],
+                ageTo: [],
+                gender: [],
+                targetNoVolunteers: [],
+                actualEnrolledVolunteers: [],
+                startDateEstimated: [],
+                trialEndDateEstimated: [],
+                trialOutcome: [],
+                adverseEventReported: [],
+                adverseEventType: [],
+                treatmentForAdverseEvents: [],
+                totalSites: [],
+                siteNotes: [],
+                publicationType: [],
+                registryName: [],
+                studyType: []
               });
             }}
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -1550,7 +1775,7 @@ export default function AdminTherapeuticsPage() {
                   </TableCell>
                   {columnSettings.trialId && (
                     <TableCell className="font-mono text-sm">
-                      {trial.trial_id.slice(0, 8)}...
+                      {trial.overview.trial_id || trial.trial_id.slice(0, 8) + '...'}
                     </TableCell>
                   )}
                   <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
@@ -1635,7 +1860,9 @@ export default function AdminTherapeuticsPage() {
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">{trial.trial_id.slice(0, 8)}...</span></p>
+                    <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">
+                      {trial.overview.trial_id || trial.trial_id.slice(0, 8) + '...'}
+                    </span></p>
                     <p className="font-semibold">{trial.overview.title || "Untitled"}</p>
                     <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
                     <p className="text-sm">Disease: {trial.overview.disease_type || "N/A"}</p>
@@ -1771,6 +1998,7 @@ export default function AdminTherapeuticsPage() {
         onOpenChange={setIsAdvancedSearchOpen}
         onApplySearch={handleAdvancedSearch}
         trials={trials}
+        currentFilters={appliedFilters}
       />
 
       {/* Filter Modal */}
@@ -1796,6 +2024,12 @@ export default function AdminTherapeuticsPage() {
         open={queryHistoryModalOpen}
         onOpenChange={setQueryHistoryModalOpen}
         onLoadQuery={handleLoadQuery}
+      />
+
+      {/* Query Logs Modal */}
+      <QueryLogsModal
+        open={queryLogsModalOpen}
+        onOpenChange={setQueryLogsModalOpen}
       />
 
       {/* Customize Column Modal */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, Activity, Pill, LayoutDashboard, LogOut, FileText, Shield, CheckCircle } from "lucide-react";
+import { Users, Activity, Pill, LayoutDashboard, LogOut, FileText, Shield, CheckCircle, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -55,6 +55,11 @@ const items = [
     title: "Drugs",
     url: "/admin/drugs",
     icon: Pill,
+  },
+  {
+    title: "Dropdown Management",
+    url: "/admin/dropdown-management",
+    icon: Settings,
   },
 ];
 

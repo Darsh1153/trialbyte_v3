@@ -470,14 +470,12 @@ export default function TherapeuticsStep5_1() {
       const result = await saveTrial();
       
       if (result.success) {
-        // Get the first trial identifier for the success message
-        const trialId = form.trial_identifier && form.trial_identifier.length > 0 
-          ? form.trial_identifier[0] 
-          : "Trial";
+        // Use the generated trial identifier from the response
+        const trialId = result.trialIdentifier || "Trial";
         
         toast({
           title: "Success",
-          description: `Trial Identifier with${trialId} created successfully`,
+          description: `A trial with ID of ${trialId} is created`,
           duration: 5000,
         });
       } else {
@@ -539,36 +537,64 @@ export default function TherapeuticsStep5_1() {
             <div className="space-y-2">
               <Label>Trial Identifier</Label>
               <div className="space-y-2">
-                {form.trial_identifier.map((val, idx) => (
-                  <div key={idx} className="flex gap-2">
+                {form.trial_identifier.length > 0 ? (
+                  form.trial_identifier.map((val, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Textarea
+                        value={val}
+                        onChange={(e) =>
+                          updateTrialIdentifier(idx, e.target.value)
+                        }
+                        placeholder="Auto-generated (e.g., TB-000001)"
+                        rows={1}
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10"
+                      />
+                      {idx === 0 ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={addTrialIdentifierField}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => removeTrialIdentifier(idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex gap-2">
                     <Textarea
-                      value={val}
-                      onChange={(e) =>
-                        updateTrialIdentifier(idx, e.target.value)
-                      }
-                      placeholder="#807996"
+                      value=""
+                      onChange={(e) => {
+                        // Add the first trial identifier
+                        addTrialIdentifierField();
+                        updateTrialIdentifier(0, e.target.value);
+                      }}
+                      placeholder="Auto-generated (e.g., TB-000001)"
                       rows={1}
                       className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10"
                     />
-                    {idx === 0 ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addTrialIdentifierField}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => removeTrialIdentifier(idx)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addTrialIdentifierField}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
-                ))}
+                )}
+                {form.trial_identifier.length === 0 && (
+                  <div className="text-sm text-gray-500 italic">
+                    Trial identifier will be auto-generated with format TB-XXXXXX when saved
+                  </div>
+                )}
               </div>
             </div>
             <div className="space-y-2">

@@ -146,9 +146,10 @@ export default function TherapeuticsStep5_8() {
       console.log("API Response:", result);
 
       if (response.ok) {
+        const trialId = result.trial_identifier || "Trial";
         toast({
           title: "Success",
-          description: "Therapeutic trial created successfully!",
+          description: `A trial with ID of ${trialId} is created`,
         });
         router.push("/admin/therapeutics");
       } else {

@@ -87,8 +87,9 @@ export const normalizePhaseValue = (phase: string): string => {
   
   const normalized = phase.toLowerCase().trim();
   
-  // Handle common phase variations
+  // Handle common phase variations including underscore format
   const phaseMappings: Record<string, string> = {
+    // Standard formats
     'phase i': 'Phase I',
     'phase 1': 'Phase I',
     'phase 1/2': 'Phase I/II',
@@ -101,7 +102,29 @@ export const normalizePhaseValue = (phase: string): string => {
     'phase 4': 'Phase IV',
     'pre-clinical': 'Pre-clinical',
     'not applicable': 'Not Applicable',
-    'n/a': 'Not Applicable'
+    'n/a': 'Not Applicable',
+    
+    // Underscore formats (from database)
+    'phase_i': 'Phase I',
+    'phase_1': 'Phase I',
+    'phase_i_ii': 'Phase I/II',
+    'phase_1_2': 'Phase I/II',
+    'phase_ii': 'Phase II',
+    'phase_2': 'Phase II',
+    'phase_ii_iii': 'Phase II/III',
+    'phase_2_3': 'Phase II/III',
+    'phase_iii': 'Phase III',
+    'phase_3': 'Phase III',
+    'phase_iii_iv': 'Phase III/IV',
+    'phase_3_4': 'Phase III/IV',
+    'phase_iv': 'Phase IV',
+    'phase_4': 'Phase IV',
+    
+    // Already properly formatted
+    'phase i': 'Phase I',
+    'phase ii': 'Phase II',
+    'phase iii': 'Phase III',
+    'phase iv': 'Phase IV',
   };
   
   return phaseMappings[normalized] || phase;

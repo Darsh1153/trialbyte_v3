@@ -428,7 +428,29 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       }
       
       if (data.trials && data.trials.length > 0) {
-        const foundTrial = data.trials.find((t: any) => t.trial_id === trialId);
+        // First, check if we have localStorage data that might be more recent
+        const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
+        const localTrial = localTrials.find((t: any) => t.trial_id === trialId);
+        const recentlyUpdated = localStorage.getItem(`trial_updated_${trialId}`);
+        
+        let foundTrial = data.trials.find((t: any) => t.trial_id === trialId);
+        
+        // If we have localStorage data and it was recently updated, prioritize it
+        if (localTrial && recentlyUpdated) {
+          console.log('Using recently updated localStorage data for trial:', trialId);
+          foundTrial = localTrial;
+          // Clear the update flag since we're using the updated data
+          localStorage.removeItem(`trial_updated_${trialId}`);
+        } else if (localTrial && foundTrial) {
+          // Compare timestamps to see which is more recent
+          const localUpdatedAt = new Date(localTrial.overview?.updated_at || 0);
+          const apiUpdatedAt = new Date(foundTrial.overview?.updated_at || 0);
+          
+          if (localUpdatedAt > apiUpdatedAt) {
+            console.log('Using localStorage data (more recent) for trial:', trialId);
+            foundTrial = localTrial;
+          }
+        }
         
         if (foundTrial) {
           // Store original trial data for reference
@@ -459,18 +481,46 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             step5_2: {
               purpose_of_trial: foundTrial.outcomes?.[0]?.purpose_of_trial || "",
               summary: foundTrial.outcomes?.[0]?.summary || "",
-              primaryOutcomeMeasures: foundTrial.outcomes?.[0]?.primary_outcome_measure ? [foundTrial.outcomes[0].primary_outcome_measure] : [],
-              otherOutcomeMeasures: foundTrial.outcomes?.[0]?.other_outcome_measure ? [foundTrial.outcomes[0].other_outcome_measure] : [],
+              primaryOutcomeMeasures: foundTrial.outcomes?.[0]?.primary_outcome_measure 
+                ? Array.isArray(foundTrial.outcomes[0].primary_outcome_measure)
+                  ? foundTrial.outcomes[0].primary_outcome_measure.filter(Boolean)
+                  : typeof foundTrial.outcomes[0].primary_outcome_measure === 'string'
+                    ? foundTrial.outcomes[0].primary_outcome_measure.split(", ").filter(Boolean)
+                    : [foundTrial.outcomes[0].primary_outcome_measure].filter(Boolean)
+                : [],
+              otherOutcomeMeasures: foundTrial.outcomes?.[0]?.other_outcome_measure 
+                ? Array.isArray(foundTrial.outcomes[0].other_outcome_measure)
+                  ? foundTrial.outcomes[0].other_outcome_measure.filter(Boolean)
+                  : typeof foundTrial.outcomes[0].other_outcome_measure === 'string'
+                    ? foundTrial.outcomes[0].other_outcome_measure.split(", ").filter(Boolean)
+                    : [foundTrial.outcomes[0].other_outcome_measure].filter(Boolean)
+                : [],
               study_design_keywords: foundTrial.outcomes?.[0]?.study_design_keywords 
-                ? foundTrial.outcomes[0].study_design_keywords.split(", ").filter(Boolean)
+                ? Array.isArray(foundTrial.outcomes[0].study_design_keywords)
+                  ? foundTrial.outcomes[0].study_design_keywords.filter(Boolean)
+                  : typeof foundTrial.outcomes[0].study_design_keywords === 'string'
+                    ? foundTrial.outcomes[0].study_design_keywords.split(", ").filter(Boolean)
+                    : []
                 : [],
               study_design: foundTrial.outcomes?.[0]?.study_design || "",
               treatment_regimen: foundTrial.outcomes?.[0]?.treatment_regimen || "",
               number_of_arms: foundTrial.outcomes?.[0]?.number_of_arms?.toString() || "",
             },
             step5_3: {
-              inclusion_criteria: foundTrial.criteria?.[0]?.inclusion_criteria ? [foundTrial.criteria[0].inclusion_criteria] : [],
-              exclusion_criteria: foundTrial.criteria?.[0]?.exclusion_criteria ? [foundTrial.criteria[0].exclusion_criteria] : [],
+              inclusion_criteria: foundTrial.criteria?.[0]?.inclusion_criteria 
+                ? Array.isArray(foundTrial.criteria[0].inclusion_criteria)
+                  ? foundTrial.criteria[0].inclusion_criteria.filter(Boolean)
+                  : typeof foundTrial.criteria[0].inclusion_criteria === 'string'
+                    ? foundTrial.criteria[0].inclusion_criteria.split("; ").filter(Boolean)
+                    : [foundTrial.criteria[0].inclusion_criteria].filter(Boolean)
+                : [],
+              exclusion_criteria: foundTrial.criteria?.[0]?.exclusion_criteria 
+                ? Array.isArray(foundTrial.criteria[0].exclusion_criteria)
+                  ? foundTrial.criteria[0].exclusion_criteria.filter(Boolean)
+                  : typeof foundTrial.criteria[0].exclusion_criteria === 'string'
+                    ? foundTrial.criteria[0].exclusion_criteria.split("; ").filter(Boolean)
+                    : [foundTrial.criteria[0].exclusion_criteria].filter(Boolean)
+                : [],
               age_min: foundTrial.criteria?.[0]?.age_from || "",
               age_max: foundTrial.criteria?.[0]?.age_to || "",
               gender: foundTrial.criteria?.[0]?.sex || "",
@@ -674,6 +724,11 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               title: "Success",
               description: "Clinical trial updated successfully! Changes have been saved to the database.",
             });
+            
+            // Trigger refresh event for the main page
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('refreshFromEdit'));
+            }
             return;
           } else if (response) {
             const errorText = await response.text().catch(() => 'Unknown error');
@@ -723,6 +778,11 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         title: "Success",
         description: "Clinical trial updated successfully! Changes are saved locally and visible immediately.",
       });
+
+      // Trigger refresh event for the main page
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refreshFromEdit'));
+      }
 
     } catch (error) {
       console.error("Error saving trial:", error);

@@ -93,37 +93,9 @@ export function SaveQueryModal({
         savedAt: new Date().toISOString()
       }
 
-      const requestBody = {
-        title: title.trim(),
-        description: description.trim() || null,
-        query_type: "dashboard",
-        query_data: queryData,
-        filters: currentFilters
-        // user_id and trial_id are now optional for dashboard queries
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(requestBody)
-        }
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Failed to save query")
-      }
-
-      const result = await response.json()
-      
-      // Also save to localStorage as backup
+      // First, save to localStorage (primary method)
       const localQuery = {
-        id: result.id || Date.now().toString(),
+        id: Date.now().toString(),
         title: title.trim(),
         description: description.trim() || null,
         query_data: queryData,
@@ -134,6 +106,38 @@ export function SaveQueryModal({
       const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
       existingQueries.push(localQuery)
       localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
+
+      // Try to save to backend API (secondary method)
+      try {
+        const requestBody = {
+          title: title.trim(),
+          description: description.trim() || null,
+          query_type: "dashboard",
+          query_data: queryData,
+          filters: currentFilters
+        }
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(requestBody)
+          }
+        )
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log("Query saved to backend successfully:", result)
+        } else {
+          console.warn("Backend save failed, but query saved locally")
+        }
+      } catch (apiError) {
+        console.warn("API save failed, but query saved locally:", apiError)
+      }
       
       if (onSaveSuccess) {
         onSaveSuccess()
@@ -142,30 +146,7 @@ export function SaveQueryModal({
       handleClose()
     } catch (error) {
       console.error("Error saving query:", error)
-      
-      // Fallback to localStorage only
-      try {
-        const localQuery = {
-          id: Date.now().toString(),
-          title: title.trim(),
-          description: description.trim() || null,
-          query_data: queryData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-        
-        const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
-        existingQueries.push(localQuery)
-        localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
-        
-        if (onSaveSuccess) {
-          onSaveSuccess()
-        }
-        
-        handleClose()
-      } catch (localError) {
-        setError(error instanceof Error ? error.message : "Failed to save query")
-      }
+      setError("Failed to save query. Please try again.")
     } finally {
       setIsLoading(false)
     }

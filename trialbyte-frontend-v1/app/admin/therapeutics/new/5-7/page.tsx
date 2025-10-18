@@ -82,13 +82,12 @@ export default function TherapeuticsStep5_7() {
       
       if (result.success) {
         // Get the first trial identifier for the success message
-        const trialId = formData.step5_1.trial_identifier && formData.step5_1.trial_identifier.length > 0 
-          ? formData.step5_1.trial_identifier[0] 
-          : "Trial";
+        // Use the generated trial identifier from the response
+        const trialId = result.trialIdentifier || "Trial";
         
         toast({
           title: "Success",
-          description: `${trialId} created successfully`,
+          description: `A trial with ID of ${trialId} is created`,
           duration: 5000,
         });
       } else {
