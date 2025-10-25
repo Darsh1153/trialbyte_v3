@@ -139,6 +139,7 @@ export default function EditTherapeuticsStep5_6() {
                 type: "Analysis",
                 content: note,
                 sourceType: "",
+                sourceUrl: "",
                 attachments: [],
                 isVisible: true
               }))}

@@ -44,7 +44,7 @@ import { TherapeuticFilterModal, TherapeuticFilterState } from "@/components/the
 import { SaveQueryModal } from "@/components/save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
 import { QueryLogsModal } from "@/components/query-logs-modal";
-import { CustomizeColumnModal, ColumnSettings, DEFAULT_COLUMN_SETTINGS } from "@/components/customize-column-modal";
+import { CustomizeColumnModal, ColumnSettings, DEFAULT_COLUMN_SETTINGS, COLUMN_OPTIONS } from "@/components/customize-column-modal";
 
 // Types based on the API response
 interface TherapeuticTrial {
@@ -248,6 +248,9 @@ export default function AdminTherapeuticsPage() {
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
   const [queryLogsModalOpen, setQueryLogsModalOpen] = useState(false);
+  const [editingQueryId, setEditingQueryId] = useState<string | null>(null);
+  const [editingQueryTitle, setEditingQueryTitle] = useState<string>("");
+  const [editingQueryDescription, setEditingQueryDescription] = useState<string>("");
   
   // Sorting state
   const [sortField, setSortField] = useState<string>("");
@@ -542,6 +545,17 @@ export default function AdminTherapeuticsPage() {
     localStorage.setItem('queryExecutionLogs', JSON.stringify(existingLogs));
   };
 
+  // Handle advanced search modal close
+  const handleAdvancedSearchModalChange = (open: boolean) => {
+    setIsAdvancedSearchOpen(open);
+    // Clear editing state when modal closes
+    if (!open) {
+      setEditingQueryId(null);
+      setEditingQueryTitle("");
+      setEditingQueryDescription("");
+    }
+  };
+
   // Handle load query from history
   const handleLoadQuery = (queryData: any) => {
     console.log('Loading query data:', queryData);
@@ -589,6 +603,67 @@ export default function AdminTherapeuticsPage() {
       title: "Query Loaded",
       description: "Query has been loaded successfully",
     });
+  };
+
+  // Handle execute query from logs
+  const handleExecuteQueryFromLog = (queryData: any) => {
+    console.log('Executing query from log:', queryData);
+    
+    // Load search criteria if available
+    if (queryData.searchCriteria && Array.isArray(queryData.searchCriteria)) {
+      setAdvancedSearchCriteria(queryData.searchCriteria);
+    }
+    
+    // Load filters if available
+    if (queryData.filters) {
+      setAppliedFilters(queryData.filters);
+    }
+    
+    // Load search term if available
+    if (queryData.searchTerm) {
+      setSearchTerm(queryData.searchTerm);
+    }
+    
+    toast({
+      title: "Query Executed",
+      description: `"${queryData.queryTitle}" has been applied to your current view`,
+    });
+  };
+
+  // Handle edit query from history
+  const handleEditQuery = (queryData: any) => {
+    console.log('Editing query data:', queryData);
+    
+    // Store the query being edited
+    setEditingQueryId(queryData.queryId);
+    setEditingQueryTitle(queryData.queryTitle || "");
+    setEditingQueryDescription(queryData.queryDescription || "");
+    
+    // Load search criteria if available
+    if (queryData.searchCriteria && Array.isArray(queryData.searchCriteria)) {
+      setAdvancedSearchCriteria(queryData.searchCriteria);
+    }
+    
+    // Load filters if available
+    if (queryData.filters) {
+      setAppliedFilters(queryData.filters);
+    }
+    
+    // Load search term if available
+    if (queryData.searchTerm) {
+      setSearchTerm(queryData.searchTerm);
+    }
+    
+    // Open the Advanced Search modal with the loaded data
+    setIsAdvancedSearchOpen(true);
+  };
+
+  // Handle save query success
+  const handleSaveQuerySuccess = () => {
+    // Clear editing state after successful save
+    setEditingQueryId(null);
+    setEditingQueryTitle("");
+    setEditingQueryDescription("");
   };
 
   // Handle filter application
@@ -943,14 +1018,84 @@ export default function AdminTherapeuticsPage() {
   // Sorting functions
   const getSortValue = (trial: TherapeuticTrial, field: string): string | number => {
     switch (field) {
+      // Core fields
+      case "therapeuticArea": return trial.overview?.therapeutic_area || "";
+      case "diseaseType": return trial.overview?.disease_type || "";
+      case "primaryDrug": return trial.overview?.primary_drugs || "";
+      case "trialPhase": return trial.overview?.trial_phase || "";
+      case "patientSegment": return trial.overview?.patient_segment || "";
+      case "lineOfTherapy": return trial.overview?.line_of_therapy || "";
+      case "countries": return trial.overview?.countries || "";
+      case "sponsorsCollaborators": 
+      case "sponsor": return trial.overview?.sponsor_collaborators || "";
+      case "fieldOfActivity": return trial.overview?.sponsor_field_activity || "";
+      case "associatedCro": return trial.overview?.associated_cro || "";
+      case "trialTags": return trial.overview?.trial_tags || "";
+      case "sex": return trial.criteria[0]?.sex || "";
+      case "healthyVolunteers": return trial.criteria[0]?.healthy_volunteers || "";
+      case "trialRecordStatus": return trial.overview?.trial_record_status || "";
+      case "otherDrugs": return trial.overview?.other_drugs || "";
+      case "regions": return trial.overview?.region || "";
+      case "ageMin": return trial.criteria[0]?.age_from || "";
+      case "ageMax": return trial.criteria[0]?.age_to || "";
+      case "subjectType": return trial.criteria[0]?.subject_type || "";
+      
+      // Enrollment & Study data
+      case "estimatedEnrollment":
+      case "targetNoVolunteers": return trial.criteria[0]?.target_no_volunteers?.toString() || "0";
+      case "actualEnrollment":
+      case "actualEnrolledVolunteers": return trial.criteria[0]?.actual_enrolled_volunteers?.toString() || "0";
+      
+      // Timing fields
+      case "studyStartDate":
+      case "startDateEstimated": return trial.timing[0]?.start_date_estimated || "";
+      case "studyEndDate":
+      case "trialEndDateEstimated": return trial.timing[0]?.trial_end_date_estimated || "";
+      
+      // Outcomes fields
+      case "purposeOfTrial": return trial.outcomes[0]?.purpose_of_trial || "";
+      case "summary": return trial.outcomes[0]?.summary || "";
+      case "primaryOutcomeMeasures": return trial.outcomes[0]?.primary_outcome_measure || "";
+      case "otherOutcomeMeasures": return trial.outcomes[0]?.other_outcome_measure || "";
+      case "studyDesignKeywords": return trial.outcomes[0]?.study_design_keywords || "";
+      case "studyDesign": return trial.outcomes[0]?.study_design || "";
+      case "treatmentRegimen": return trial.outcomes[0]?.treatment_regimen || "";
+      case "numberOfArms": return trial.outcomes[0]?.number_of_arms?.toString() || "0";
+      
+      // Criteria fields
+      case "inclusionCriteria": return trial.criteria[0]?.inclusion_criteria || "";
+      case "exclusionCriteria": return trial.criteria[0]?.exclusion_criteria || "";
+      case "ageFrom": return trial.criteria[0]?.age_from || "";
+      case "ageTo": return trial.criteria[0]?.age_to || "";
+      case "gender": return trial.criteria[0]?.sex || "";
+      
+      // Results fields
+      case "trialOutcome":
+      case "trialOutcomeContent": return trial.results[0]?.trial_outcome || "";
+      case "trialResults": return trial.results[0]?.trial_results?.join(", ") || "";
+      case "adverseEventReported":
+      case "adverseEventsReported": return trial.results[0]?.adverse_event_reported || "";
+      case "adverseEventType": return trial.results[0]?.adverse_event_type || "";
+      case "treatmentForAdverseEvents": return trial.results[0]?.treatment_for_adverse_events || "";
+      
+      // Sites fields
+      case "totalSites": return trial.sites[0]?.total?.toString() || "0";
+      case "siteNotes": return trial.sites[0]?.notes || "";
+      
+      // Additional fields
+      case "publicationType": return "";
+      case "registryName": return "";
+      case "studyType": return "";
+      
+      // Legacy support
       case "trial_id": return trial.overview.trial_id || trial.trial_id;
       case "therapeutic_area": return trial.overview?.therapeutic_area || "";
       case "disease_type": return trial.overview?.disease_type || "";
       case "primary_drug": return trial.overview?.primary_drugs || "";
       case "trial_status": return trial.overview?.status || "";
-      case "sponsor": return trial.overview?.sponsor_collaborators || "";
       case "phase": return trial.overview?.trial_phase || "";
       case "enrollment": return trial.criteria[0]?.target_no_volunteers?.toString() || "0";
+      
       default: return "";
     }
   };
@@ -970,6 +1115,11 @@ export default function AdminTherapeuticsPage() {
     setColumnSettings(newSettings);
     // Save to localStorage
     localStorage.setItem('adminTrialColumnSettings', JSON.stringify(newSettings));
+  };
+
+  // Get all available sort options from customize columns (all columns, not just visible ones)
+  const getAvailableSortOptions = () => {
+    return COLUMN_OPTIONS;
   };
 
   // Filter trials based on search term, advanced search criteria, and filters
@@ -1340,30 +1490,6 @@ export default function AdminTherapeuticsPage() {
         <div className="flex items-center space-x-2 ml-5">
           <Button
             variant="outline"
-            onClick={() => setSaveQueryModalOpen(true)}
-            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Query
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setQueryHistoryModalOpen(true)}
-            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Saved Queries
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setQueryLogsModalOpen(true)}
-            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Query Logs
-          </Button>
-          <Button
-            variant="outline"
             onClick={() => setIsAdvancedSearchOpen(true)}
             className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
           >
@@ -1543,194 +1669,106 @@ export default function AdminTherapeuticsPage() {
         </div>
       )}
 
-      {/* Sort By Dropdown */}
-      <div className="flex items-center space-x-2">
-        <div className="relative" ref={sortDropdownRef}>
-          <Button
-            variant="outline"
-            onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-            className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-          >
-            <ChevronDown className="h-4 w-4 mr-2" />
-            Sort By
-            {sortField && (
-              <span className="ml-2 text-xs">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
-          </Button>
+      {/* Sort By Dropdown and Query Actions */}
+      <div className="flex items-center justify-between">
+        {/* Left side - Sort and Customize Columns */}
+        <div className="flex items-center space-x-2">
+          <div className="relative" ref={sortDropdownRef}>
+            <Button
+              variant="outline"
+              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+              className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+            >
+              <ChevronDown className="h-4 w-4 mr-2" />
+              {sortField ? (
+                <>
+                  {COLUMN_OPTIONS.find(opt => opt.key === sortField)?.label || "Sort By"}
+                  <span className="ml-2 text-xs">
+                    {sortDirection === "asc" ? "↑" : "↓"}
+                  </span>
+                </>
+              ) : (
+                "Sort By"
+              )}
+            </Button>
           {sortDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-[450px] overflow-y-auto">
               <div className="py-1">
-                <button
-                  onClick={() => {
-                    handleSort("trial_id");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "trial_id" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Trial ID</span>
-                    {sortField === "trial_id" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("therapeutic_area");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "therapeutic_area" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Therapeutic Area</span>
-                    {sortField === "therapeutic_area" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("disease_type");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "disease_type" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Disease Type</span>
-                    {sortField === "disease_type" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("primary_drug");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "primary_drug" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Primary Drug</span>
-                    {sortField === "primary_drug" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("trial_status");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "trial_status" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Trial Status</span>
-                    {sortField === "trial_status" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("sponsor");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "sponsor" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Sponsor</span>
-                    {sortField === "sponsor" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("phase");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "phase" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Phase</span>
-                    {sortField === "phase" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("enrollment");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "enrollment" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Enrollment</span>
-                    {sortField === "enrollment" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
+                {getAvailableSortOptions().map((option) => (
+                  <button
+                    key={option.key}
+                    onClick={() => {
+                      handleSort(option.key);
+                      setSortDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                      sortField === option.key ? "bg-blue-50 font-semibold text-blue-700" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{option.label}</span>
+                      {sortField === option.key && (
+                        <span className="text-xs font-bold">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
-        </div>
-        {sortField && (
+          </div>
+          {sortField && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSortField("");
+                setSortDirection("asc");
+              }}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              Clear Sort
+            </Button>
+          )}
           <Button
             variant="outline"
-            size="sm"
-            onClick={() => {
-              setSortField("");
-              setSortDirection("asc");
-            }}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={() => setCustomizeColumnModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
           >
-            Clear Sort
+            <Settings className="h-4 w-4 mr-2" />
+            Customize Columns
           </Button>
-        )}
-        <Button
-          variant="outline"
-          onClick={() => setCustomizeColumnModalOpen(true)}
-          className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-        >
-          <Settings className="h-4 w-4 mr-2" />
-          Customize Columns
-        </Button>
+        </div>
+        
+        {/* Right side - Query Action Buttons */}
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setSaveQueryModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Query
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setQueryHistoryModalOpen(true)}
+            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Saved Queries
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setQueryLogsModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Query Logs
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card">
@@ -1745,13 +1783,81 @@ export default function AdminTherapeuticsPage() {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                {columnSettings.trialId && <TableHead>Trial ID</TableHead>}
                 <TableHead>Title</TableHead>
-                {columnSettings.therapeuticArea && <TableHead>Clinical Trials</TableHead>}
+                {columnSettings.therapeuticArea && <TableHead>Therapeutic Area</TableHead>}
                 {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
-                {columnSettings.trialStatus && <TableHead>Status</TableHead>}
-                {columnSettings.phase && <TableHead>Phase</TableHead>}
+                {columnSettings.primaryDrug && <TableHead>Primary Drug</TableHead>}
+                {columnSettings.trialPhase && <TableHead>Trial Phase</TableHead>}
+                {columnSettings.patientSegment && <TableHead>Patient Segment</TableHead>}
+                {columnSettings.lineOfTherapy && <TableHead>Line of Therapy</TableHead>}
+                {columnSettings.countries && <TableHead>Countries</TableHead>}
+                {columnSettings.sponsorsCollaborators && <TableHead>Sponsors & Collaborators</TableHead>}
                 {columnSettings.sponsor && <TableHead>Sponsor</TableHead>}
+                {columnSettings.fieldOfActivity && <TableHead>Field of Activity</TableHead>}
+                {columnSettings.associatedCro && <TableHead>Associated CRO</TableHead>}
+                {columnSettings.trialTags && <TableHead>Trial Tags</TableHead>}
+                {columnSettings.sex && <TableHead>Sex</TableHead>}
+                {columnSettings.healthyVolunteers && <TableHead>Healthy Volunteers</TableHead>}
+                {columnSettings.trialRecordStatus && <TableHead>Trial Record Status</TableHead>}
+                {columnSettings.otherDrugs && <TableHead>Other Drugs</TableHead>}
+                {columnSettings.regions && <TableHead>Regions</TableHead>}
+                {columnSettings.ageMin && <TableHead>Age Min</TableHead>}
+                {columnSettings.ageMax && <TableHead>Age Max</TableHead>}
+                {columnSettings.subjectType && <TableHead>Subject Type</TableHead>}
+                {columnSettings.ecogPerformanceStatus && <TableHead>ECOG Status</TableHead>}
+                {columnSettings.priorTreatments && <TableHead>Prior Treatments</TableHead>}
+                {columnSettings.biomarkerRequirements && <TableHead>Biomarker Requirements</TableHead>}
+                {columnSettings.estimatedEnrollment && <TableHead>Est. Enrollment</TableHead>}
+                {columnSettings.actualEnrollment && <TableHead>Actual Enrollment</TableHead>}
+                {columnSettings.enrollmentStatus && <TableHead>Enrollment Status</TableHead>}
+                {columnSettings.recruitmentPeriod && <TableHead>Recruitment Period</TableHead>}
+                {columnSettings.studyCompletionDate && <TableHead>Study Completion</TableHead>}
+                {columnSettings.primaryCompletionDate && <TableHead>Primary Completion</TableHead>}
+                {columnSettings.populationDescription && <TableHead>Population</TableHead>}
+                {columnSettings.studySites && <TableHead>Study Sites</TableHead>}
+                {columnSettings.principalInvestigators && <TableHead>Principal Investigators</TableHead>}
+                {columnSettings.siteStatus && <TableHead>Site Status</TableHead>}
+                {columnSettings.siteCountries && <TableHead>Site Countries</TableHead>}
+                {columnSettings.siteRegions && <TableHead>Site Regions</TableHead>}
+                {columnSettings.siteContactInfo && <TableHead>Site Contact Info</TableHead>}
+                {columnSettings.trialResults && <TableHead>Trial Results</TableHead>}
+                {columnSettings.trialOutcomeContent && <TableHead>Trial Outcome Content</TableHead>}
+                {columnSettings.resultsAvailable && <TableHead>Results Available</TableHead>}
+                {columnSettings.endpointsMet && <TableHead>Endpoints Met</TableHead>}
+                {columnSettings.adverseEventsReported && <TableHead>Adverse Events</TableHead>}
+                {columnSettings.studyStartDate && <TableHead>Study Start Date</TableHead>}
+                {columnSettings.firstPatientIn && <TableHead>First Patient In</TableHead>}
+                {columnSettings.lastPatientIn && <TableHead>Last Patient In</TableHead>}
+                {columnSettings.studyEndDate && <TableHead>Study End Date</TableHead>}
+                {columnSettings.interimAnalysisDates && <TableHead>Interim Analysis</TableHead>}
+                {columnSettings.finalAnalysisDate && <TableHead>Final Analysis</TableHead>}
+                {columnSettings.regulatorySubmissionDate && <TableHead>Regulatory Submission</TableHead>}
+                {columnSettings.purposeOfTrial && <TableHead>Purpose of Trial</TableHead>}
+                {columnSettings.summary && <TableHead>Summary</TableHead>}
+                {columnSettings.primaryOutcomeMeasures && <TableHead>Primary Outcome</TableHead>}
+                {columnSettings.otherOutcomeMeasures && <TableHead>Other Outcome</TableHead>}
+                {columnSettings.studyDesignKeywords && <TableHead>Study Design Keywords</TableHead>}
+                {columnSettings.studyDesign && <TableHead>Study Design</TableHead>}
+                {columnSettings.treatmentRegimen && <TableHead>Treatment Regimen</TableHead>}
+                {columnSettings.numberOfArms && <TableHead>Number of Arms</TableHead>}
+                {columnSettings.inclusionCriteria && <TableHead>Inclusion Criteria</TableHead>}
+                {columnSettings.exclusionCriteria && <TableHead>Exclusion Criteria</TableHead>}
+                {columnSettings.ageFrom && <TableHead>Age From</TableHead>}
+                {columnSettings.ageTo && <TableHead>Age To</TableHead>}
+                {columnSettings.gender && <TableHead>Gender</TableHead>}
+                {columnSettings.targetNoVolunteers && <TableHead>Target Volunteers</TableHead>}
+                {columnSettings.actualEnrolledVolunteers && <TableHead>Actual Volunteers</TableHead>}
+                {columnSettings.startDateEstimated && <TableHead>Start Date Est.</TableHead>}
+                {columnSettings.trialEndDateEstimated && <TableHead>End Date Est.</TableHead>}
+                {columnSettings.trialOutcome && <TableHead>Trial Outcome</TableHead>}
+                {columnSettings.adverseEventReported && <TableHead>Adverse Event</TableHead>}
+                {columnSettings.adverseEventType && <TableHead>Adverse Event Type</TableHead>}
+                {columnSettings.treatmentForAdverseEvents && <TableHead>Treatment for AE</TableHead>}
+                {columnSettings.totalSites && <TableHead>Total Sites</TableHead>}
+                {columnSettings.siteNotes && <TableHead>Site Notes</TableHead>}
+                {columnSettings.publicationType && <TableHead>Publication Type</TableHead>}
+                {columnSettings.registryName && <TableHead>Registry Name</TableHead>}
+                {columnSettings.studyType && <TableHead>Study Type</TableHead>}
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -1765,36 +1871,232 @@ export default function AdminTherapeuticsPage() {
                       onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
                     />
                   </TableCell>
-                  {columnSettings.trialId && (
-                    <TableCell className="font-mono text-sm">
-                      {trial.overview.trial_id || trial.trial_id.slice(0, 8) + '...'}
-                    </TableCell>
-                  )}
                   <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
                     {trial.overview.title || "Untitled"}
                   </TableCell>
                   {columnSettings.therapeuticArea && (
-                    <TableCell>
-                      <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
-                    </TableCell>
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.therapeutic_area || "N/A"}</TableCell>
                   )}
                   {columnSettings.diseaseType && (
-                    <TableCell>{trial.overview.disease_type || "N/A"}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.disease_type || "N/A"}</TableCell>
                   )}
-                  {columnSettings.trialStatus && (
-                    <TableCell>
-                      <Badge className={getStatusColor(trial.overview.status)}>
-                        {trial.overview.status || "Unknown"}
-                      </Badge>
-                    </TableCell>
+                  {columnSettings.primaryDrug && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.primary_drugs || "N/A"}</TableCell>
                   )}
-                  {columnSettings.phase && (
+                  {columnSettings.trialPhase && (
                     <TableCell>{trial.overview.trial_phase || "N/A"}</TableCell>
                   )}
+                  {columnSettings.patientSegment && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.patient_segment || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.lineOfTherapy && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.line_of_therapy || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.countries && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.countries || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.sponsorsCollaborators && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
+                  )}
                   {columnSettings.sponsor && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.fieldOfActivity && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_field_activity || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.associatedCro && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.associated_cro || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialTags && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.trial_tags || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.sex && (
+                    <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.healthyVolunteers && (
+                    <TableCell>{trial.criteria[0]?.healthy_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialRecordStatus && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.trial_record_status || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.otherDrugs && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.other_drugs || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.regions && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageMin && (
+                    <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageMax && (
+                    <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.subjectType && (
+                    <TableCell>{trial.criteria[0]?.subject_type || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ecogPerformanceStatus && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.priorTreatments && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.biomarkerRequirements && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.estimatedEnrollment && (
+                    <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.actualEnrollment && (
+                    <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.enrollmentStatus && (
+                    <TableCell>{trial.overview.status || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.recruitmentPeriod && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.studyCompletionDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.primaryCompletionDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.populationDescription && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.patient_segment || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studySites && (
+                    <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.principalInvestigators && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.siteStatus && (
+                    <TableCell>{trial.overview.status || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteCountries && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.countries || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteRegions && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteContactInfo && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.trialResults && (
                     <TableCell className="max-w-[150px] truncate">
-                      {trial.overview.sponsor_collaborators || "N/A"}
+                      {trial.results[0]?.trial_results?.join(", ") || "N/A"}
                     </TableCell>
+                  )}
+                  {columnSettings.trialOutcomeContent && (
+                    <TableCell className="max-w-[150px] truncate">{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.resultsAvailable && (
+                    <TableCell>{trial.results?.length > 0 ? "Yes" : "No"}</TableCell>
+                  )}
+                  {columnSettings.endpointsMet && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.adverseEventsReported && (
+                    <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studyStartDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.firstPatientIn && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.lastPatientIn && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.studyEndDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.interimAnalysisDates && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.finalAnalysisDate && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.regulatorySubmissionDate && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.purposeOfTrial && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.purpose_of_trial || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.summary && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.summary || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.primaryOutcomeMeasures && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.primary_outcome_measure || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.otherOutcomeMeasures && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.other_outcome_measure || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studyDesignKeywords && (
+                    <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.study_design_keywords || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studyDesign && (
+                    <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.study_design || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.treatmentRegimen && (
+                    <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.treatment_regimen || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.numberOfArms && (
+                    <TableCell>{trial.outcomes[0]?.number_of_arms || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.inclusionCriteria && (
+                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.inclusion_criteria || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.exclusionCriteria && (
+                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.exclusion_criteria || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageFrom && (
+                    <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageTo && (
+                    <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.gender && (
+                    <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.targetNoVolunteers && (
+                    <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.actualEnrolledVolunteers && (
+                    <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.startDateEstimated && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialEndDateEstimated && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialOutcome && (
+                    <TableCell>{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.adverseEventReported && (
+                    <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.adverseEventType && (
+                    <TableCell className="max-w-[120px] truncate">{trial.results[0]?.adverse_event_type || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.treatmentForAdverseEvents && (
+                    <TableCell className="max-w-[150px] truncate">{trial.results[0]?.treatment_for_adverse_events || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.totalSites && (
+                    <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteNotes && (
+                    <TableCell className="max-w-[150px] truncate">{trial.sites[0]?.notes || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.publicationType && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.registryName && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.studyType && (
+                    <TableCell>N/A</TableCell>
                   )}
                   <TableCell className="text-sm">{formatDate(trial.overview.created_at)}</TableCell>
                   <TableCell className="text-right">
@@ -1976,10 +2278,15 @@ export default function AdminTherapeuticsPage() {
       {/* Advanced Search Modal */}
       <TherapeuticAdvancedSearchModal
         open={isAdvancedSearchOpen}
-        onOpenChange={setIsAdvancedSearchOpen}
+        onOpenChange={handleAdvancedSearchModalChange}
         onApplySearch={handleAdvancedSearch}
         trials={trials}
         currentFilters={appliedFilters}
+        initialCriteria={advancedSearchCriteria}
+        editingQueryId={editingQueryId}
+        editingQueryTitle={editingQueryTitle}
+        editingQueryDescription={editingQueryDescription}
+        onSaveQuerySuccess={handleSaveQuerySuccess}
       />
 
       {/* Filter Modal */}
@@ -1998,6 +2305,10 @@ export default function AdminTherapeuticsPage() {
         currentFilters={appliedFilters}
         currentSearchCriteria={advancedSearchCriteria}
         searchTerm={searchTerm}
+        onSaveSuccess={handleSaveQuerySuccess}
+        editingQueryId={editingQueryId}
+        editingQueryTitle={editingQueryTitle}
+        editingQueryDescription={editingQueryDescription}
       />
 
       {/* Query History Modal */}
@@ -2005,12 +2316,14 @@ export default function AdminTherapeuticsPage() {
         open={queryHistoryModalOpen}
         onOpenChange={setQueryHistoryModalOpen}
         onLoadQuery={handleLoadQuery}
+        onEditQuery={handleEditQuery}
       />
 
       {/* Query Logs Modal */}
       <QueryLogsModal
         open={queryLogsModalOpen}
         onOpenChange={setQueryLogsModalOpen}
+        onExecuteQuery={handleExecuteQueryFromLog}
       />
 
       {/* Customize Column Modal */}

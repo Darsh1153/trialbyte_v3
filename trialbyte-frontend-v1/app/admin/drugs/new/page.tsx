@@ -1480,6 +1480,8 @@ export default function NewDrugPage() {
                         type: "Press Release",
                         content: content.otherSources.pressReleases || "",
                         sourceLink: "",
+                        sourceType: "",
+                        sourceUrl: "",
                         attachments: [],
                         isVisible: true
                       }]) : []}
@@ -1536,6 +1538,8 @@ export default function NewDrugPage() {
                         type: "Publication",
                         content: content.otherSources.publications || "",
                         sourceLink: "",
+                        sourceType: "",
+                        sourceUrl: "",
                         attachments: [],
                         isVisible: true
                       }]) : []}
@@ -1916,6 +1920,8 @@ export default function NewDrugPage() {
                 type: "General",
                 content: content.logs.notes,
                 sourceLink: "",
+                sourceType: "",
+                sourceUrl: "",
                 attachments: [],
                 isVisible: true
               }]) : []}

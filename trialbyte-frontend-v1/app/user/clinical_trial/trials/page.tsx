@@ -2589,6 +2589,8 @@ function ClinicalTrialsPage() {
                 type: "General",
                 content: note.notes || "",
                 sourceLink: note.link || "",
+                sourceType: "",
+                sourceUrl: "",
                 attachments: note.attachments || [],
                 isVisible: true
               })) || []}

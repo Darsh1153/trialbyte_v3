@@ -17,6 +17,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 
 export default function TherapeuticsStep5_5() {
   const { 
@@ -40,32 +41,44 @@ export default function TherapeuticsStep5_5() {
   const [openAdverseReported, setOpenAdverseReported] = useState(false);
   const [openAdverseType, setOpenAdverseType] = useState(false);
 
-  const outcomes = [
-    "Completed – Primary endpoints met.",
-    "Completed – Primary endpoints not met.",
-    "Completed – Outcome unknown",
-    "Completed – Outcome indeterminate",
-    "Terminated – Safety/adverse effects",
-    "Terminated – Lack of efficacy",
-    "Terminated – Insufficient enrolment",
-    "Terminated – Business Decision, Drug strategy shift",
-    "Terminated - Business Decision, Pipeline Reprioritization",
-    "Terminated - Business Decision, Other",
-    "Terminated – Lack of funding",
-    "Terminated – Planned but never initiated",
-    "Terminated – Other",
-    "Terminated – Unknown"
-  ];
+  // Trial Outcome options - fetch from database with fallback
+  const { options: trialOutcomeOptions } = useDynamicDropdown({
+    categoryName: 'trial_outcome',
+    fallbackOptions: [
+      { value: "completed_primary_endpoints_met", label: "Completed – Primary endpoints met." },
+      { value: "completed_primary_endpoints_not_met", label: "Completed – Primary endpoints not met." },
+      { value: "completed_outcome_unknown", label: "Completed – Outcome unknown" },
+      { value: "completed_outcome_indeterminate", label: "Completed – Outcome indeterminate" },
+      { value: "terminated_safety_adverse_effects", label: "Terminated – Safety/adverse effects" },
+      { value: "terminated_lack_of_efficacy", label: "Terminated – Lack of efficacy" },
+      { value: "terminated_insufficient_enrolment", label: "Terminated – Insufficient enrolment" },
+      { value: "terminated_business_drug_strategy_shift", label: "Terminated – Business Decision, Drug strategy shift" },
+      { value: "terminated_business_pipeline_reprioritization", label: "Terminated - Business Decision, Pipeline Reprioritization" },
+      { value: "terminated_business_other", label: "Terminated - Business Decision, Other" },
+      { value: "terminated_lack_of_funding", label: "Terminated – Lack of funding" },
+      { value: "terminated_planned_but_never_initiated", label: "Terminated – Planned but never initiated" },
+      { value: "terminated_other", label: "Terminated – Other" },
+      { value: "terminated_unknown", label: "Terminated – Unknown" },
+    ]
+  });
+
+  const outcomes = trialOutcomeOptions.map(opt => opt.label);
+
   const adverseReported = ["Yes", "No"];
   const adverseTypes = ["Mild", "Moderate", "Severe"];
   
-  // Site note type options
-  const siteNoteTypes = [
-    "Interim",
-    "Full Results",
-    "Primary Endpoint Results",
-    "Analysis"
-  ];
+  // Result Type options - fetch from database with fallback
+  const { options: resultTypeOptions } = useDynamicDropdown({
+    categoryName: 'result_type',
+    fallbackOptions: [
+      { value: "interim", label: "Interim" },
+      { value: "full_results", label: "Full Results" },
+      { value: "primary_endpoint_results", label: "Primary Endpoint Results" },
+      { value: "analysis", label: "Analysis" },
+    ]
+  });
+
+  const siteNoteTypes = resultTypeOptions.map(opt => opt.label);
 
   // Source type options
   const sourceTypes = [
@@ -129,7 +142,7 @@ export default function TherapeuticsStep5_5() {
           onClick={handleSaveChanges}
           disabled={isSaving}
         >
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? "Creating..." : "Create a Record"}
         </Button>
       </div>
 

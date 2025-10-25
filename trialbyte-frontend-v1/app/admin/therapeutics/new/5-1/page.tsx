@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useDrugNames } from "@/hooks/use-drug-names";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 
 export default function TherapeuticsStep5_1() {
   const {
@@ -226,43 +227,52 @@ export default function TherapeuticsStep5_1() {
     // Add more therapeutic areas as needed
   };
 
-  // Options for searchable dropdowns
-  const therapeuticAreaOptions: SearchableSelectOption[] = [
-    { value: "autoimmune", label: "Autoimmune" },
-    { value: "cardiovascular", label: "Cardiovascular" },
-    { value: "endocrinology", label: "Endocrinology" },
-    { value: "gastrointestinal", label: "Gastrointestinal" },
-    { value: "infectious", label: "Infectious" },
-    { value: "oncology", label: "Oncology" },
-    { value: "gastroenterology", label: "Gastroenterology" },
-    { value: "dermatology", label: "Dermatology" },
-    { value: "vaccines", label: "Vaccines" },
-    { value: "cns_neurology", label: "CNS/Neurology" },
-    { value: "ophthalmology", label: "Ophthalmology" },
-    { value: "immunology", label: "Immunology" },
-    { value: "rheumatology", label: "Rheumatology" },
-    { value: "haematology", label: "Haematology" },
-    { value: "nephrology", label: "Nephrology" },
-    { value: "urology", label: "Urology" },
-  ];
+  // Dynamic dropdown options
+  const { options: therapeuticAreaOptions } = useDynamicDropdown({
+    categoryName: 'therapeutic_area',
+    fallbackOptions: [
+      { value: "autoimmune", label: "Autoimmune" },
+      { value: "cardiovascular", label: "Cardiovascular" },
+      { value: "endocrinology", label: "Endocrinology" },
+      { value: "gastrointestinal", label: "Gastrointestinal" },
+      { value: "infectious", label: "Infectious" },
+      { value: "oncology", label: "Oncology" },
+      { value: "gastroenterology", label: "Gastroenterology" },
+      { value: "dermatology", label: "Dermatology" },
+      { value: "vaccines", label: "Vaccines" },
+      { value: "cns_neurology", label: "CNS/Neurology" },
+      { value: "ophthalmology", label: "Ophthalmology" },
+      { value: "immunology", label: "Immunology" },
+      { value: "rheumatology", label: "Rheumatology" },
+      { value: "haematology", label: "Haematology" },
+      { value: "nephrology", label: "Nephrology" },
+      { value: "urology", label: "Urology" },
+    ]
+  });
 
-  const trialPhaseOptions: SearchableSelectOption[] = [
-    { value: "phase_i", label: "Phase I" },
-    { value: "phase_i_ii", label: "Phase I/II" },
-    { value: "phase_ii", label: "Phase II" },
-    { value: "phase_ii_iii", label: "Phase II/III" },
-    { value: "phase_iii", label: "Phase III" },
-    { value: "phase_iii_iv", label: "Phase III/IV" },
-    { value: "phase_iv", label: "Phase IV" },
-  ];
+  const { options: trialPhaseOptions } = useDynamicDropdown({
+    categoryName: 'trial_phase',
+    fallbackOptions: [
+      { value: "phase_i", label: "Phase I" },
+      { value: "phase_i_ii", label: "Phase I/II" },
+      { value: "phase_ii", label: "Phase II" },
+      { value: "phase_ii_iii", label: "Phase II/III" },
+      { value: "phase_iii", label: "Phase III" },
+      { value: "phase_iii_iv", label: "Phase III/IV" },
+      { value: "phase_iv", label: "Phase IV" },
+    ]
+  });
 
-  const statusOptions: SearchableSelectOption[] = [
-    { value: "planned", label: "Planned" },
-    { value: "open", label: "Open" },
-    { value: "closed", label: "Closed" },
-    { value: "completed", label: "Completed" },
-    { value: "terminated", label: "Terminated" },
-  ];
+  const { options: statusOptions } = useDynamicDropdown({
+    categoryName: 'trial_status',
+    fallbackOptions: [
+      { value: "planned", label: "Planned" },
+      { value: "open", label: "Open" },
+      { value: "closed", label: "Closed" },
+      { value: "completed", label: "Completed" },
+      { value: "terminated", label: "Terminated" },
+    ]
+  });
 
   const primaryDrugsOptions: SearchableSelectOption[] = [
     ...getPrimaryDrugsOptions().map(drug => ({
@@ -278,176 +288,206 @@ export default function TherapeuticsStep5_1() {
     }))
   ];
 
-  const diseaseTypeOptions: SearchableSelectOption[] = [
-    { value: "acute_lymphocytic_leukemia", label: "Acute Lymphocytic Leukemia" },
-    { value: "acute_myelogenous_leukemia", label: "Acute Myelogenous Leukemia" },
-    { value: "anal", label: "Anal" },
-    { value: "appendiceal", label: "Appendiceal" },
-    { value: "basal_skin_cell_carcinoma", label: "Basal Skin Cell Carcinoma" },
-    { value: "bladder", label: "Bladder" },
-    { value: "breast", label: "Breast" },
-    { value: "cervical", label: "Cervical" },
-    { value: "cholangiocarcinoma", label: "Cholangiocarcinoma (Bile duct)" },
-    { value: "chronic_lymphocytic_leukemia", label: "Chronic Lymphocytic Leukemia" },
-    { value: "chronic_myelomonositic_leukemia", label: "Chronic Myelomonositic Leukemia" },
-    { value: "astrocytoma", label: "Astrocytoma" },
-    { value: "brain_stem_glioma", label: "Brain Stem Giloma" },
-    { value: "craniopharyngioma", label: "Carniopharyngioma" },
-    { value: "choroid_plexus_tumors", label: "Choroid Plexus Tumors" },
-    { value: "embryonal_tumors", label: "Embryonal Tumors" },
-    { value: "epedymoma", label: "Epedymoma" },
-    { value: "germ_cell_tumors", label: "Germ Cell Tumors" },
-    { value: "glioblastoma", label: "Giloblastoma" },
-    { value: "hemangioblastoma", label: "Hemangioblastoma" },
-    { value: "medulloblastoma", label: "Medulloblastoma" },
-    { value: "meningioma", label: "Meningioma" },
-    { value: "oligodendroglioma", label: "Oligodendrogiloma" },
-    { value: "pineal_tumor", label: "Pineal Tumor" },
-    { value: "pituitary_tumor", label: "Pituatory Tumor" },
-    { value: "colorectal", label: "Colorectal" },
-    { value: "endometrial", label: "Endometrial" },
-    { value: "esophageal", label: "Esophageal" },
-    { value: "fallopian_tube", label: "Fallopian Tube" },
-    { value: "gall_bladder", label: "Gall Bladder" },
-    { value: "gastric", label: "Gastirc" },
-    { value: "gist", label: "GIST" },
-    { value: "head_neck", label: "Head/Neck" },
-    { value: "hodgkins_lymphoma", label: "Hodgkin's Lymphoma" },
-    { value: "leukemia_chronic_myelogenous", label: "Leukemia, Chronic Myelogenous" },
-    { value: "liver", label: "Liver" },
-    { value: "lung_non_small_cell", label: "Lung Non-small cell" },
-    { value: "lung_small_cell", label: "Lung Small Cell" },
-    { value: "melanoma", label: "Melanoma" },
-    { value: "mesothelioma", label: "Mesothelioma" },
-    { value: "metastatic_cancer", label: "Metastatic Cancer" },
-    { value: "multiple_myeloma", label: "Multiple Myeloma" },
-    { value: "myelodysplastic_syndrome", label: "Myelodysplastic Syndrome" },
-    { value: "myeloproliferative_neoplasms", label: "Myeloproliferative Neoplasms" },
-    { value: "neuroblastoma", label: "Neuroblastoma" },
-    { value: "neuroendocrine", label: "Neuroendocrine" },
-    { value: "non_hodgkins_lymphoma", label: "Non-Hodgkin's Lymphoma" },
-    { value: "osteosarcoma", label: "Osteosarcoma" },
-    { value: "ovarian", label: "Ovarian" },
-    { value: "pancreas", label: "Pancreas" },
-    { value: "penile", label: "Penile" },
-    { value: "primary_peritoneal", label: "Primary Peritoneal" },
-    { value: "prostate", label: "Prostate" },
-    { value: "renal", label: "Renal" },
-    { value: "small_intestine", label: "Small Intestine" },
-    { value: "soft_tissue_carcinoma", label: "Soft Tissue Carcinoma" },
-    { value: "solid_tumor_unspecified", label: "Solid Tumor, Unspecified" },
-    { value: "squamous_skin_cell_carcinoma", label: "Squamous Skin Cell Carcinoma" },
-    { value: "supportive_care", label: "Supportive care" },
-    { value: "tenosynovial_giant_cell_tumor", label: "Tenosynovial Giant Cell Tumor" },
-    { value: "testicular", label: "Testicular" },
-    { value: "thymus", label: "Thymus" },
-    { value: "thyroid", label: "Thyroid" },
-    { value: "unspecified_cancer", label: "Unspecified Cancer" },
-    { value: "unspecified_haematological_cancer", label: "Unspecified Haematological Cancer" },
-    { value: "vaginal", label: "Vaginal" },
-    { value: "vulvar", label: "Vulvar" },
-  ];
+  const { options: diseaseTypeOptions } = useDynamicDropdown({
+    categoryName: 'disease_type',
+    fallbackOptions: [
+      { value: "acute_lymphocytic_leukemia", label: "Acute Lymphocytic Leukemia" },
+      { value: "acute_myelogenous_leukemia", label: "Acute Myelogenous Leukemia" },
+      { value: "anal", label: "Anal" },
+      { value: "appendiceal", label: "Appendiceal" },
+      { value: "basal_skin_cell_carcinoma", label: "Basal Skin Cell Carcinoma" },
+      { value: "bladder", label: "Bladder" },
+      { value: "breast", label: "Breast" },
+      { value: "cervical", label: "Cervical" },
+      { value: "cholangiocarcinoma", label: "Cholangiocarcinoma (Bile duct)" },
+      { value: "chronic_lymphocytic_leukemia", label: "Chronic Lymphocytic Leukemia" },
+      { value: "chronic_myelomonositic_leukemia", label: "Chronic Myelomonositic Leukemia" },
+      { value: "astrocytoma", label: "Astrocytoma" },
+      { value: "brain_stem_glioma", label: "Brain Stem Giloma" },
+      { value: "craniopharyngioma", label: "Carniopharyngioma" },
+      { value: "choroid_plexus_tumors", label: "Choroid Plexus Tumors" },
+      { value: "embryonal_tumors", label: "Embryonal Tumors" },
+      { value: "epedymoma", label: "Epedymoma" },
+      { value: "germ_cell_tumors", label: "Germ Cell Tumors" },
+      { value: "glioblastoma", label: "Giloblastoma" },
+      { value: "hemangioblastoma", label: "Hemangioblastoma" },
+      { value: "medulloblastoma", label: "Medulloblastoma" },
+      { value: "meningioma", label: "Meningioma" },
+      { value: "oligodendroglioma", label: "Oligodendrogiloma" },
+      { value: "pineal_tumor", label: "Pineal Tumor" },
+      { value: "pituitary_tumor", label: "Pituatory Tumor" },
+      { value: "colorectal", label: "Colorectal" },
+      { value: "endometrial", label: "Endometrial" },
+      { value: "esophageal", label: "Esophageal" },
+      { value: "fallopian_tube", label: "Fallopian Tube" },
+      { value: "gall_bladder", label: "Gall Bladder" },
+      { value: "gastric", label: "Gastirc" },
+      { value: "gist", label: "GIST" },
+      { value: "head_neck", label: "Head/Neck" },
+      { value: "hodgkins_lymphoma", label: "Hodgkin's Lymphoma" },
+      { value: "leukemia_chronic_myelogenous", label: "Leukemia, Chronic Myelogenous" },
+      { value: "liver", label: "Liver" },
+      { value: "lung_non_small_cell", label: "Lung Non-small cell" },
+      { value: "lung_small_cell", label: "Lung Small Cell" },
+      { value: "melanoma", label: "Melanoma" },
+      { value: "mesothelioma", label: "Mesothelioma" },
+      { value: "metastatic_cancer", label: "Metastatic Cancer" },
+      { value: "multiple_myeloma", label: "Multiple Myeloma" },
+      { value: "myelodysplastic_syndrome", label: "Myelodysplastic Syndrome" },
+      { value: "myeloproliferative_neoplasms", label: "Myeloproliferative Neoplasms" },
+      { value: "neuroblastoma", label: "Neuroblastoma" },
+      { value: "neuroendocrine", label: "Neuroendocrine" },
+      { value: "non_hodgkins_lymphoma", label: "Non-Hodgkin's Lymphoma" },
+      { value: "osteosarcoma", label: "Osteosarcoma" },
+      { value: "ovarian", label: "Ovarian" },
+      { value: "pancreas", label: "Pancreas" },
+      { value: "penile", label: "Penile" },
+      { value: "primary_peritoneal", label: "Primary Peritoneal" },
+      { value: "prostate", label: "Prostate" },
+      { value: "renal", label: "Renal" },
+      { value: "small_intestine", label: "Small Intestine" },
+      { value: "soft_tissue_carcinoma", label: "Soft Tissue Carcinoma" },
+      { value: "solid_tumor_unspecified", label: "Solid Tumor, Unspecified" },
+      { value: "squamous_skin_cell_carcinoma", label: "Squamous Skin Cell Carcinoma" },
+      { value: "supportive_care", label: "Supportive care" },
+      { value: "tenosynovial_giant_cell_tumor", label: "Tenosynovial Giant Cell Tumor" },
+      { value: "testicular", label: "Testicular" },
+      { value: "thymus", label: "Thymus" },
+      { value: "thyroid", label: "Thyroid" },
+      { value: "unspecified_cancer", label: "Unspecified Cancer" },
+      { value: "unspecified_haematological_cancer", label: "Unspecified Haematological Cancer" },
+      { value: "vaginal", label: "Vaginal" },
+      { value: "vulvar", label: "Vulvar" },
+    ]
+  });
 
-  const patientSegmentOptions: SearchableSelectOption[] = [
-    { value: "children", label: "Children" },
-    { value: "adults", label: "Adults" },
-    { value: "healthy_volunteers", label: "Healthy Volunteers" },
-    { value: "unknown", label: "Unknown" },
-    { value: "first_line", label: "First Line" },
-    { value: "second_line", label: "Second Line" },
-    { value: "adjuvant", label: "Adjuvant" },
-  ];
+  const { options: patientSegmentOptions } = useDynamicDropdown({
+    categoryName: 'patient_segment',
+    fallbackOptions: [
+      { value: "children", label: "Children" },
+      { value: "adults", label: "Adults" },
+      { value: "healthy_volunteers", label: "Healthy Volunteers" },
+      { value: "unknown", label: "Unknown" },
+      { value: "first_line", label: "First Line" },
+      { value: "second_line", label: "Second Line" },
+      { value: "adjuvant", label: "Adjuvant" },
+    ]
+  });
 
-  const lineOfTherapyOptions: SearchableSelectOption[] = [
-    { value: "second_line", label: "2 – Second Line" },
-    { value: "unknown", label: "Unknown" },
-    { value: "first_line", label: "1 – First Line" },
-    { value: "at_least_second_line", label: "2+ - At least second line" },
-    { value: "at_least_third_line", label: "3+ - At least third line" },
-    { value: "neo_adjuvant", label: "Neo-Adjuvant" },
-    { value: "adjuvant", label: "Adjuvant" },
-    { value: "maintenance_consolidation", label: "Maintenance/Consolidation" },
-    { value: "at_least_first_line", label: "1+ - At least first line" },
-  ];
+  const { options: lineOfTherapyOptions } = useDynamicDropdown({
+    categoryName: 'line_of_therapy',
+    fallbackOptions: [
+      { value: "second_line", label: "2 – Second Line" },
+      { value: "unknown", label: "Unknown" },
+      { value: "first_line", label: "1 – First Line" },
+      { value: "at_least_second_line", label: "2+ - At least second line" },
+      { value: "at_least_third_line", label: "3+ - At least third line" },
+      { value: "neo_adjuvant", label: "Neo-Adjuvant" },
+      { value: "adjuvant", label: "Adjuvant" },
+      { value: "maintenance_consolidation", label: "Maintenance/Consolidation" },
+      { value: "at_least_first_line", label: "1+ - At least first line" },
+    ]
+  });
 
-  const trialTagsOptions: SearchableSelectOption[] = [
-    { value: "biomarker_efficacy", label: "Biomarker-Efficacy" },
-    { value: "biomarker_toxicity", label: "Biomarker-Toxicity" },
-    { value: "expanded_access", label: "Expanded Access" },
-    { value: "expanded_indication", label: "Expanded Indication" },
-    { value: "first_in_human", label: "First in Human" },
-    { value: "investigator_initiated", label: "Investigator-Initiated" },
-    { value: "io_cytotoxic_combination", label: "IO/Cytotoxic Combination" },
-    { value: "io_hormonal_combination", label: "IO/Hormonal Combination" },
-    { value: "io_io_combination", label: "IO/IO Combination" },
-    { value: "io_other_combination", label: "IO/Other Combination" },
-    { value: "io_radiotherapy_combination", label: "IO/Radiotherapy Combination" },
-    { value: "io_targeted_combination", label: "IO/Targeted Combination" },
-    { value: "microdosing", label: "Microdosing" },
-    { value: "pgx_biomarker_identification", label: "PGX-Biomarker Identification/Evaluation" },
-    { value: "pgx_pathogen", label: "PGX-Pathogen" },
-    { value: "pgx_patient_preselection", label: "PGX-Patient Preselection/Stratification" },
-    { value: "post_marketing_commitment", label: "Post-Marketing Commitment" },
-    { value: "registration", label: "Registration" },
-  ];
+  const { options: trialTagsOptions } = useDynamicDropdown({
+    categoryName: 'trial_tags',
+    fallbackOptions: [
+      { value: "biomarker_efficacy", label: "Biomarker-Efficacy" },
+      { value: "biomarker_toxicity", label: "Biomarker-Toxicity" },
+      { value: "expanded_access", label: "Expanded Access" },
+      { value: "expanded_indication", label: "Expanded Indication" },
+      { value: "first_in_human", label: "First in Human" },
+      { value: "investigator_initiated", label: "Investigator-Initiated" },
+      { value: "io_cytotoxic_combination", label: "IO/Cytotoxic Combination" },
+      { value: "io_hormonal_combination", label: "IO/Hormonal Combination" },
+      { value: "io_io_combination", label: "IO/IO Combination" },
+      { value: "io_other_combination", label: "IO/Other Combination" },
+      { value: "io_radiotherapy_combination", label: "IO/Radiotherapy Combination" },
+      { value: "io_targeted_combination", label: "IO/Targeted Combination" },
+      { value: "microdosing", label: "Microdosing" },
+      { value: "pgx_biomarker_identification", label: "PGX-Biomarker Identification/Evaluation" },
+      { value: "pgx_pathogen", label: "PGX-Pathogen" },
+      { value: "pgx_patient_preselection", label: "PGX-Patient Preselection/Stratification" },
+      { value: "post_marketing_commitment", label: "Post-Marketing Commitment" },
+      { value: "registration", label: "Registration" },
+    ]
+  });
 
-  const sponsorOptions: SearchableSelectOption[] = [
-    { value: "Pfizer", label: "Pfizer" },
-    { value: "Novartis", label: "Novartis" },
-    { value: "AstraZeneca", label: "AstraZeneca" },
-  ];
+  const { options: sponsorOptions } = useDynamicDropdown({
+    categoryName: 'sponsor_collaborators',
+    fallbackOptions: [
+      { value: "Pfizer", label: "Pfizer" },
+      { value: "Novartis", label: "Novartis" },
+      { value: "AstraZeneca", label: "AstraZeneca" },
+    ]
+  });
 
-  const sponsorFieldOptions: SearchableSelectOption[] = [
-    { value: "pharmaceutical_company", label: "Pharmaceutical Company" },
-    { value: "university_academy", label: "University/Academy" },
-    { value: "investigator", label: "Investigator" },
-    { value: "cro", label: "CRO" },
-    { value: "hospital", label: "Hospital" },
-  ];
+  const { options: sponsorFieldOptions } = useDynamicDropdown({
+    categoryName: 'sponsor_field_activity',
+    fallbackOptions: [
+      { value: "pharmaceutical_company", label: "Pharmaceutical Company" },
+      { value: "university_academy", label: "University/Academy" },
+      { value: "investigator", label: "Investigator" },
+      { value: "cro", label: "CRO" },
+      { value: "hospital", label: "Hospital" },
+    ]
+  });
 
-  const croOptions: SearchableSelectOption[] = [
-    { value: "IQVIA", label: "IQVIA" },
-    { value: "Syneos", label: "Syneos" },
-    { value: "PPD", label: "PPD" },
-  ];
+  const { options: croOptions } = useDynamicDropdown({
+    categoryName: 'associated_cro',
+    fallbackOptions: [
+      { value: "IQVIA", label: "IQVIA" },
+      { value: "Syneos", label: "Syneos" },
+      { value: "PPD", label: "PPD" },
+    ]
+  });
 
-  const countriesOptions: SearchableSelectOption[] = [
-    { value: "united_states", label: "United States" },
-    { value: "canada", label: "Canada" },
-    { value: "united_kingdom", label: "United Kingdom" },
-    { value: "germany", label: "Germany" },
-    { value: "france", label: "France" },
-    { value: "italy", label: "Italy" },
-    { value: "spain", label: "Spain" },
-    { value: "japan", label: "Japan" },
-    { value: "china", label: "China" },
-    { value: "india", label: "India" },
-    { value: "australia", label: "Australia" },
-    { value: "brazil", label: "Brazil" },
-    { value: "mexico", label: "Mexico" },
-    { value: "south_korea", label: "South Korea" },
-    { value: "switzerland", label: "Switzerland" },
-    { value: "netherlands", label: "Netherlands" },
-    { value: "belgium", label: "Belgium" },
-    { value: "sweden", label: "Sweden" },
-    { value: "norway", label: "Norway" },
-    { value: "denmark", label: "Denmark" },
-  ];
+  const { options: countriesOptions } = useDynamicDropdown({
+    categoryName: 'country',
+    fallbackOptions: [
+      { value: "united_states", label: "United States" },
+      { value: "canada", label: "Canada" },
+      { value: "united_kingdom", label: "United Kingdom" },
+      { value: "germany", label: "Germany" },
+      { value: "france", label: "France" },
+      { value: "italy", label: "Italy" },
+      { value: "spain", label: "Spain" },
+      { value: "japan", label: "Japan" },
+      { value: "china", label: "China" },
+      { value: "india", label: "India" },
+      { value: "australia", label: "Australia" },
+      { value: "brazil", label: "Brazil" },
+      { value: "mexico", label: "Mexico" },
+      { value: "south_korea", label: "South Korea" },
+      { value: "switzerland", label: "Switzerland" },
+      { value: "netherlands", label: "Netherlands" },
+      { value: "belgium", label: "Belgium" },
+      { value: "sweden", label: "Sweden" },
+      { value: "norway", label: "Norway" },
+      { value: "denmark", label: "Denmark" },
+    ]
+  });
 
-  const regionOptions: SearchableSelectOption[] = [
-    { value: "north_america", label: "North America" },
-    { value: "europe", label: "Europe" },
-    { value: "asia_pacific", label: "Asia Pacific" },
-    { value: "latin_america", label: "Latin America" },
-    { value: "africa", label: "Africa" },
-    { value: "middle_east", label: "Middle East" },
-  ];
+  const { options: regionOptions } = useDynamicDropdown({
+    categoryName: 'region',
+    fallbackOptions: [
+      { value: "north_america", label: "North America" },
+      { value: "europe", label: "Europe" },
+      { value: "asia_pacific", label: "Asia Pacific" },
+      { value: "latin_america", label: "Latin America" },
+      { value: "africa", label: "Africa" },
+      { value: "middle_east", label: "Middle East" },
+    ]
+  });
 
-  const trialRecordStatusOptions: SearchableSelectOption[] = [
-    { value: "development_in_progress", label: "Development In Progress (DIP)" },
-    { value: "in_production", label: "In Production (IP)" },
-    { value: "update_in_progress", label: "Update In Progress (UIP)" },
-  ];
+  const { options: trialRecordStatusOptions } = useDynamicDropdown({
+    categoryName: 'trial_record_status',
+    fallbackOptions: [
+      { value: "development_in_progress", label: "Development In Progress (DIP)" },
+      { value: "in_production", label: "In Production (IP)" },
+      { value: "update_in_progress", label: "Update In Progress (UIP)" },
+    ]
+  });
 
   // Helpers for multi-input fields
   const addTrialIdentifierField = () =>
@@ -514,7 +554,7 @@ export default function TherapeuticsStep5_1() {
           onClick={handleSaveChanges}
           disabled={isSaving}
         >
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? "Creating..." : "Create a Record"}
         </Button>
       </div>
 

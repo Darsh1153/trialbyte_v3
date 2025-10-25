@@ -33,6 +33,11 @@ export default function TherapeuticsStep5_8() {
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Full Review states
+  const [fullReviewChecked, setFullReviewChecked] = useState(false);
+  const [fullReviewUser, setFullReviewUser] = useState("");
+  const [nextReviewDate, setNextReviewDate] = useState("");
 
   // Helper functions
   const ensureString = (value: any): string => {
@@ -50,6 +55,28 @@ export default function TherapeuticsStep5_8() {
       return new Date(dateString).toISOString().split("T")[0];
     } catch {
       return new Date().toISOString().split("T")[0];
+    }
+  };
+  
+  // Calculate date + 90 days
+  const calculateNextReviewDate = (): string => {
+    const today = new Date();
+    const futureDate = new Date(today);
+    futureDate.setDate(today.getDate() + 90);
+    return futureDate.toISOString().split("T")[0];
+  };
+  
+  // Handle Full Review checkbox change
+  const handleFullReviewChange = (checked: boolean) => {
+    setFullReviewChecked(checked);
+    if (checked) {
+      // Auto-populate fields when checked
+      setFullReviewUser("admin");
+      setNextReviewDate(calculateNextReviewDate());
+    } else {
+      // Clear fields when unchecked
+      setFullReviewUser("");
+      setNextReviewDate("");
     }
   };
 
@@ -292,24 +319,56 @@ export default function TherapeuticsStep5_8() {
       {/* Trial Changes Log */}
       <TrialChangesLog changesLog={form.changesLog} />
 
+      {/* Internal Note Section */}
+      <Card className="border rounded-xl shadow-sm">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="internalNote" className="text-sm font-medium">Internal Note</Label>
+              <Textarea
+                id="internalNote"
+                rows={4}
+                placeholder="Enter internal notes here..."
+                value={form.internalNote || ""}
+                onChange={(e) => updateField("step5_8", "internalNote", e.target.value)}
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Review and Notes Section */}
       <Card className="border rounded-xl shadow-sm">
         <CardContent className="p-6 space-y-6">
           {/* Full Review Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             <div className="flex items-center gap-2">
-              <Checkbox id="fullReview" />
+              <Checkbox 
+                id="fullReview" 
+                checked={fullReviewChecked}
+                onCheckedChange={handleFullReviewChange}
+              />
               <Label htmlFor="fullReview">Full Review</Label>
             </div>
             <div className="space-y-2">
               <Label>Full Review User</Label>
-              <Input placeholder="" className="border-gray-600 focus:border-gray-800 focus:ring-gray-800" />
+              <Input 
+                placeholder="User name" 
+                value={fullReviewUser}
+                onChange={(e) => setFullReviewUser(e.target.value)}
+                readOnly={fullReviewChecked}
+                className={`border-gray-600 focus:border-gray-800 focus:ring-gray-800 ${fullReviewChecked ? 'bg-gray-50' : ''}`}
+              />
             </div>
             <div className="space-y-2">
               <Label>Next Review Date</Label>
               <CustomDateInput 
                 placeholder="Month Day Year"
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                value={nextReviewDate}
+                onChange={(value) => setNextReviewDate(value)}
+                readOnly={fullReviewChecked}
+                className={`border-gray-600 focus:border-gray-800 focus:ring-gray-800 ${fullReviewChecked ? 'bg-gray-50' : ''}`}
               />
             </div>
           </div>
@@ -323,7 +382,9 @@ export default function TherapeuticsStep5_8() {
               type: note.type || "General",
               content: note.content,
               sourceLink: note.sourceLink,
-              attachments: note.attachments,
+              sourceType: note.sourceType,
+              sourceUrl: note.sourceUrl,
+              attachments: note.attachments || [],
               isVisible: note.isVisible
             }))}
             onAddNote={() => addNote("step5_8", "notes")}

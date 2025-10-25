@@ -14,7 +14,7 @@ import { ArrowLeft, ArrowRight, Check, Loader2, Plus, X, Eye, EyeOff } from "luc
 import { useToast } from "@/hooks/use-toast";
 import { useEditDrugForm } from "../context/edit-drug-form-context";
 import { useDrugNames } from "@/hooks/use-drug-names";
-import { useDynamicDropdownOptions } from "@/hooks/use-dynamic-dropdown";
+import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 
 const steps = [
   { id: 1, title: "Overview", description: "Basic drug information" },
@@ -37,10 +37,10 @@ export default function EditDrugPage() {
   const drugId = params.id as string;
 
   // Dynamic dropdown options
-  const { options: diseaseTypeOptions, loading: diseaseTypeLoading } = useDynamicDropdownOptions('disease_type');
-  const { options: therapeuticAreaOptions, loading: therapeuticAreaLoading } = useDynamicDropdownOptions('therapeutic_area');
-  const { options: developmentStatusOptions, loading: developmentStatusLoading } = useDynamicDropdownOptions('development_status');
-  const { options: companyTypeOptions, loading: companyTypeLoading } = useDynamicDropdownOptions('company_type');
+  const { options: diseaseTypeOptions, loading: diseaseTypeLoading } = useDynamicDropdown({ categoryName: 'disease_type' });
+  const { options: therapeuticAreaOptions, loading: therapeuticAreaLoading } = useDynamicDropdown({ categoryName: 'therapeutic_area' });
+  const { options: developmentStatusOptions, loading: developmentStatusLoading } = useDynamicDropdown({ categoryName: 'development_status' });
+  const { options: companyTypeOptions, loading: companyTypeLoading } = useDynamicDropdown({ categoryName: 'company_type' });
 
   // Options for searchable dropdowns
   const primaryNameOptions: SearchableSelectOption[] = [

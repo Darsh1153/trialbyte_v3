@@ -6,16 +6,27 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { X, Plus, Minus, CalendarIcon } from "lucide-react"
+import { X, Plus, Minus, CalendarIcon, Search, Calendar as CalendarIcon2, Eye, Trash2, Loader2, AlertCircle } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import CustomDateInput from "@/components/ui/custom-date-input"
 import { MultiTagInput } from "@/components/ui/multi-tag-input"
 import { SaveQueryModal } from "@/components/save-query-modal"
 import { TherapeuticFilterState } from "@/components/therapeutic-filter-modal"
+import { toast } from "@/hooks/use-toast"
 
 // Define TherapeuticTrial interface locally
 interface TherapeuticTrial {
@@ -113,6 +124,11 @@ interface TherapeuticAdvancedSearchModalProps {
   onApplySearch: (criteria: TherapeuticSearchCriteria[]) => void
   trials?: TherapeuticTrial[] // Add trials data for dynamic dropdowns
   currentFilters?: TherapeuticFilterState // Add current filters for save query functionality
+  initialCriteria?: TherapeuticSearchCriteria[] // Add initial criteria for editing
+  editingQueryId?: string | null
+  editingQueryTitle?: string
+  editingQueryDescription?: string
+  onSaveQuerySuccess?: () => void
 }
 
 export interface TherapeuticSearchCriteria {
@@ -472,7 +488,18 @@ const dateFields = [
   "updated_at"
 ]
 
-export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySearch, trials = [], currentFilters }: TherapeuticAdvancedSearchModalProps) {
+export function TherapeuticAdvancedSearchModal({ 
+  open, 
+  onOpenChange, 
+  onApplySearch, 
+  trials = [], 
+  currentFilters, 
+  initialCriteria,
+  editingQueryId = null,
+  editingQueryTitle = "",
+  editingQueryDescription = "",
+  onSaveQuerySuccess
+}: TherapeuticAdvancedSearchModalProps) {
   const [criteria, setCriteria] = useState<TherapeuticSearchCriteria[]>([
     {
       id: "1",
@@ -485,6 +512,8 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
   const [savedQueriesOpen, setSavedQueriesOpen] = useState(false)
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false)
   const [savedQueries, setSavedQueries] = useState<any[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [loadingQueries, setLoadingQueries] = useState(false)
   const [therapeuticData, setTherapeuticData] = useState<TherapeuticTrial[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -492,8 +521,12 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
   useEffect(() => {
     if (open) {
       fetchTherapeuticData()
+      // Load initial criteria if provided
+      if (initialCriteria && initialCriteria.length > 0) {
+        setCriteria(initialCriteria)
+      }
     }
-  }, [open])
+  }, [open, initialCriteria])
 
   const fetchTherapeuticData = async () => {
     try {
@@ -790,30 +823,193 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
   }
 
   // Load saved queries from localStorage
-  const loadSavedQueries = () => {
-    const queries = JSON.parse(localStorage.getItem('therapeuticSearchQueries') || '[]')
-    setSavedQueries(queries)
+  const loadSavedQueries = async () => {
+    setLoadingQueries(true)
+    
+    try {
+      // Try to fetch from API first
+      let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved/user/dashboard-queries`
+      
+      if (searchTerm.trim()) {
+        url += `?search=${encodeURIComponent(searchTerm.trim())}`
+      }
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // If API returns empty data, fallback to localStorage
+        if (!data.data || data.data.length === 0) {
+          const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+          setSavedQueries(localQueries)
+        } else {
+          setSavedQueries(data.data || [])
+        }
+        return
+      }
+      
+      // If API fails, fallback to localStorage
+      const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+      setSavedQueries(localQueries)
+      
+    } catch (error) {
+      console.error("Error fetching saved queries:", error)
+      
+      // Fallback to localStorage
+      try {
+        const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+        setSavedQueries(localQueries)
+      } catch (localError) {
+        console.error("Failed to load from localStorage:", localError)
+      }
+    } finally {
+      setLoadingQueries(false)
+    }
   }
 
   const handleOpenSavedQueries = () => {
+    setSearchTerm("")
     loadSavedQueries()
     setSavedQueriesOpen(true)
   }
 
   const handleLoadQuery = (query: any) => {
-    setCriteria(query.criteria)
-    setSavedQueriesOpen(false)
+    if (query.query_data && query.query_data.searchCriteria) {
+      setCriteria(query.query_data.searchCriteria)
+      toast({
+        title: "Query Loaded",
+        description: `"${query.title}" has been applied to your search`,
+      })
+      setSavedQueriesOpen(false)
+    }
   }
 
-  const handleDeleteQuery = (queryId: string) => {
-    const updatedQueries = savedQueries.filter(q => q.id !== queryId)
-    setSavedQueries(updatedQueries)
-    localStorage.setItem('therapeuticSearchQueries', JSON.stringify(updatedQueries))
+  const handleDeleteQuery = async (queryId: string) => {
+    try {
+      // Try API first
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved/${queryId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      )
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Query deleted successfully",
+        })
+        // Refresh the list
+        await loadSavedQueries()
+        return
+      }
+      
+      // If API fails, use localStorage fallback
+      const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+      const updatedQueries = localQueries.filter((q: any) => q.id !== queryId)
+      localStorage.setItem('unifiedSavedQueries', JSON.stringify(updatedQueries))
+      
+      toast({
+        title: "Success",
+        description: "Query deleted successfully",
+      })
+      
+      // Refresh the list
+      await loadSavedQueries()
+      
+    } catch (error) {
+      console.error("Error deleting query:", error)
+      
+      // Still try localStorage fallback
+      try {
+        const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+        const updatedQueries = localQueries.filter((q: any) => q.id !== queryId)
+        localStorage.setItem('unifiedSavedQueries', JSON.stringify(updatedQueries))
+        
+        toast({
+          title: "Success",
+          description: "Query deleted successfully",
+        })
+        
+        // Refresh the list
+        await loadSavedQueries()
+      } catch (localError) {
+        console.error("Failed to delete from localStorage:", localError)
+        toast({
+          title: "Error",
+          description: "Failed to delete query",
+          variant: "destructive",
+        })
+      }
+    }
   }
 
   const handleSaveQuery = () => {
     setSaveQueryModalOpen(true)
   }
+
+  // Format date similar to QueryHistoryModal
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // Get filter summary
+  const getFilterSummary = (queryData: any) => {
+    if (!queryData) return "No filters"
+    
+    const filterCount = Object.values(queryData.filters || {})
+      .reduce((count: number, filter: any) => count + (filter?.length || 0), 0)
+    const criteriaCount = queryData.searchCriteria?.length || 0
+    const hasSearch = queryData.searchTerm?.trim() ? 1 : 0
+    
+    const total = filterCount + criteriaCount + hasSearch
+    if (total === 0) return "No filters"
+    
+    const parts = []
+    if (filterCount > 0) parts.push(`${filterCount} filters`)
+    if (criteriaCount > 0) parts.push(`${criteriaCount} criteria`)
+    if (hasSearch) parts.push("search term")
+    
+    return parts.join(", ")
+  }
+
+  // Debounced search effect
+  useEffect(() => {
+    if (savedQueriesOpen) {
+      const timeoutId = setTimeout(() => {
+        loadSavedQueries()
+      }, 300)
+
+      return () => clearTimeout(timeoutId)
+    }
+  }, [searchTerm, savedQueriesOpen])
+
+  // Filter saved queries
+  const filteredSavedQueries = savedQueries.filter(query => {
+    if (!searchTerm.trim()) return true
+    const search = searchTerm.toLowerCase()
+    return (
+      query.title?.toLowerCase().includes(search) ||
+      query.description?.toLowerCase().includes(search)
+    )
+  })
 
   return (
     <>
@@ -982,91 +1178,122 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
 
       {/* Saved Queries Modal */}
       <Dialog open={savedQueriesOpen} onOpenChange={setSavedQueriesOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] p-0">
-          <DialogHeader className="px-6 py-4 border-b bg-blue-50">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-lg font-semibold">Saved Therapeutic Search Queries</DialogTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSavedQueriesOpen(false)}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Saved Queries</DialogTitle>
           </DialogHeader>
-
-          <div className="p-6">
-            {savedQueries.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-gray-500 text-lg mb-2">No saved queries found</div>
-                <div className="text-gray-400 text-sm">Save your first search query to see it here</div>
+          
+          <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+            {/* Search */}
+            <div className="flex items-center space-x-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search saved queries..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            ) : (
-              <div className="space-y-4">
-                {savedQueries.map((query) => (
-                  <div key={query.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{query.name}</h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Created: {formatDateToMMDDYYYY(query.createdAt)} at {new Date(query.createdAt).toLocaleTimeString()}
-                        </p>
-                        <div className="mt-2">
-                          <span className="text-sm text-gray-600">
-                            {query.criteria.length} criteria: 
-                          </span>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {query.criteria.slice(0, 3).map((criterion: any, index: number) => {
-                              const field = therapeuticSearchFields.find(f => f.value === criterion.field)
-                              return (
-                                <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                                  {field?.label}: {criterion.value || 'Any'}
-                                </span>
-                              )
-                            })}
-                            {query.criteria.length > 3 && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600">
-                                +{query.criteria.length - 3} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 ml-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleLoadQuery(query)}
-                          className="bg-blue-600 text-white hover:bg-blue-700"
-                        >
-                          Load Query
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteQuery(query.id)}
-                          className="bg-red-600 text-white hover:bg-red-700"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              {searchTerm && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchTerm("")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* Loading */}
+            {loadingQueries && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span>Loading saved queries...</span>
               </div>
             )}
-          </div>
 
-          <div className="flex items-center justify-end px-6 py-4 border-t bg-gray-50">
-            <Button
-              variant="outline"
-              onClick={() => setSavedQueriesOpen(false)}
-              className="bg-gray-600 text-white hover:bg-gray-700"
-            >
-              Close
-            </Button>
+            {/* Results */}
+            {!loadingQueries && (
+              <div className="flex-1 overflow-auto">
+                {filteredSavedQueries.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    {searchTerm ? "No queries found matching your search" : "No saved queries yet"}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Filters</TableHead>
+                        <TableHead>Saved</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSavedQueries.map((query) => (
+                        <TableRow key={query.id} className="hover:bg-gray-50">
+                          <TableCell className="font-medium">
+                            <div className="flex items-center space-x-2">
+                              <span>{query.title}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {query.query_type || "dashboard"}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-xs">
+                            <div className="truncate text-sm text-gray-600">
+                              {query.description || "No description"}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-gray-600">
+                              {getFilterSummary(query.query_data)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center text-sm text-gray-500">
+                              <CalendarIcon2 className="h-3 w-3 mr-1" />
+                              {formatDate(query.created_at)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleLoadQuery(query)}
+                                title="Load this query"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteQuery(query.id)}
+                                title="Delete this query"
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+            )}
+
+            {/* Close Button */}
+            <div className="flex justify-end pt-4 border-t">
+              <Button variant="outline" onClick={() => setSavedQueriesOpen(false)}>
+                Close
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -1094,6 +1321,10 @@ export function TherapeuticAdvancedSearchModal({ open, onOpenChange, onApplySear
         }}
         currentSearchCriteria={criteria}
         searchTerm=""
+        editingQueryId={editingQueryId}
+        editingQueryTitle={editingQueryTitle}
+        editingQueryDescription={editingQueryDescription}
+        onSaveSuccess={onSaveQuerySuccess}
       />
     </>
   )

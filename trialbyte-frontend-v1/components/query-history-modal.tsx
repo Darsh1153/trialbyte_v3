@@ -21,7 +21,8 @@ import {
   Trash2, 
   Eye,
   Calendar,
-  X
+  X,
+  Edit
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 
@@ -44,12 +45,14 @@ interface QueryHistoryModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onLoadQuery?: (queryData: any) => void
+  onEditQuery?: (queryData: any) => void
 }
 
 export function QueryHistoryModal({ 
   open, 
   onOpenChange,
-  onLoadQuery 
+  onLoadQuery,
+  onEditQuery 
 }: QueryHistoryModalProps) {
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([])
   const [loading, setLoading] = useState(false)
@@ -201,6 +204,23 @@ export function QueryHistoryModal({
     }
   }
 
+  const editQuery = (query: SavedQuery) => {
+    if (onEditQuery && query.query_data) {
+      // Pass the complete query object for editing
+      onEditQuery({
+        ...query.query_data,
+        queryId: query.id,
+        queryTitle: query.title,
+        queryDescription: query.description
+      })
+      toast({
+        title: "Edit Query",
+        description: `Opening Advanced Search with "${query.title}"`,
+      })
+      onOpenChange(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -250,7 +270,7 @@ export function QueryHistoryModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Query History</DialogTitle>
+          <DialogTitle>Saved Queries</DialogTitle>
         </DialogHeader>
         
         <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
@@ -346,6 +366,15 @@ export function QueryHistoryModal({
                               title="Load this query"
                             >
                               <Eye className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => editQuery(query)}
+                              title="Edit this query"
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit className="h-3 w-3" />
                             </Button>
                             <Button
                               variant="outline"

@@ -14,6 +14,7 @@ import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 
 export default function TherapeuticsStep5_2() {
   const {
@@ -28,28 +29,33 @@ export default function TherapeuticsStep5_2() {
   const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_2;
 
-  // Study Design Keywords options
-  const studyDesignKeywords = [
-    "Placebo-control",
-    "Active control",
-    "Randomized",
-    "Non-Randomized",
-    "Multiple-Blinded",
-    "Single-Blinded",
-    "Open",
-    "Multi-centre",
-    "Safety",
-    "Efficacy",
-    "Tolerability",
-    "Pharmacokinetics",
-    "Pharmacodynamics",
-    "Interventional",
-    "Treatment",
-    "Parallel Assignment",
-    "Single group assignment",
-    "Prospective",
-    "Cohort"
-  ];
+  // Study Design Keywords options - fetch from database with fallback
+  const { options: studyDesignKeywordsOptions } = useDynamicDropdown({
+    categoryName: 'study_design_keywords',
+    fallbackOptions: [
+      { value: "placebo_control", label: "Placebo-control" },
+      { value: "active_control", label: "Active control" },
+      { value: "randomized", label: "Randomized" },
+      { value: "non_randomized", label: "Non-Randomized" },
+      { value: "multiple_blinded", label: "Multiple-Blinded" },
+      { value: "single_blinded", label: "Single-Blinded" },
+      { value: "open", label: "Open" },
+      { value: "multi_centre", label: "Multi-centre" },
+      { value: "safety", label: "Safety" },
+      { value: "efficacy", label: "Efficacy" },
+      { value: "tolerability", label: "Tolerability" },
+      { value: "pharmacokinetics", label: "Pharmacokinetics" },
+      { value: "pharmacodynamics", label: "Pharmacodynamics" },
+      { value: "interventional", label: "Interventional" },
+      { value: "treatment", label: "Treatment" },
+      { value: "parallel_assignment", label: "Parallel Assignment" },
+      { value: "single_group_assignment", label: "Single group assignment" },
+      { value: "prospective", label: "Prospective" },
+      { value: "cohort", label: "Cohort" },
+    ]
+  });
+
+  const studyDesignKeywords = studyDesignKeywordsOptions.map(opt => opt.label);
 
   const addPrimaryOutcome = () =>
     addArrayItem("step5_2", "primaryOutcomeMeasures");
@@ -132,7 +138,7 @@ export default function TherapeuticsStep5_2() {
               onClick={handleSaveChanges}
               disabled={isSaving}
             >
-              {isSaving ? "Saving..." : "Save Changes"}
+              {isSaving ? "Creating..." : "Create a Record"}
             </Button>
           </div>
         </div>

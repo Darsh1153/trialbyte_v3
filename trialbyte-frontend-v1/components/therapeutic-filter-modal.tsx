@@ -4,9 +4,12 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
-import { X } from "lucide-react"
 import { SaveQueryModal } from "@/components/save-query-modal"
+
+interface SearchableSelectOption {
+  value: string
+  label: string
+}
 
 interface TherapeuticFilterModalProps {
   open: boolean
@@ -789,19 +792,11 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
   console.log(`Extracting values for ${fieldPath} from ${trials.length} trials`)
   
   trials.forEach((trial, index) => {
-    let value = ''
+    let value: any = ''
     
-    // Handle nested field paths
-    if (fieldPath.includes('.')) {
-      const [parent, child] = fieldPath.split('.')
-      if (parent === 'overview' && trial.overview) {
-        value = trial.overview[child] || ''
-      } else if (parent === 'criteria' && trial.criteria && trial.criteria.length > 0) {
-        value = trial.criteria[0][child] || ''
-      }
-    } else {
-      // Handle direct fields
+    // Handle direct fields based on field path
       switch (fieldPath) {
+      // Overview fields
         case 'therapeutic_area':
           value = trial.overview?.therapeutic_area || ''
           break
@@ -838,16 +833,198 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
         case 'trial_tags':
           value = trial.overview?.trial_tags || ''
           break
+      case 'trial_record_status':
+        value = trial.overview?.trial_record_status || ''
+        break
+      case 'other_drugs':
+        value = trial.overview?.other_drugs || ''
+        break
+      case 'region':
+        value = trial.overview?.region || ''
+        break
+      
+      // Criteria fields
         case 'sex':
           value = trial.criteria?.[0]?.sex || ''
           break
         case 'healthy_volunteers':
           value = trial.criteria?.[0]?.healthy_volunteers || ''
           break
-        case 'trial_record_status':
-          value = trial.overview?.trial_record_status || ''
+      case 'age_from':
+        value = trial.criteria?.[0]?.age_from || ''
           break
-      }
+      case 'age_to':
+        value = trial.criteria?.[0]?.age_to || ''
+        break
+      case 'subject_type':
+        value = trial.criteria?.[0]?.subject_type || ''
+        break
+      case 'ecog_performance_status':
+        value = trial.criteria?.[0]?.ecog_performance_status || ''
+        break
+      case 'prior_treatments':
+        value = trial.criteria?.[0]?.prior_treatments || ''
+        break
+      case 'biomarker_requirements':
+        value = trial.criteria?.[0]?.biomarker_requirements || ''
+        break
+      case 'estimated_enrollment':
+        value = trial.criteria?.[0]?.estimated_enrollment || ''
+        break
+      case 'actual_enrollment':
+        value = trial.criteria?.[0]?.actual_enrollment || ''
+        break
+      case 'enrollment_status':
+        value = trial.criteria?.[0]?.enrollment_status || ''
+        break
+      case 'recruitment_period':
+        value = trial.criteria?.[0]?.recruitment_period || ''
+        break
+      case 'study_completion_date':
+        value = trial.criteria?.[0]?.study_completion_date || ''
+        break
+      case 'primary_completion_date':
+        value = trial.criteria?.[0]?.primary_completion_date || ''
+        break
+      case 'population_description':
+        value = trial.criteria?.[0]?.population_description || ''
+        break
+      case 'target_no_volunteers':
+        value = trial.criteria?.[0]?.target_no_volunteers || ''
+        break
+      case 'actual_enrolled_volunteers':
+        value = trial.criteria?.[0]?.actual_enrolled_volunteers || ''
+        break
+      case 'inclusion_criteria':
+        value = trial.criteria?.[0]?.inclusion_criteria || ''
+        break
+      case 'exclusion_criteria':
+        value = trial.criteria?.[0]?.exclusion_criteria || ''
+        break
+      
+      // Outcomes fields
+      case 'purpose_of_trial':
+        value = trial.outcomes?.[0]?.purpose_of_trial || ''
+        break
+      case 'summary':
+        value = trial.outcomes?.[0]?.summary || ''
+        break
+      case 'primary_outcome_measure':
+        value = trial.outcomes?.[0]?.primary_outcome_measure || ''
+        break
+      case 'other_outcome_measure':
+        value = trial.outcomes?.[0]?.other_outcome_measure || ''
+        break
+      case 'study_design_keywords':
+        value = trial.outcomes?.[0]?.study_design_keywords || ''
+        break
+      case 'study_design':
+        value = trial.outcomes?.[0]?.study_design || ''
+        break
+      case 'treatment_regimen':
+        value = trial.outcomes?.[0]?.treatment_regimen || ''
+        break
+      case 'number_of_arms':
+        value = trial.outcomes?.[0]?.number_of_arms || ''
+        break
+      
+      // Sites fields
+      case 'study_sites':
+        value = trial.sites?.[0]?.study_sites || ''
+        break
+      case 'principal_investigators':
+        value = trial.sites?.[0]?.principal_investigators || ''
+        break
+      case 'site_status':
+        value = trial.sites?.[0]?.site_status || ''
+        break
+      case 'site_countries':
+        value = trial.sites?.[0]?.site_countries || ''
+        break
+      case 'site_regions':
+        value = trial.sites?.[0]?.site_regions || ''
+        break
+      case 'site_contact_info':
+        value = trial.sites?.[0]?.site_contact_info || ''
+        break
+      case 'total':
+        value = trial.sites?.[0]?.total || ''
+        break
+      case 'notes':
+        value = trial.sites?.[0]?.notes || ''
+        break
+      
+      // Results fields
+      case 'trial_results':
+        value = trial.results?.[0]?.trial_results || ''
+        break
+      case 'trial_outcome_content':
+        value = trial.results?.[0]?.trial_outcome_content || ''
+        break
+      case 'results_available':
+        value = trial.results?.[0]?.results_available || ''
+        break
+      case 'endpoints_met':
+        value = trial.results?.[0]?.endpoints_met || ''
+        break
+      case 'adverse_events_reported':
+        value = trial.results?.[0]?.adverse_events_reported || ''
+        break
+      case 'trial_outcome':
+        value = trial.results?.[0]?.trial_outcome || ''
+        break
+      case 'adverse_event_reported':
+        value = trial.results?.[0]?.adverse_event_reported || ''
+        break
+      case 'adverse_event_type':
+        value = trial.results?.[0]?.adverse_event_type || ''
+        break
+      case 'treatment_for_adverse_events':
+        value = trial.results?.[0]?.treatment_for_adverse_events || ''
+        break
+      
+      // Timing fields
+      case 'study_start_date':
+        value = trial.timing?.[0]?.study_start_date || trial.timing?.[0]?.start_date_actual || trial.timing?.[0]?.start_date_estimated || ''
+        break
+      case 'first_patient_in':
+        value = trial.timing?.[0]?.first_patient_in || ''
+        break
+      case 'last_patient_in':
+        value = trial.timing?.[0]?.last_patient_in || ''
+        break
+      case 'study_end_date':
+        value = trial.timing?.[0]?.study_end_date || trial.timing?.[0]?.trial_end_date_actual || trial.timing?.[0]?.trial_end_date_estimated || ''
+        break
+      case 'interim_analysis_dates':
+        value = trial.timing?.[0]?.interim_analysis_dates || ''
+        break
+      case 'final_analysis_date':
+        value = trial.timing?.[0]?.final_analysis_date || ''
+        break
+      case 'regulatory_submission_date':
+        value = trial.timing?.[0]?.regulatory_submission_date || ''
+        break
+      case 'start_date_estimated':
+        value = trial.timing?.[0]?.start_date_estimated || ''
+        break
+      case 'trial_end_date_estimated':
+        value = trial.timing?.[0]?.trial_end_date_estimated || ''
+        break
+      
+      // Additional fields that might be in notes or other sections
+      case 'publication_type':
+        value = trial.notes?.[0]?.publication_type || ''
+        break
+      case 'registry_name':
+        value = trial.notes?.[0]?.registry_name || trial.overview?.registry_name || ''
+        break
+      case 'study_type':
+        value = trial.outcomes?.[0]?.study_type || trial.overview?.study_type || ''
+        break
+      
+      default:
+        value = ''
     }
     
     // Debug: Log the value found for this trial
@@ -855,20 +1032,28 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       console.log(`Trial ${index} - ${fieldPath}: "${value}"`)
     }
     
-    // Handle comma-separated values (for fields that might contain multiple values)
-    if (value && value.trim()) {
-      const trimmedValue = value.trim()
+    // Handle different value types
+    if (value !== null && value !== undefined && value !== '') {
+      const stringValue = String(value)
       
-      // Check if the value contains commas (multiple values)
-      if (trimmedValue.includes(',')) {
-        const splitValues = trimmedValue.split(',').map(v => v.trim()).filter(Boolean)
-        splitValues.forEach(splitValue => {
+      // Handle arrays (some fields might return arrays)
+      if (Array.isArray(value)) {
+        value.forEach((item: any) => {
+          if (item && item.trim && item.trim()) {
+            values.add(item.trim())
+          }
+        })
+      }
+      // Handle comma-separated values (for fields that might contain multiple values)
+      else if (stringValue.includes(',')) {
+        const splitValues = stringValue.split(',').map((v: string) => v.trim()).filter(Boolean)
+        splitValues.forEach((splitValue: string) => {
           if (splitValue) {
             values.add(splitValue)
           }
         })
-      } else {
-        values.add(trimmedValue)
+      } else if (stringValue.trim()) {
+        values.add(stringValue.trim())
       }
     }
   })
@@ -965,255 +1150,116 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
     console.log('TherapeuticFilterModal: Trials data changed, updating filter categories', trials.length)
     console.log('TherapeuticFilterModal: Sample trial data:', trials[0])
     
+    // Helper function to get fallback options from DROPDOWN_OPTIONS for a category
+    const getFallbackOptions = (category: keyof TherapeuticFilterState): string[] => {
+      const options = DROPDOWN_OPTIONS[category]
+      if (options && Array.isArray(options)) {
+        return options.map(opt => opt.label)
+      }
+      return []
+    }
+
+    // Helper function to merge trial data with fallback options
+    const mergeWithFallback = (trialValues: string[], category: keyof TherapeuticFilterState): string[] => {
+      const fallbackValues = getFallbackOptions(category)
+      if (trialValues.length > 0) {
+        // Merge trial values with fallback, removing duplicates
+        const merged = [...new Set([...trialValues, ...fallbackValues])]
+        return merged.sort()
+      }
+      return fallbackValues
+    }
+    
     if (trials.length > 0) {
       const newFilterCategories = {
-        therapeuticAreas: getUniqueValues(trials, 'therapeutic_area'),
-        statuses: getUniqueValues(trials, 'status'),
-        diseaseTypes: getUniqueValues(trials, 'disease_type'),
-        primaryDrugs: getUniqueValues(trials, 'primary_drugs'),
-        trialPhases: getUniqueValues(trials, 'trial_phase'),
-        patientSegments: getUniqueValues(trials, 'patient_segment'),
-        lineOfTherapy: getUniqueValues(trials, 'line_of_therapy'),
-        countries: getUniqueValues(trials, 'countries'),
-        sponsorsCollaborators: getUniqueValues(trials, 'sponsor_collaborators'),
-        sponsorFieldActivity: getUniqueValues(trials, 'sponsor_field_activity'),
-        associatedCro: getUniqueValues(trials, 'associated_cro'),
-        trialTags: getUniqueValues(trials, 'trial_tags'),
-        sex: getUniqueValues(trials, 'sex'),
-        healthyVolunteers: getUniqueValues(trials, 'healthy_volunteers'),
-        trialRecordStatus: getUniqueValues(trials, 'trial_record_status'),
+        therapeuticAreas: mergeWithFallback(getUniqueValues(trials, 'therapeutic_area'), 'therapeuticAreas'),
+        statuses: mergeWithFallback(getUniqueValues(trials, 'status'), 'statuses'),
+        diseaseTypes: mergeWithFallback(getUniqueValues(trials, 'disease_type'), 'diseaseTypes'),
+        primaryDrugs: mergeWithFallback(getUniqueValues(trials, 'primary_drugs'), 'primaryDrugs'),
+        trialPhases: mergeWithFallback(getUniqueValues(trials, 'trial_phase'), 'trialPhases'),
+        patientSegments: mergeWithFallback(getUniqueValues(trials, 'patient_segment'), 'patientSegments'),
+        lineOfTherapy: mergeWithFallback(getUniqueValues(trials, 'line_of_therapy'), 'lineOfTherapy'),
+        countries: mergeWithFallback(getUniqueValues(trials, 'countries'), 'countries'),
+        sponsorsCollaborators: mergeWithFallback(getUniqueValues(trials, 'sponsor_collaborators'), 'sponsorsCollaborators'),
+        sponsorFieldActivity: mergeWithFallback(getUniqueValues(trials, 'sponsor_field_activity'), 'sponsorFieldActivity'),
+        associatedCro: mergeWithFallback(getUniqueValues(trials, 'associated_cro'), 'associatedCro'),
+        trialTags: mergeWithFallback(getUniqueValues(trials, 'trial_tags'), 'trialTags'),
+        sex: mergeWithFallback(getUniqueValues(trials, 'sex'), 'sex'),
+        healthyVolunteers: mergeWithFallback(getUniqueValues(trials, 'healthy_volunteers'), 'healthyVolunteers'),
+        trialRecordStatus: mergeWithFallback(getUniqueValues(trials, 'trial_record_status'), 'trialRecordStatus'),
         // Additional fields from trial creation form
-        otherDrugs: getUniqueValues(trials, 'other_drugs'),
-        regions: getUniqueValues(trials, 'region'),
-        ageMin: getUniqueValues(trials, 'age_from'),
-        ageMax: getUniqueValues(trials, 'age_to'),
-        subjectType: getUniqueValues(trials, 'subject_type'),
-        ecogPerformanceStatus: getUniqueValues(trials, 'ecog_performance_status'),
-        priorTreatments: getUniqueValues(trials, 'prior_treatments'),
-        biomarkerRequirements: getUniqueValues(trials, 'biomarker_requirements'),
-        estimatedEnrollment: getUniqueValues(trials, 'estimated_enrollment'),
-        actualEnrollment: getUniqueValues(trials, 'actual_enrollment'),
-        enrollmentStatus: getUniqueValues(trials, 'enrollment_status'),
-        recruitmentPeriod: getUniqueValues(trials, 'recruitment_period'),
-        studyCompletionDate: getUniqueValues(trials, 'study_completion_date'),
-        primaryCompletionDate: getUniqueValues(trials, 'primary_completion_date'),
-        populationDescription: getUniqueValues(trials, 'population_description'),
-        studySites: getUniqueValues(trials, 'study_sites'),
-        principalInvestigators: getUniqueValues(trials, 'principal_investigators'),
-        siteStatus: getUniqueValues(trials, 'site_status'),
-        siteCountries: getUniqueValues(trials, 'site_countries'),
-        siteRegions: getUniqueValues(trials, 'site_regions'),
-        siteContactInfo: getUniqueValues(trials, 'site_contact_info'),
-        trialResults: getUniqueValues(trials, 'trial_results'),
-        trialOutcomeContent: getUniqueValues(trials, 'trial_outcome_content'),
-        resultsAvailable: getUniqueValues(trials, 'results_available'),
-        endpointsMet: getUniqueValues(trials, 'endpoints_met'),
-        adverseEventsReported: getUniqueValues(trials, 'adverse_events_reported'),
-        studyStartDate: getUniqueValues(trials, 'study_start_date'),
-        firstPatientIn: getUniqueValues(trials, 'first_patient_in'),
-        lastPatientIn: getUniqueValues(trials, 'last_patient_in'),
-        studyEndDate: getUniqueValues(trials, 'study_end_date'),
-        interimAnalysisDates: getUniqueValues(trials, 'interim_analysis_dates'),
-        finalAnalysisDate: getUniqueValues(trials, 'final_analysis_date'),
-        regulatorySubmissionDate: getUniqueValues(trials, 'regulatory_submission_date'),
-        purposeOfTrial: getUniqueValues(trials, 'purpose_of_trial'),
-        summary: getUniqueValues(trials, 'summary'),
-        primaryOutcomeMeasures: getUniqueValues(trials, 'primary_outcome_measure'),
-        otherOutcomeMeasures: getUniqueValues(trials, 'other_outcome_measure'),
-        studyDesignKeywords: getUniqueValues(trials, 'study_design_keywords'),
-        studyDesign: getUniqueValues(trials, 'study_design'),
-        treatmentRegimen: getUniqueValues(trials, 'treatment_regimen'),
-        numberOfArms: getUniqueValues(trials, 'number_of_arms'),
-        inclusionCriteria: getUniqueValues(trials, 'inclusion_criteria'),
-        exclusionCriteria: getUniqueValues(trials, 'exclusion_criteria'),
-        ageFrom: getUniqueValues(trials, 'age_from'),
-        ageTo: getUniqueValues(trials, 'age_to'),
-        gender: getUniqueValues(trials, 'sex'),
-        targetNoVolunteers: getUniqueValues(trials, 'target_no_volunteers'),
-        actualEnrolledVolunteers: getUniqueValues(trials, 'actual_enrolled_volunteers'),
-        startDateEstimated: getUniqueValues(trials, 'start_date_estimated'),
-        trialEndDateEstimated: getUniqueValues(trials, 'trial_end_date_estimated'),
-        trialOutcome: getUniqueValues(trials, 'trial_outcome'),
-        adverseEventReported: getUniqueValues(trials, 'adverse_event_reported'),
-        adverseEventType: getUniqueValues(trials, 'adverse_event_type'),
-        treatmentForAdverseEvents: getUniqueValues(trials, 'treatment_for_adverse_events'),
-        totalSites: getUniqueValues(trials, 'total'),
-        siteNotes: getUniqueValues(trials, 'notes'),
-        publicationType: getUniqueValues(trials, 'publication_type'),
-        registryName: getUniqueValues(trials, 'registry_name'),
-        studyType: getUniqueValues(trials, 'study_type')
+        otherDrugs: mergeWithFallback(getUniqueValues(trials, 'other_drugs'), 'otherDrugs'),
+        regions: mergeWithFallback(getUniqueValues(trials, 'region'), 'regions'),
+        ageMin: mergeWithFallback(getUniqueValues(trials, 'age_from'), 'ageMin'),
+        ageMax: mergeWithFallback(getUniqueValues(trials, 'age_to'), 'ageMax'),
+        subjectType: mergeWithFallback(getUniqueValues(trials, 'subject_type'), 'subjectType'),
+        ecogPerformanceStatus: mergeWithFallback(getUniqueValues(trials, 'ecog_performance_status'), 'ecogPerformanceStatus'),
+        priorTreatments: mergeWithFallback(getUniqueValues(trials, 'prior_treatments'), 'priorTreatments'),
+        biomarkerRequirements: mergeWithFallback(getUniqueValues(trials, 'biomarker_requirements'), 'biomarkerRequirements'),
+        estimatedEnrollment: mergeWithFallback(getUniqueValues(trials, 'estimated_enrollment'), 'estimatedEnrollment'),
+        actualEnrollment: mergeWithFallback(getUniqueValues(trials, 'actual_enrollment'), 'actualEnrollment'),
+        enrollmentStatus: mergeWithFallback(getUniqueValues(trials, 'enrollment_status'), 'enrollmentStatus'),
+        recruitmentPeriod: mergeWithFallback(getUniqueValues(trials, 'recruitment_period'), 'recruitmentPeriod'),
+        studyCompletionDate: mergeWithFallback(getUniqueValues(trials, 'study_completion_date'), 'studyCompletionDate'),
+        primaryCompletionDate: mergeWithFallback(getUniqueValues(trials, 'primary_completion_date'), 'primaryCompletionDate'),
+        populationDescription: mergeWithFallback(getUniqueValues(trials, 'population_description'), 'populationDescription'),
+        studySites: mergeWithFallback(getUniqueValues(trials, 'study_sites'), 'studySites'),
+        principalInvestigators: mergeWithFallback(getUniqueValues(trials, 'principal_investigators'), 'principalInvestigators'),
+        siteStatus: mergeWithFallback(getUniqueValues(trials, 'site_status'), 'siteStatus'),
+        siteCountries: mergeWithFallback(getUniqueValues(trials, 'site_countries'), 'siteCountries'),
+        siteRegions: mergeWithFallback(getUniqueValues(trials, 'site_regions'), 'siteRegions'),
+        siteContactInfo: mergeWithFallback(getUniqueValues(trials, 'site_contact_info'), 'siteContactInfo'),
+        trialResults: mergeWithFallback(getUniqueValues(trials, 'trial_results'), 'trialResults'),
+        trialOutcomeContent: mergeWithFallback(getUniqueValues(trials, 'trial_outcome_content'), 'trialOutcomeContent'),
+        resultsAvailable: mergeWithFallback(getUniqueValues(trials, 'results_available'), 'resultsAvailable'),
+        endpointsMet: mergeWithFallback(getUniqueValues(trials, 'endpoints_met'), 'endpointsMet'),
+        adverseEventsReported: mergeWithFallback(getUniqueValues(trials, 'adverse_events_reported'), 'adverseEventsReported'),
+        studyStartDate: mergeWithFallback(getUniqueValues(trials, 'study_start_date'), 'studyStartDate'),
+        firstPatientIn: mergeWithFallback(getUniqueValues(trials, 'first_patient_in'), 'firstPatientIn'),
+        lastPatientIn: mergeWithFallback(getUniqueValues(trials, 'last_patient_in'), 'lastPatientIn'),
+        studyEndDate: mergeWithFallback(getUniqueValues(trials, 'study_end_date'), 'studyEndDate'),
+        interimAnalysisDates: mergeWithFallback(getUniqueValues(trials, 'interim_analysis_dates'), 'interimAnalysisDates'),
+        finalAnalysisDate: mergeWithFallback(getUniqueValues(trials, 'final_analysis_date'), 'finalAnalysisDate'),
+        regulatorySubmissionDate: mergeWithFallback(getUniqueValues(trials, 'regulatory_submission_date'), 'regulatorySubmissionDate'),
+        purposeOfTrial: mergeWithFallback(getUniqueValues(trials, 'purpose_of_trial'), 'purposeOfTrial'),
+        summary: mergeWithFallback(getUniqueValues(trials, 'summary'), 'summary'),
+        primaryOutcomeMeasures: mergeWithFallback(getUniqueValues(trials, 'primary_outcome_measure'), 'primaryOutcomeMeasures'),
+        otherOutcomeMeasures: mergeWithFallback(getUniqueValues(trials, 'other_outcome_measure'), 'otherOutcomeMeasures'),
+        studyDesignKeywords: mergeWithFallback(getUniqueValues(trials, 'study_design_keywords'), 'studyDesignKeywords'),
+        studyDesign: mergeWithFallback(getUniqueValues(trials, 'study_design'), 'studyDesign'),
+        treatmentRegimen: mergeWithFallback(getUniqueValues(trials, 'treatment_regimen'), 'treatmentRegimen'),
+        numberOfArms: mergeWithFallback(getUniqueValues(trials, 'number_of_arms'), 'numberOfArms'),
+        inclusionCriteria: mergeWithFallback(getUniqueValues(trials, 'inclusion_criteria'), 'inclusionCriteria'),
+        exclusionCriteria: mergeWithFallback(getUniqueValues(trials, 'exclusion_criteria'), 'exclusionCriteria'),
+        ageFrom: mergeWithFallback(getUniqueValues(trials, 'age_from'), 'ageFrom'),
+        ageTo: mergeWithFallback(getUniqueValues(trials, 'age_to'), 'ageTo'),
+        gender: mergeWithFallback(getUniqueValues(trials, 'sex'), 'gender'),
+        targetNoVolunteers: mergeWithFallback(getUniqueValues(trials, 'target_no_volunteers'), 'targetNoVolunteers'),
+        actualEnrolledVolunteers: mergeWithFallback(getUniqueValues(trials, 'actual_enrolled_volunteers'), 'actualEnrolledVolunteers'),
+        startDateEstimated: mergeWithFallback(getUniqueValues(trials, 'start_date_estimated'), 'startDateEstimated'),
+        trialEndDateEstimated: mergeWithFallback(getUniqueValues(trials, 'trial_end_date_estimated'), 'trialEndDateEstimated'),
+        trialOutcome: mergeWithFallback(getUniqueValues(trials, 'trial_outcome'), 'trialOutcome'),
+        adverseEventReported: mergeWithFallback(getUniqueValues(trials, 'adverse_event_reported'), 'adverseEventReported'),
+        adverseEventType: mergeWithFallback(getUniqueValues(trials, 'adverse_event_type'), 'adverseEventType'),
+        treatmentForAdverseEvents: mergeWithFallback(getUniqueValues(trials, 'treatment_for_adverse_events'), 'treatmentForAdverseEvents'),
+        totalSites: mergeWithFallback(getUniqueValues(trials, 'total'), 'totalSites'),
+        siteNotes: mergeWithFallback(getUniqueValues(trials, 'notes'), 'siteNotes'),
+        publicationType: mergeWithFallback(getUniqueValues(trials, 'publication_type'), 'publicationType'),
+        registryName: mergeWithFallback(getUniqueValues(trials, 'registry_name'), 'registryName'),
+        studyType: mergeWithFallback(getUniqueValues(trials, 'study_type'), 'studyType')
       }
       
-      console.log('TherapeuticFilterModal: Updated filter categories:', newFilterCategories)
-      
-      // Check if any categories have values
-      const hasValues = Object.values(newFilterCategories).some(category => category.length > 0)
-      console.log('TherapeuticFilterModal: Has values from trials data:', hasValues)
-      
-      if (hasValues) {
+      console.log('TherapeuticFilterModal: Updated filter categories with merged data')
         setFilterCategories(newFilterCategories)
       } else {
-        console.log('TherapeuticFilterModal: No values found in trials data, using fallback')
-        // Use fallback data if no values found
-        const fallbackCategories = {
-          therapeuticAreas: ['Oncology', 'Cardiology', 'Neurology', 'Endocrinology', 'Immunology', 'Dermatology', 'Hematology', 'Pulmonology'],
-          statuses: ['Recruiting', 'Active', 'Completed', 'Terminated', 'Suspended', 'Not yet recruiting'],
-          diseaseTypes: ['Cancer', 'Cardiovascular Disease', 'Diabetes', 'Alzheimer\'s Disease', 'Multiple Sclerosis', 'Rheumatoid Arthritis'],
-          primaryDrugs: ['Pembrolizumab', 'Nivolumab', 'Atezolizumab', 'Trastuzumab', 'Bevacizumab', 'Rituximab'],
-          trialPhases: ['Phase I', 'Phase II', 'Phase III', 'Phase IV'],
-          patientSegments: ['Adult', 'Pediatric', 'Geriatric', 'All Ages'],
-          lineOfTherapy: ['First Line', 'Second Line', 'Third Line', 'Maintenance'],
-          countries: ['United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Japan', 'Australia'],
-          sponsorsCollaborators: ['Pfizer', 'Merck', 'Roche', 'Novartis', 'Johnson & Johnson', 'Bristol Myers Squibb'],
-          sponsorFieldActivity: ['Pharmaceutical', 'Biotechnology', 'Academic', 'Government', 'Non-profit'],
-          associatedCro: ['IQVIA', 'Parexel', 'ICON', 'Syneos Health', 'PRA Health Sciences'],
-          trialTags: ['Randomized', 'Double-blind', 'Placebo-controlled', 'Open-label', 'Multicenter'],
-          sex: ['Male', 'Female', 'All'],
-          healthyVolunteers: ['Yes', 'No'],
-          trialRecordStatus: ['Active', 'Completed', 'Terminated', 'Suspended'],
-          // Additional fields from trial creation form
-          otherDrugs: ['Placebo', 'Standard Care', 'Comparator Drug'],
-          regions: ['North America', 'Europe', 'Asia-Pacific', 'Latin America'],
-          ageMin: ['18', '21', '25', '30', '35', '40', '45', '50'],
-          ageMax: ['65', '70', '75', '80', '85', '90', '95', '100'],
-          subjectType: ['Patient', 'Healthy Volunteer', 'Both'],
-          ecogPerformanceStatus: ['0', '1', '2', '3', '4'],
-          priorTreatments: ['Chemotherapy', 'Radiotherapy', 'Surgery', 'Immunotherapy'],
-          biomarkerRequirements: ['PD-L1', 'EGFR', 'KRAS', 'BRAF', 'None'],
-          estimatedEnrollment: ['10-50', '51-100', '101-500', '501-1000', '1000+'],
-          actualEnrollment: ['10-50', '51-100', '101-500', '501-1000', '1000+'],
-          enrollmentStatus: ['Recruiting', 'Active', 'Completed', 'Suspended'],
-          recruitmentPeriod: ['6 months', '12 months', '18 months', '24 months', '36 months'],
-          studyCompletionDate: ['2024', '2025', '2026', '2027', '2028'],
-          primaryCompletionDate: ['2024', '2025', '2026', '2027', '2028'],
-          populationDescription: ['Adult patients', 'Pediatric patients', 'Healthy volunteers'],
-          studySites: ['Single site', 'Multi-site', 'International'],
-          principalInvestigators: ['Dr. Smith', 'Dr. Johnson', 'Dr. Williams'],
-          siteStatus: ['Active', 'Recruiting', 'Completed', 'Suspended'],
-          siteCountries: ['United States', 'Canada', 'United Kingdom', 'Germany'],
-          siteRegions: ['North America', 'Europe', 'Asia-Pacific'],
-          siteContactInfo: ['Contact available', 'Contact not available'],
-          trialResults: ['Positive', 'Negative', 'Inconclusive', 'Pending'],
-          trialOutcomeContent: ['Primary endpoint met', 'Secondary endpoint met', 'Safety endpoint met'],
-          resultsAvailable: ['Yes', 'No', 'Partial'],
-          endpointsMet: ['Primary', 'Secondary', 'Safety', 'None'],
-          adverseEventsReported: ['Yes', 'No', 'Unknown'],
-          studyStartDate: ['2024', '2025', '2026'],
-          firstPatientIn: ['2024', '2025', '2026'],
-          lastPatientIn: ['2024', '2025', '2026'],
-          studyEndDate: ['2024', '2025', '2026'],
-          interimAnalysisDates: ['2024', '2025', '2026'],
-          finalAnalysisDate: ['2024', '2025', '2026'],
-          regulatorySubmissionDate: ['2024', '2025', '2026'],
-          purposeOfTrial: ['Efficacy', 'Safety', 'Dose finding', 'Bioequivalence'],
-          summary: ['Phase I study', 'Phase II study', 'Phase III study'],
-          primaryOutcomeMeasures: ['Overall Response Rate', 'Progression Free Survival', 'Overall Survival'],
-          otherOutcomeMeasures: ['Safety', 'Quality of Life', 'Biomarker Analysis'],
-          studyDesignKeywords: ['Randomized', 'Double-blind', 'Placebo-controlled'],
-          studyDesign: ['Parallel', 'Crossover', 'Factorial', 'Sequential'],
-          treatmentRegimen: ['Monotherapy', 'Combination therapy', 'Adjuvant'],
-          numberOfArms: ['1', '2', '3', '4', '5+'],
-          inclusionCriteria: ['Age 18+', 'ECOG 0-1', 'Adequate organ function'],
-          exclusionCriteria: ['Pregnant women', 'Active infection', 'Prior malignancy'],
-          ageFrom: ['18', '21', '25', '30'],
-          ageTo: ['65', '70', '75', '80'],
-          gender: ['Male', 'Female', 'Both'],
-          targetNoVolunteers: ['10-50', '51-100', '101-500', '501-1000'],
-          actualEnrolledVolunteers: ['10-50', '51-100', '101-500', '501-1000'],
-          startDateEstimated: ['2024', '2025', '2026'],
-          trialEndDateEstimated: ['2024', '2025', '2026'],
-          trialOutcome: ['Positive', 'Negative', 'Inconclusive'],
-          adverseEventReported: ['Yes', 'No'],
-          adverseEventType: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'],
-          treatmentForAdverseEvents: ['Supportive care', 'Dose reduction', 'Treatment discontinuation'],
-          totalSites: ['1', '2-5', '6-10', '11-20', '20+'],
-          siteNotes: ['Notes available', 'No notes'],
-          publicationType: ['Company Presentation', 'SEC Filing', 'Conference Report'],
-          registryName: ['ClinicalTrials.gov', 'EUCTR', 'CTRI'],
-          studyType: ['Interventional', 'Observational', 'Expanded Access']
-        }
-        setFilterCategories(fallbackCategories)
-      }
-    } else {
-      console.log('TherapeuticFilterModal: No trials data available, using fallback data')
-      // Fallback data to ensure the UI works even without trials data
-      const fallbackCategories = {
-        therapeuticAreas: ['Oncology', 'Cardiology', 'Neurology', 'Endocrinology', 'Immunology', 'Dermatology', 'Hematology', 'Pulmonology'],
-        statuses: ['Recruiting', 'Active', 'Completed', 'Terminated', 'Suspended', 'Not yet recruiting'],
-        diseaseTypes: ['Cancer', 'Cardiovascular Disease', 'Diabetes', 'Alzheimer\'s Disease', 'Multiple Sclerosis', 'Rheumatoid Arthritis'],
-        primaryDrugs: ['Pembrolizumab', 'Nivolumab', 'Atezolizumab', 'Trastuzumab', 'Bevacizumab', 'Rituximab'],
-        trialPhases: ['Phase I', 'Phase II', 'Phase III', 'Phase IV'],
-        patientSegments: ['Adult', 'Pediatric', 'Geriatric', 'All Ages'],
-        lineOfTherapy: ['First Line', 'Second Line', 'Third Line', 'Maintenance'],
-        countries: ['United States', 'Canada', 'United Kingdom', 'Germany', 'France', 'Japan', 'Australia'],
-        sponsorsCollaborators: ['Pfizer', 'Merck', 'Roche', 'Novartis', 'Johnson & Johnson', 'Bristol Myers Squibb'],
-        sponsorFieldActivity: ['Pharmaceutical', 'Biotechnology', 'Academic', 'Government', 'Non-profit'],
-        associatedCro: ['IQVIA', 'Parexel', 'ICON', 'Syneos Health', 'PRA Health Sciences'],
-        trialTags: ['Randomized', 'Double-blind', 'Placebo-controlled', 'Open-label', 'Multicenter'],
-        sex: ['Male', 'Female', 'All'],
-        healthyVolunteers: ['Yes', 'No'],
-        trialRecordStatus: ['Active', 'Completed', 'Terminated', 'Suspended'],
-        // Additional fields from trial creation form
-        otherDrugs: ['Placebo', 'Standard Care', 'Comparator Drug'],
-        regions: ['North America', 'Europe', 'Asia-Pacific', 'Latin America'],
-        ageMin: ['18', '21', '25', '30', '35', '40', '45', '50'],
-        ageMax: ['65', '70', '75', '80', '85', '90', '95', '100'],
-        subjectType: ['Patient', 'Healthy Volunteer', 'Both'],
-        ecogPerformanceStatus: ['0', '1', '2', '3', '4'],
-        priorTreatments: ['Chemotherapy', 'Radiotherapy', 'Surgery', 'Immunotherapy'],
-        biomarkerRequirements: ['PD-L1', 'EGFR', 'KRAS', 'BRAF', 'None'],
-        estimatedEnrollment: ['10-50', '51-100', '101-500', '501-1000', '1000+'],
-        actualEnrollment: ['10-50', '51-100', '101-500', '501-1000', '1000+'],
-        enrollmentStatus: ['Recruiting', 'Active', 'Completed', 'Suspended'],
-        recruitmentPeriod: ['6 months', '12 months', '18 months', '24 months', '36 months'],
-        studyCompletionDate: ['2024', '2025', '2026', '2027', '2028'],
-        primaryCompletionDate: ['2024', '2025', '2026', '2027', '2028'],
-        populationDescription: ['Adult patients', 'Pediatric patients', 'Healthy volunteers'],
-        studySites: ['Single site', 'Multi-site', 'International'],
-        principalInvestigators: ['Dr. Smith', 'Dr. Johnson', 'Dr. Williams'],
-        siteStatus: ['Active', 'Recruiting', 'Completed', 'Suspended'],
-        siteCountries: ['United States', 'Canada', 'United Kingdom', 'Germany'],
-        siteRegions: ['North America', 'Europe', 'Asia-Pacific'],
-        siteContactInfo: ['Contact available', 'Contact not available'],
-        trialResults: ['Positive', 'Negative', 'Inconclusive', 'Pending'],
-        trialOutcomeContent: ['Primary endpoint met', 'Secondary endpoint met', 'Safety endpoint met'],
-        resultsAvailable: ['Yes', 'No', 'Partial'],
-        endpointsMet: ['Primary', 'Secondary', 'Safety', 'None'],
-        adverseEventsReported: ['Yes', 'No', 'Unknown'],
-        studyStartDate: ['2024', '2025', '2026'],
-        firstPatientIn: ['2024', '2025', '2026'],
-        lastPatientIn: ['2024', '2025', '2026'],
-        studyEndDate: ['2024', '2025', '2026'],
-        interimAnalysisDates: ['2024', '2025', '2026'],
-        finalAnalysisDate: ['2024', '2025', '2026'],
-        regulatorySubmissionDate: ['2024', '2025', '2026'],
-        purposeOfTrial: ['Efficacy', 'Safety', 'Dose finding', 'Bioequivalence'],
-        summary: ['Phase I study', 'Phase II study', 'Phase III study'],
-        primaryOutcomeMeasures: ['Overall Response Rate', 'Progression Free Survival', 'Overall Survival'],
-        otherOutcomeMeasures: ['Safety', 'Quality of Life', 'Biomarker Analysis'],
-        studyDesignKeywords: ['Randomized', 'Double-blind', 'Placebo-controlled'],
-        studyDesign: ['Parallel', 'Crossover', 'Factorial', 'Sequential'],
-        treatmentRegimen: ['Monotherapy', 'Combination therapy', 'Adjuvant'],
-        numberOfArms: ['1', '2', '3', '4', '5+'],
-        inclusionCriteria: ['Age 18+', 'ECOG 0-1', 'Adequate organ function'],
-        exclusionCriteria: ['Pregnant women', 'Active infection', 'Prior malignancy'],
-        ageFrom: ['18', '21', '25', '30'],
-        ageTo: ['65', '70', '75', '80'],
-        gender: ['Male', 'Female', 'Both'],
-        targetNoVolunteers: ['10-50', '51-100', '101-500', '501-1000'],
-        actualEnrolledVolunteers: ['10-50', '51-100', '101-500', '501-1000'],
-        startDateEstimated: ['2024', '2025', '2026'],
-        trialEndDateEstimated: ['2024', '2025', '2026'],
-        trialOutcome: ['Positive', 'Negative', 'Inconclusive'],
-        adverseEventReported: ['Yes', 'No'],
-        adverseEventType: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4'],
-        treatmentForAdverseEvents: ['Supportive care', 'Dose reduction', 'Treatment discontinuation'],
-        totalSites: ['1', '2-5', '6-10', '11-20', '20+'],
-        siteNotes: ['Notes available', 'No notes'],
-        publicationType: ['Company Presentation', 'SEC Filing', 'Conference Report'],
-        registryName: ['ClinicalTrials.gov', 'EUCTR', 'CTRI'],
-        studyType: ['Interventional', 'Observational', 'Expanded Access']
-      }
+      console.log('TherapeuticFilterModal: No trials data available, using static dropdown options')
+      // Use static dropdown options when no trials data is available
+      const fallbackCategories = Object.keys(DROPDOWN_OPTIONS).reduce((acc, key) => {
+        const category = key as keyof TherapeuticFilterState
+        acc[category] = getFallbackOptions(category)
+        return acc
+      }, {} as Record<keyof TherapeuticFilterState, string[]>)
+      
       setFilterCategories(fallbackCategories)
     }
   }, [trials])
@@ -1379,47 +1425,26 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
                 </Button>
               </div>
 
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {/* Use SearchableSelect for dropdown fields */}
-                <SearchableSelect
-                  options={DROPDOWN_OPTIONS[activeCategory] || []}
-                  value={filters[activeCategory][0] || ""}
-                  onValueChange={(value) => {
-                    if (value) {
-                      setFilters((prev) => ({
-                        ...prev,
-                        [activeCategory]: [value]
-                      }));
-                    } else {
-                      setFilters((prev) => ({
-                        ...prev,
-                        [activeCategory]: []
-                      }));
-                    }
-                  }}
-                  placeholder={`Select ${categoryLabels[activeCategory]}...`}
-                  searchPlaceholder={`Search ${categoryLabels[activeCategory]}...`}
-                  emptyMessage={`No ${categoryLabels[activeCategory].toLowerCase()} found.`}
-                  className="w-full"
-                />
-                
-                {/* Show selected values as chips */}
-                {filters[activeCategory].length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {filters[activeCategory].map((item) => (
-                      <div
-                        key={item}
-                        className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
-                      >
-                        <span>{item}</span>
-                        <button
-                          onClick={() => handleItemToggle(activeCategory, item)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                {filterCategories[activeCategory].map((item) => (
+                  <div key={item} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+                    <Checkbox
+                      id={`${activeCategory}-${item}`}
+                      checked={filters[activeCategory].includes(item)}
+                      onCheckedChange={() => handleItemToggle(activeCategory, item)}
+                      className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    />
+                    <label
+                      htmlFor={`${activeCategory}-${item}`}
+                      className="text-sm text-gray-700 flex-1 cursor-pointer"
+                    >
+                      {item}
+                    </label>
                   </div>
                 ))}
+                {filterCategories[activeCategory].length === 0 && (
+                  <div className="text-center text-gray-500 text-sm py-8">
+                    No options available
                   </div>
                 )}
               </div>

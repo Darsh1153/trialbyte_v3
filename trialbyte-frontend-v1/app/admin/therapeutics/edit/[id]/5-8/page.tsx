@@ -227,7 +227,9 @@ export default function EditTherapeuticsStep5_8() {
                 type: note.type || "General",
               content: note.content,
                 sourceLink: note.sourceLink,
-                attachments: note.attachments,
+                sourceType: note.sourceType,
+                sourceUrl: note.sourceUrl,
+                attachments: note.attachments || [],
               isVisible: note.isVisible
             }))}
             onAddNote={() => {

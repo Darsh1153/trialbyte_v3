@@ -457,7 +457,7 @@ export default function TherapeuticsStep5_4() {
           onClick={handleSaveChanges}
           disabled={isSaving}
         >
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? "Creating..." : "Create a Record"}
         </Button>
       </div>
 

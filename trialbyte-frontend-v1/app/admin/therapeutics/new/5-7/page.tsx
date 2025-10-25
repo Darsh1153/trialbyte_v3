@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
-import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon, Calendar } from "lucide-react";
+import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon, Calendar, Image, FileText } from "lucide-react";
 import { useTherapeuticForm } from "../context/therapeutic-form-context";
 import FormProgress from "../components/form-progress";
 import { useToast } from "@/hooks/use-toast";
@@ -123,7 +123,7 @@ export default function TherapeuticsStep5_7() {
           onClick={handleSaveChanges}
           disabled={isSaving}
         >
-          {isSaving ? "Saving..." : "Save Changes"}
+          {isSaving ? "Creating..." : "Create a Record"}
         </Button>
       </div>
 
@@ -197,23 +197,6 @@ export default function TherapeuticsStep5_7() {
                             />
                           </div>
                         </div>
-                        <div className="w-full">
-                          <Label className="text-sm">Description</Label>
-                          <Textarea
-                            rows={3}
-                            placeholder="Enter pipeline data description..."
-                            value={item.description || ""}
-                            onChange={(e) =>
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { description: e.target.value }
-                              )
-                            }
-                            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                          />
-                        </div>
                         <div className="flex gap-2">
                           <div className="w-1/2">
                             <Label className="text-sm">URL</Label>
@@ -283,6 +266,30 @@ export default function TherapeuticsStep5_7() {
                             </div>
                           </div>
                         </div>
+                        {/* Display uploaded file with preview */}
+                        {item.file && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                            {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
+                              <Image className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-gray-600" />
+                            )}
+                            <span className="flex-1">{item.file}</span>
+                            {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  window.open(item.url, '_blank');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                              >
+                                Preview
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -407,6 +414,30 @@ export default function TherapeuticsStep5_7() {
                             </div>
                           </div>
                         </div>
+                        {/* Display uploaded file with preview */}
+                        {item.file && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                            {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
+                              <Image className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-gray-600" />
+                            )}
+                            <span className="flex-1">{item.file}</span>
+                            {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  window.open(item.url, '_blank');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                              >
+                                Preview
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -534,6 +565,30 @@ export default function TherapeuticsStep5_7() {
                             </div>
                           </div>
                         </div>
+                        {/* Display uploaded file with preview */}
+                        {item.file && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                            {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
+                              <Image className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-gray-600" />
+                            )}
+                            <span className="flex-1">{item.file}</span>
+                            {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  window.open(item.url, '_blank');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                              >
+                                Preview
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -661,6 +716,30 @@ export default function TherapeuticsStep5_7() {
                             </div>
                           </div>
                         </div>
+                        {/* Display uploaded file with preview */}
+                        {item.file && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                            {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
+                              <Image className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-gray-600" />
+                            )}
+                            <span className="flex-1">{item.file}</span>
+                            {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  window.open(item.url, '_blank');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                              >
+                                Preview
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -788,6 +867,30 @@ export default function TherapeuticsStep5_7() {
                             </div>
                           </div>
                         </div>
+                        {/* Display uploaded file with preview */}
+                        {item.file && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                            {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
+                              <Image className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-gray-600" />
+                            )}
+                            <span className="flex-1">{item.file}</span>
+                            {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  window.open(item.url, '_blank');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                              >
+                                Preview
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -813,7 +916,7 @@ export default function TherapeuticsStep5_7() {
                             size="sm"
                             onClick={() => {
                               const templates = {
-                                pipeline_data: { date: "", information: "", description: "", url: "", file: "", isVisible: true },
+                                pipeline_data: { date: "", information: "", url: "", file: "", isVisible: true },
                                 press_releases: { date: "", title: "", description: "", url: "", file: "", isVisible: true },
                                 publications: { type: "", title: "", description: "", url: "", file: "", isVisible: true },
                                 trial_registries: { registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
