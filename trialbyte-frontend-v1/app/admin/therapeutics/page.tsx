@@ -1117,9 +1117,9 @@ export default function AdminTherapeuticsPage() {
     localStorage.setItem('adminTrialColumnSettings', JSON.stringify(newSettings));
   };
 
-  // Get all available sort options from customize columns (all columns, not just visible ones)
+  // Get available sort options based on currently visible columns
   const getAvailableSortOptions = () => {
-    return COLUMN_OPTIONS;
+    return COLUMN_OPTIONS.filter((opt) => columnSettings[opt.key]);
   };
 
   // Filter trials based on search term, advanced search criteria, and filters
@@ -1452,21 +1452,7 @@ export default function AdminTherapeuticsPage() {
     return statusColors[status] || "bg-gray-100 text-gray-700";
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Clinical Trials</h1>
-            <p className="text-sm text-muted-foreground">Loading trials...</p>
-          </div>
-        </div>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading...</div>
-        </div>
-      </div>
-    );
-  }
+  // Note: Do not block render with a loading screen; render UI immediately
 
   return (
     <div className="space-y-4">
@@ -1783,6 +1769,7 @@ export default function AdminTherapeuticsPage() {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
+                <TableHead>Trial ID</TableHead>
                 <TableHead>Title</TableHead>
                 {columnSettings.therapeuticArea && <TableHead>Therapeutic Area</TableHead>}
                 {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
@@ -1870,6 +1857,9 @@ export default function AdminTherapeuticsPage() {
                       checked={selectedTrials.has(trial.trial_id)}
                       onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
                     />
+                  </TableCell>
+                  <TableCell className="font-mono max-w-[140px] truncate" title={trial.overview.trial_id || trial.trial_id}>
+                    {trial.overview.trial_id || (trial.trial_id ? `${trial.trial_id.slice(0, 8)}...` : "-")}
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
                     {trial.overview.title || "Untitled"}

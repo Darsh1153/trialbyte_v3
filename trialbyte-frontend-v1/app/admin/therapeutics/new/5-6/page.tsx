@@ -20,8 +20,8 @@ export default function TherapeuticsStep5_6() {
   const [isSaving, setIsSaving] = useState(false);
   const form = formData.step5_6;
   
-  // Use references from step5_4 (Timings) to share the same notes
-  const referencesForm = formData.step5_4;
+  // Use separate references for step5_6 (Sites/Timeline)
+  const referencesForm = formData.step5_6;
   
   // Registry type options (same as in Timings)
   const registryTypes = [
@@ -37,10 +37,10 @@ export default function TherapeuticsStep5_6() {
   ];
   
   // Helper functions for references
-  const handleAddReference = () => addReference("step5_4", "references");
-  const handleRemoveReference = (index: number) => removeReference("step5_4", "references", index);
+  const handleAddReference = () => addReference("step5_6", "references");
+  const handleRemoveReference = (index: number) => removeReference("step5_6", "references", index);
   const handleUpdateReference = (index: number, field: string, value: any) => {
-    updateReference("step5_4", "references", index, { [field]: value });
+    updateReference("step5_6", "references", index, { [field]: value });
   };
   
   // Handle file upload for attachments

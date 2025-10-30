@@ -985,29 +985,36 @@ export default function TherapeuticsStep5_4() {
                           {reference.attachments.map((attachment, attIndex) => {
                             // Handle both old format (string) and new format (object)
                             const fileName = typeof attachment === 'string' ? attachment : (attachment as any).name;
-                            const fileUrl = typeof attachment === 'object' ? (attachment as any).url : null;
-                            const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                            const rawUrl = typeof attachment === 'object' ? ((attachment as any).url || (attachment as any).path) : (attachment as string);
+                            const looksLikeUrl = typeof rawUrl === 'string' && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('data:') || rawUrl.startsWith('blob:'));
+                            const fileUrl = looksLikeUrl ? rawUrl : null;
+                            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName) || (typeof rawUrl === 'string' && rawUrl.startsWith('data:image'));
                             
                             return (
                               <div key={attIndex} className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
                                 {isImage ? (
-                                  <Image className="h-4 w-4 text-blue-600" />
+                                  <>
+                                    {fileUrl ? (
+                                      <img src={fileUrl} alt={fileName} className="h-8 w-8 object-cover rounded border" />
+                                    ) : (
+                                      <Image className="h-4 w-4 text-blue-600" />
+                                    )}
+                                  </>
                                 ) : (
                                   <FileText className="h-4 w-4 text-gray-600" />
                                 )}
-                                <span className="flex-1">{fileName}</span>
-                                {fileUrl && isImage && (
+                                <span className="flex-1 truncate" title={fileName}>{fileName}</span>
+                                {fileUrl && (
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => {
-                                      // Open image in new tab for preview
-                                      window.open(fileUrl, '_blank');
+                                      window.open(fileUrl as string, '_blank');
                                     }}
                                     className="text-blue-600 hover:text-blue-800 p-0 h-auto"
                                   >
-                                    Preview
+                                    {isImage ? 'Preview' : 'Open'}
                                   </Button>
                                 )}
                                 <Button
@@ -1029,24 +1036,21 @@ export default function TherapeuticsStep5_4() {
                       )}
                     </div>
 
-                    {/* Preview Section */}
-                    {(reference.content || (reference.attachments && reference.attachments.length > 0)) && (
+                    {/* Preview Section: show attachments only (exclude content) */}
+                    {(reference.attachments && reference.attachments.length > 0) && (
                       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                         <Label className="text-sm font-medium text-gray-700 mb-2 block">Preview</Label>
                         <div className="prose prose-sm max-w-none">
-                          {/* Content Preview */}
-                          {reference.content && (
-                            <p className="text-gray-800 whitespace-pre-wrap">{reference.content}</p>
-                          )}
-                          
                           {/* Attachments Preview */}
                           {reference.attachments && reference.attachments.length > 0 && (
                             <div className="mt-3 space-y-2">
                               {reference.attachments.map((attachment, attIndex) => {
                                 // Handle both old format (string) and new format (object)
                                 const fileName = typeof attachment === 'string' ? attachment : (attachment as any).name;
-                                const fileUrl = typeof attachment === 'object' ? (attachment as any).url : null;
-                                const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                                const rawUrl = typeof attachment === 'object' ? ((attachment as any).url || (attachment as any).path) : (attachment as string);
+                                const looksLikeUrl = typeof rawUrl === 'string' && (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('data:') || rawUrl.startsWith('blob:'));
+                                const fileUrl = looksLikeUrl ? rawUrl : null;
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName) || (typeof rawUrl === 'string' && rawUrl.startsWith('data:image'));
                                 
                                 if (isImage && fileUrl) {
                                   // For images with URL, show actual preview

@@ -145,7 +145,16 @@ export interface TherapeuticFormData {
     interim_analysis_dates: string[];
     final_analysis_date: string;
     regulatory_submission_date: string;
-    notes: string[];
+    // Separate notes/references for Sites/Timeline section
+    references: Array<{
+      id: string;
+      date: string;
+      registryType: string;
+      content: string;
+      viewSource: string;
+      attachments: any[];
+      isVisible: boolean;
+    }>;
   };
 
   // Step 5-7: Results & Outcomes
@@ -368,7 +377,15 @@ const initialFormState: TherapeuticFormData = {
     interim_analysis_dates: [""],
     final_analysis_date: "",
     regulatory_submission_date: "",
-    notes: [""],
+    references: [{
+      id: "1",
+      date: "",
+      registryType: "",
+      content: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    }],
   },
   step5_7: {
     primary_endpoint_results: "",
