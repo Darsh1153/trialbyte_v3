@@ -150,6 +150,10 @@ export default function TherapeuticsStep5_8() {
         logs: {
           trial_changes_log: "Trial created via therapeutic form",
           trial_added_date: new Date().toISOString().split("T")[0],
+          last_modified_date: new Date().toISOString(),
+          last_modified_user: "admin",
+          full_review_user: fullReviewUser || null,
+          next_review_date: nextReviewDate ? formatDate(nextReviewDate) : null,
         },
         notes: {
           date_type: formatDate(allFormData.step5_8.date_type),
@@ -173,7 +177,8 @@ export default function TherapeuticsStep5_8() {
       console.log("API Response:", result);
 
       if (response.ok) {
-        const trialId = result.trial_identifier || "Trial";
+        // Always use the auto-generated trial_id (TB-000XXX format)
+        const trialId = result.trial_id || "Trial";
         toast({
           title: "Success",
           description: `A trial with ID of ${trialId} is created`,
@@ -201,14 +206,12 @@ export default function TherapeuticsStep5_8() {
       const result = await saveTrial();
       
       if (result.success) {
-        // Get the first trial identifier for the success message
-        const trialId = formData.step5_1.trial_identifier && formData.step5_1.trial_identifier.length > 0 
-          ? formData.step5_1.trial_identifier[0] 
-          : "Trial";
+        // Always use the auto-generated trial_id (TB-000XXX format)
+        const trialId = result.trialId || "Trial";
         
         toast({
           title: "Success",
-          description: `${trialId} created successfully`,
+          description: `A trial with ID of ${trialId} is created`,
           duration: 5000,
         });
       } else {

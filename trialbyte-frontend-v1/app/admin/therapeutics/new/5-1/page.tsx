@@ -510,8 +510,8 @@ export default function TherapeuticsStep5_1() {
       const result = await saveTrial();
       
       if (result.success) {
-        // Use the generated trial identifier from the response
-        const trialId = result.trialIdentifier || "Trial";
+        // Always use the auto-generated trial_id (TB-000XXX format)
+        const trialId = result.trialId || "Trial";
         
         toast({
           title: "Success",
@@ -577,6 +577,9 @@ export default function TherapeuticsStep5_1() {
             <div className="space-y-2">
               <Label>Trial Identifier</Label>
               <div className="space-y-2">
+                <div className="text-sm text-gray-500 italic mb-2">
+                  First identifier will be auto-generated (e.g., TB-000171)
+                </div>
                 {form.trial_identifier.length > 0 ? (
                   form.trial_identifier.map((val, idx) => (
                     <div key={idx} className="flex gap-2">
@@ -585,9 +588,10 @@ export default function TherapeuticsStep5_1() {
                         onChange={(e) =>
                           updateTrialIdentifier(idx, e.target.value)
                         }
-                        placeholder="Auto-generated (e.g., TB-000001)"
+                        placeholder={idx === 0 ? "Auto-generated (e.g., TB-000171)" : "Additional identifier"}
                         rows={1}
-                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10"
+                        disabled={idx === 0}
+                        className={`border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10 ${idx === 0 ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                       />
                       {idx === 0 ? (
                         <Button
@@ -612,14 +616,11 @@ export default function TherapeuticsStep5_1() {
                   <div className="flex gap-2">
                     <Textarea
                       value=""
-                      onChange={(e) => {
-                        // Add the first trial identifier
-                        addTrialIdentifierField();
-                        updateTrialIdentifier(0, e.target.value);
-                      }}
-                      placeholder="Auto-generated (e.g., TB-000001)"
+                      onChange={() => {}}
+                      placeholder="Auto-generated (e.g., TB-000171)"
                       rows={1}
-                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10"
+                      disabled={true}
+                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10 bg-gray-100 cursor-not-allowed"
                     />
                     <Button
                       type="button"
@@ -628,11 +629,6 @@ export default function TherapeuticsStep5_1() {
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
-                  </div>
-                )}
-                {form.trial_identifier.length === 0 && (
-                  <div className="text-sm text-gray-500 italic">
-                    Trial identifier will be auto-generated with format TB-XXXXXX when saved
                   </div>
                 )}
               </div>

@@ -56,7 +56,7 @@ export default function EditTherapeuticsStep5_4() {
     if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
     
     const diffTime = Math.abs(d2.getTime() - d1.getTime());
-    const diffMonths = Math.round(diffTime / (1000 * 60 * 60 * 24 * 30.44)); // Average days per month
+    const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44); // Average days per month - keep as decimal
     return diffMonths;
   };
 
@@ -101,8 +101,21 @@ export default function EditTherapeuticsStep5_4() {
       const enrollmentClosedDate = column === "Enrollment Closed Date" ? value : getValue(row, "Enrollment Closed Date");
       
       if (startDate && enrollmentClosedDate) {
+        // Validate that start date is not greater than enrollment closed date
+        const start = new Date(startDate);
+        const enrollment = new Date(enrollmentClosedDate);
+        
+        if (start > enrollment) {
+          toast({
+            title: "Date Validation Error",
+            description: `Start date (${startDate}) cannot be greater than enrollment closure date (${enrollmentClosedDate})`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
-        updateTableValue(row, "Inclusion Period", inclusionPeriod.toString());
+        updateTableValue(row, "Inclusion Period", inclusionPeriod.toFixed(2));
       }
     }
 
@@ -112,8 +125,21 @@ export default function EditTherapeuticsStep5_4() {
       const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
       
       if (trialEndDate && resultPublishedDate) {
+        // Validate that trial end date is not greater than result published date
+        const trialEnd = new Date(trialEndDate);
+        const resultPublished = new Date(resultPublishedDate);
+        
+        if (trialEnd > resultPublished) {
+          toast({
+            title: "Date Validation Error",
+            description: `Trial end date (${trialEndDate}) cannot be greater than result published date (${resultPublishedDate})`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
         const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
-        updateTableValue(row, "Result Duration", resultDuration.toString());
+        updateTableValue(row, "Result Duration", resultDuration.toFixed(2));
       }
     }
 
@@ -124,7 +150,7 @@ export default function EditTherapeuticsStep5_4() {
       
       if (startDate && trialEndDate) {
         const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
-        updateField("step5_4", "estimated_enrollment", overallDurationComplete.toString());
+        updateField("step5_4", "overall_duration_complete", overallDurationComplete.toFixed(2));
       }
     }
 
@@ -135,7 +161,7 @@ export default function EditTherapeuticsStep5_4() {
       
       if (startDate && resultPublishedDate) {
         const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
-        updateField("step5_4", "actual_enrollment", overallDurationPublish.toString());
+        updateField("step5_4", "overall_duration_publish", overallDurationPublish.toFixed(2));
       }
     }
 
@@ -145,14 +171,20 @@ export default function EditTherapeuticsStep5_4() {
       const primaryOutcomeDuration = getValue("actual", "Primary Outcome Duration");
       
       if (trialEndDate && primaryOutcomeDuration) {
-        const enrollmentClosedDate = calculateBackwardDate(trialEndDate, parseInt(primaryOutcomeDuration));
-        updateTableValue("estimated", "Enrollment Closed Date", enrollmentClosedDate);
-        
-        // Calculate inclusion period for estimated row
-        const startDate = getValue("estimated", "Start Date");
-        if (startDate) {
-          const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
-          updateTableValue("estimated", "Inclusion Period", inclusionPeriod.toString());
+        // Calculate enrollment closed date by subtracting duration from trial end date
+        const end = new Date(trialEndDate);
+        if (!isNaN(end.getTime())) {
+          const start = new Date(end);
+          start.setMonth(start.getMonth() - parseInt(primaryOutcomeDuration));
+          const enrollmentClosedDate = start.toISOString().split('T')[0];
+          updateTableValue("estimated", "Enrollment Closed Date", enrollmentClosedDate);
+          
+          // Calculate inclusion period for estimated row
+          const startDate = getValue("estimated", "Start Date");
+          if (startDate) {
+            const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
+            updateTableValue("estimated", "Inclusion Period", inclusionPeriod.toFixed(2));
+          }
         }
       }
     }
@@ -540,9 +572,9 @@ export default function EditTherapeuticsStep5_4() {
                 type="number"
                 className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 placeholder="Months"
-                value={form.estimated_enrollment || ""}
+                value={form.overall_duration_complete || ""}
                 onChange={(e) =>
-                  updateField("step5_4", "estimated_enrollment", e.target.value)
+                  updateField("step5_4", "overall_duration_complete", e.target.value)
                 }
               />
               <span className="text-sm text-gray-500">(months)</span>
@@ -555,9 +587,9 @@ export default function EditTherapeuticsStep5_4() {
                 type="number"
                 className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 placeholder="Months"
-                value={form.actual_enrollment || ""}
+                value={form.overall_duration_publish || ""}
                 onChange={(e) =>
-                  updateField("step5_4", "actual_enrollment", e.target.value)
+                  updateField("step5_4", "overall_duration_publish", e.target.value)
                 }
               />
               <span className="text-sm text-gray-500">(months)</span>

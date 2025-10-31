@@ -60,6 +60,30 @@ export interface EditTherapeuticFormData {
     study_completion_date: string;
     primary_completion_date: string;
     population_description: string;
+    // Timing fields - ensure they are mapped
+    actual_start_date: string;
+    actual_inclusion_period: string;
+    actual_enrollment_closed_date: string;
+    actual_primary_outcome_duration: string;
+    actual_trial_end_date: string;
+    actual_result_duration: string;
+    actual_result_published_date: string;
+    benchmark_start_date: string;
+    benchmark_inclusion_period: string;
+    benchmark_enrollment_closed_date: string;
+    benchmark_primary_outcome_duration: string;
+    benchmark_trial_end_date: string;
+    benchmark_result_duration: string;
+    benchmark_result_published_date: string;
+    estimated_start_date: string;
+    estimated_inclusion_period: string;
+    estimated_enrollment_closed_date: string;
+    estimated_primary_outcome_duration: string;
+    estimated_trial_end_date: string;
+    estimated_result_duration: string;
+    estimated_result_published_date: string;
+    overall_duration_complete: string;
+    overall_duration_publish: string;
     references: Array<{
       id: string;
       date: string;
@@ -71,17 +95,21 @@ export interface EditTherapeuticFormData {
     }>;
   };
 
-  // Step 5-5: Study Sites
+  // Step 5-5: Results
   step5_5: {
-    study_sites: string[];
-    principal_investigators: string[];
-    site_status: string;
-    site_countries: string[];
-    site_regions: string[];
-    site_contact_info: string[];
     results_available: boolean;
     endpoints_met: boolean;
     adverse_events_reported: boolean;
+    trial_outcome: string;
+    trial_outcome_reference_date: string;
+    trial_outcome_content: string;
+    trial_outcome_link: string;
+    trial_outcome_attachment: string; // or File
+    trial_results: string[];
+    adverse_event_reported: string;
+    adverse_event_type: string;
+    treatment_for_adverse_events: string;
+    site_notes: any[];
   };
 
   // Step 5-6: Timeline & Milestones
@@ -93,6 +121,16 @@ export interface EditTherapeuticFormData {
     interim_analysis_dates: string[];
     final_analysis_date: string;
     regulatory_submission_date: string;
+    // Separate notes/references for Sites/Timeline section
+    references: Array<{
+      id: string;
+      date: string;
+      registryType: string;
+      content: string;
+      viewSource: string;
+      attachments: any[];
+      isVisible: boolean;
+    }>;
   };
 
   // Step 5-7: Results & Outcomes
@@ -163,6 +201,9 @@ export interface EditTherapeuticFormData {
     additional_resources: string[];
     date_type: string;
     link: string;
+    fullReview: boolean;
+    fullReviewUser: string;
+    nextReviewDate: string;
     changesLog: Array<{
       id: string;
       timestamp: string;
@@ -237,18 +278,46 @@ const initialFormData: EditTherapeuticFormData = {
     study_completion_date: "",
     primary_completion_date: "",
     population_description: "",
+    // Timing fields - ensure they are mapped
+    actual_start_date: "",
+    actual_inclusion_period: "",
+    actual_enrollment_closed_date: "",
+    actual_primary_outcome_duration: "",
+    actual_trial_end_date: "",
+    actual_result_duration: "",
+    actual_result_published_date: "",
+    benchmark_start_date: "",
+    benchmark_inclusion_period: "",
+    benchmark_enrollment_closed_date: "",
+    benchmark_primary_outcome_duration: "",
+    benchmark_trial_end_date: "",
+    benchmark_result_duration: "",
+    benchmark_result_published_date: "",
+    estimated_start_date: "",
+    estimated_inclusion_period: "",
+    estimated_enrollment_closed_date: "",
+    estimated_primary_outcome_duration: "",
+    estimated_trial_end_date: "",
+    estimated_result_duration: "",
+    estimated_result_published_date: "",
+    overall_duration_complete: "",
+    overall_duration_publish: "",
     references: [],
   },
   step5_5: {
-    study_sites: [],
-    principal_investigators: [],
-    site_status: "",
-    site_countries: [],
-    site_regions: [],
-    site_contact_info: [],
     results_available: false,
     endpoints_met: false,
     adverse_events_reported: false,
+    trial_outcome: '',
+    trial_outcome_reference_date: '',
+    trial_outcome_content: '',
+    trial_outcome_link: '',
+    trial_outcome_attachment: '',
+    trial_results: [],
+    adverse_event_reported: '',
+    adverse_event_type: '',
+    treatment_for_adverse_events: '',
+    site_notes: [],
   },
   step5_6: {
     study_start_date: "",
@@ -258,6 +327,15 @@ const initialFormData: EditTherapeuticFormData = {
     interim_analysis_dates: [],
     final_analysis_date: "",
     regulatory_submission_date: "",
+    references: [{
+      id: "1",
+      date: "",
+      registryType: "",
+      content: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    }],
   },
   step5_7: {
     primary_endpoint_results: "",
@@ -281,6 +359,9 @@ const initialFormData: EditTherapeuticFormData = {
     additional_resources: [],
     date_type: "",
     link: "",
+    fullReview: false,
+    fullReviewUser: "",
+    nextReviewDate: "",
     changesLog: [],
     creationInfo: {
       createdDate: "",
@@ -305,27 +386,135 @@ type EditFormAction =
 
 // Reducer function
 function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction): EditTherapeuticFormData {
+  let newState: EditTherapeuticFormData;
+  
   switch (action.type) {
     case "SET_TRIAL_DATA":
       return action.payload;
     case "UPDATE_FIELD":
-      return {
+      newState = {
         ...state,
         [action.step]: {
           ...state[action.step],
           [action.field]: action.value,
         },
       };
+      
+      // Save step5_5 (Results) to localStorage immediately for persistence
+      if (action.step === "step5_5") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            const storageKey = `trial_results_${trialId}`;
+            const resultsData = newState.step5_5;
+            localStorage.setItem(storageKey, JSON.stringify({
+              ...resultsData,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Results to localStorage:', storageKey, resultsData);
+          } else {
+            console.warn('Cannot save Results to localStorage: No trialId found');
+          }
+        } catch (e) {
+          console.warn('Failed to save Results to localStorage:', e);
+        }
+      }
+      
+      // Save step5_7 (Other Sources) to localStorage immediately for persistence
+      if (action.step === "step5_7") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            const storageKey = `trial_other_sources_${trialId}`;
+            const otherSourcesData = newState.step5_7;
+            localStorage.setItem(storageKey, JSON.stringify({
+              ...otherSourcesData,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Other Sources to localStorage:', storageKey, otherSourcesData);
+          } else {
+            console.warn('Cannot save Other Sources to localStorage: No trialId found');
+          }
+        } catch (e) {
+          console.warn('Failed to save Other Sources to localStorage:', e);
+        }
+      }
+      
+      // Save step5_4 (Timing) to localStorage immediately for persistence
+      if (action.step === "step5_4") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            const storageKey = `trial_timing_${trialId}`;
+            const timingData = newState.step5_4;
+            localStorage.setItem(storageKey, JSON.stringify({
+              ...timingData,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Timing to localStorage:', storageKey, timingData);
+          } else {
+            console.warn('Cannot save Timing to localStorage: No trialId found');
+          }
+        } catch (e) {
+          console.warn('Failed to save Timing to localStorage:', e);
+        }
+      }
+      
+      return newState;
     case "ADD_ARRAY_ITEM":
-      return {
+      newState = {
         ...state,
         [action.step]: {
           ...state[action.step],
           [action.field]: [...(state[action.step] as any)[action.field], action.value],
         },
       };
+      
+      // Save to localStorage for step5_5
+      if (action.step === "step5_5") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_results_${trialId}`, JSON.stringify({
+              ...newState.step5_5,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Results array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      // Save to localStorage for step5_7 (Other Sources)
+      if (action.step === "step5_7") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_other_sources_${trialId}`, JSON.stringify({
+              ...newState.step5_7,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Other Sources array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      // Save to localStorage for step5_4 (Timing)
+      if (action.step === "step5_4") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_timing_${trialId}`, JSON.stringify({
+              ...newState.step5_4,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Timing array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      return newState;
     case "REMOVE_ARRAY_ITEM":
-      return {
+      newState = {
         ...state,
         [action.step]: {
           ...state[action.step],
@@ -334,8 +523,52 @@ function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction)
           ),
         },
       };
+      
+      // Save to localStorage for step5_5
+      if (action.step === "step5_5") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_results_${trialId}`, JSON.stringify({
+              ...newState.step5_5,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Results array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      // Save to localStorage for step5_7 (Other Sources)
+      if (action.step === "step5_7") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_other_sources_${trialId}`, JSON.stringify({
+              ...newState.step5_7,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Other Sources array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      // Save to localStorage for step5_4 (Timing)
+      if (action.step === "step5_4") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_timing_${trialId}`, JSON.stringify({
+              ...newState.step5_4,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Timing array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      return newState;
     case "UPDATE_ARRAY_ITEM":
-      return {
+      newState = {
         ...state,
         [action.step]: {
           ...state[action.step],
@@ -344,6 +577,50 @@ function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction)
           ),
         },
       };
+      
+      // Save to localStorage for step5_5
+      if (action.step === "step5_5") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_results_${trialId}`, JSON.stringify({
+              ...newState.step5_5,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Results array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      // Save to localStorage for step5_7 (Other Sources)
+      if (action.step === "step5_7") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_other_sources_${trialId}`, JSON.stringify({
+              ...newState.step5_7,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Other Sources array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      // Save to localStorage for step5_4 (Timing)
+      if (action.step === "step5_4") {
+        try {
+          const trialId = currentEditingTrialId || getTrialIdFromURL();
+          if (trialId) {
+            localStorage.setItem(`trial_timing_${trialId}`, JSON.stringify({
+              ...newState.step5_4,
+              timestamp: new Date().toISOString(),
+            }));
+            console.log('💾 Saved Timing array to localStorage (ADD)');
+          }
+        } catch (e) {}
+      }
+      
+      return newState;
     case "RESET_FORM":
       return initialFormData;
     default:
@@ -371,6 +648,21 @@ interface EditTherapeuticFormContextType {
   isSaving: boolean;
 }
 
+// Module-level variable to store current trialId for localStorage
+let currentEditingTrialId: string | null = null;
+
+// Helper function to get trialId from URL
+const getTrialIdFromURL = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  // URL format: /admin/therapeutics/edit/[trialId]/5-5
+  const editIndex = pathParts.indexOf('edit');
+  if (editIndex !== -1 && pathParts[editIndex + 1]) {
+    return pathParts[editIndex + 1];
+  }
+  return null;
+};
+
 // Create context
 const EditTherapeuticFormContext = createContext<EditTherapeuticFormContextType | undefined>(undefined);
 
@@ -379,6 +671,12 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
   const [formData, dispatch] = useReducer(editFormReducer, initialFormData);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  
+  // Set the module-level trialId for localStorage access
+  React.useEffect(() => {
+    currentEditingTrialId = trialId;
+    console.log('🔑 Set currentEditingTrialId:', trialId);
+  }, [trialId]);
   const { toast } = useToast();
 
   // Store the original trial data for reference
@@ -387,6 +685,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
   // Load trial data
   const loadTrialData = async (trialId: string) => {
     try {
+      // Set the module-level trialId for localStorage access
+      currentEditingTrialId = trialId;
+      console.log('🔑 Set currentEditingTrialId in loadTrialData:', trialId);
+      
       setIsLoading(true);
       
       // Try to fetch from API first
@@ -396,13 +698,18 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
         // Wrap fetch in a promise that never rejects
-        const fetchPromise = fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`, {
+        // Add timestamp to prevent caching
+        const timestamp = new Date().getTime();
+        const fetchPromise = fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data?_t=${timestamp}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
           },
           credentials: 'include',
           signal: controller.signal,
+          cache: 'no-store',
         }).catch(() => null); // Convert rejection to null
         
         const response = await fetchPromise;
@@ -435,26 +742,49 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         
         let foundTrial = data.trials.find((t: any) => t.trial_id === trialId);
         
-        // If we have localStorage data and it was recently updated, prioritize it
-        if (localTrial && recentlyUpdated) {
-          console.log('Using recently updated localStorage data for trial:', trialId);
+        // Always prefer API data when available (it's the source of truth)
+        if (foundTrial) {
+          console.log('Using API data for trial:', trialId);
+        } else if (localTrial) {
+          // Only use localStorage as fallback when API data is not available
+          console.log('API data not found, using localStorage for trial:', trialId);
           foundTrial = localTrial;
-          // Clear the update flag since we're using the updated data
-          localStorage.removeItem(`trial_updated_${trialId}`);
-        } else if (localTrial && foundTrial) {
-          // Compare timestamps to see which is more recent
-          const localUpdatedAt = new Date(localTrial.overview?.updated_at || 0);
-          const apiUpdatedAt = new Date(foundTrial.overview?.updated_at || 0);
-          
-          if (localUpdatedAt > apiUpdatedAt) {
-            console.log('Using localStorage data (more recent) for trial:', trialId);
-            foundTrial = localTrial;
-          }
         }
         
         if (foundTrial) {
           // Store original trial data for reference
           setOriginalTrial(foundTrial);
+          
+          // Helper function to format date from database (YYYY-MM-DD) to UI (MM-DD-YYYY)
+          const formatDateForUI = (dateStr: string): string => {
+            if (!dateStr) return "";
+            
+            try {
+              // Handle YYYY-MM-DD format (from database)
+              if (dateStr.includes('-') && dateStr.length === 10) {
+                const parts = dateStr.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                  // Convert YYYY-MM-DD to MM-DD-YYYY
+                  const [year, month, day] = parts;
+                  return `${month}-${day}-${year}`;
+                }
+              }
+              
+              // Try to parse as Date object
+              const date = new Date(dateStr);
+              if (!isNaN(date.getTime())) {
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${month}-${day}-${year}`;
+              }
+              
+              return dateStr; // Return as-is if can't parse
+            } catch (e) {
+              console.warn('Error formatting date for UI:', dateStr, e);
+              return dateStr;
+            }
+          };
           
           // Map trial data to form structure
           const mappedData: EditTherapeuticFormData = {
@@ -528,7 +858,38 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               prior_treatments: [],
               biomarker_requirements: [],
             },
-            step5_4: {
+            step5_4: (() => {
+              console.log('=== LOADING TIMING DATA ===');
+              
+              // CHECK LOCALSTORAGE FIRST for recent changes
+              try {
+                const storageKey = `trial_timing_${trialId}`;
+                const storedData = localStorage.getItem(storageKey);
+                if (storedData) {
+                  const localStorageData = JSON.parse(storedData);
+                  console.log('📂 Found Timing in localStorage:', localStorageData);
+                  
+                  // Check if localStorage data is recent
+                  const timestamp = new Date(localStorageData.timestamp);
+                  const now = new Date();
+                  const hoursDiff = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+                  console.log('localStorage data age:', hoursDiff, 'hours');
+                  
+                  // Use localStorage data if it exists
+                  if (localStorageData) {
+                    console.log('✅ Using localStorage data for Timing (has recent changes)');
+                    // Remove timestamp before returning
+                    const { timestamp: _, ...dataWithoutTimestamp } = localStorageData;
+                    return dataWithoutTimestamp;
+                  }
+                }
+              } catch (e) {
+                console.warn('Error loading Timing from localStorage:', e);
+              }
+              
+              console.log('Loading Timing from API...');
+              
+              return {
               estimated_enrollment: foundTrial.criteria?.[0]?.target_no_volunteers?.toString() || "",
               actual_enrollment: foundTrial.criteria?.[0]?.actual_enrolled_volunteers?.toString() || "",
               enrollment_status: "",
@@ -536,29 +897,437 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               study_completion_date: "",
               primary_completion_date: "",
               population_description: "",
-              references: [],
-            },
-            step5_5: {
-              study_sites: foundTrial.sites?.[0]?.notes ? [foundTrial.sites[0].notes] : [],
-              principal_investigators: [],
-              site_status: "",
-              site_countries: [],
-              site_regions: [],
-              site_contact_info: [],
-              results_available: false,
-              endpoints_met: false,
-              adverse_events_reported: false,
-            },
+              // Timing fields - ensure they are mapped with proper date formatting
+              actual_start_date: formatDateForUI(foundTrial.timing?.[0]?.start_date_actual),
+              actual_inclusion_period: foundTrial.timing?.[0]?.inclusion_period_actual || "",
+              actual_enrollment_closed_date: formatDateForUI(foundTrial.timing?.[0]?.enrollment_closed_actual),
+              actual_primary_outcome_duration: foundTrial.timing?.[0]?.primary_outcome_duration_actual || "",
+              actual_trial_end_date: formatDateForUI(foundTrial.timing?.[0]?.trial_end_date_actual),
+              actual_result_duration: foundTrial.timing?.[0]?.result_duration_actual || "",
+              actual_result_published_date: formatDateForUI(foundTrial.timing?.[0]?.result_published_date_actual),
+              benchmark_start_date: formatDateForUI(foundTrial.timing?.[0]?.start_date_benchmark),
+              benchmark_inclusion_period: foundTrial.timing?.[0]?.inclusion_period_benchmark || "",
+              benchmark_enrollment_closed_date: formatDateForUI(foundTrial.timing?.[0]?.enrollment_closed_benchmark),
+              benchmark_primary_outcome_duration: foundTrial.timing?.[0]?.primary_outcome_duration_benchmark || "",
+              benchmark_trial_end_date: formatDateForUI(foundTrial.timing?.[0]?.trial_end_date_benchmark),
+              benchmark_result_duration: foundTrial.timing?.[0]?.result_duration_benchmark || "",
+              benchmark_result_published_date: formatDateForUI(foundTrial.timing?.[0]?.result_published_date_benchmark),
+              estimated_start_date: formatDateForUI(foundTrial.timing?.[0]?.start_date_estimated),
+              estimated_inclusion_period: foundTrial.timing?.[0]?.inclusion_period_estimated || "",
+              estimated_enrollment_closed_date: formatDateForUI(foundTrial.timing?.[0]?.enrollment_closed_estimated),
+              estimated_primary_outcome_duration: foundTrial.timing?.[0]?.primary_outcome_duration_estimated || "",
+              estimated_trial_end_date: formatDateForUI(foundTrial.timing?.[0]?.trial_end_date_estimated),
+              estimated_result_duration: foundTrial.timing?.[0]?.result_duration_estimated || "",
+              estimated_result_published_date: formatDateForUI(foundTrial.timing?.[0]?.result_published_date_estimated),
+              overall_duration_complete: foundTrial.timing?.[0]?.overall_duration_complete || "",
+              overall_duration_publish: foundTrial.timing?.[0]?.overall_duration_publish || "",
+              references: (() => {
+                // Log timing data being loaded
+                console.log('Loading timing data from database:', {
+                  raw_dates: {
+                    actual_start: foundTrial.timing?.[0]?.start_date_actual,
+                    benchmark_start: foundTrial.timing?.[0]?.start_date_benchmark,
+                  },
+                  formatted_dates: {
+                    actual_start: formatDateForUI(foundTrial.timing?.[0]?.start_date_actual),
+                    benchmark_start: formatDateForUI(foundTrial.timing?.[0]?.start_date_benchmark),
+                  },
+                  durations: {
+                    actual_inclusion_period: foundTrial.timing?.[0]?.inclusion_period_actual,
+                    benchmark_inclusion_period: foundTrial.timing?.[0]?.inclusion_period_benchmark,
+                    estimated_inclusion_period: foundTrial.timing?.[0]?.inclusion_period_estimated,
+                    overall_duration_complete: foundTrial.timing?.[0]?.overall_duration_complete,
+                    overall_duration_publish: foundTrial.timing?.[0]?.overall_duration_publish,
+                  }
+                });
+                // Parse timing_references if it's a string, or use it directly if it's an array
+                let timingReferences = foundTrial.timing?.[0]?.timing_references;
+                
+                console.log('Loading timing_references:', {
+                  rawTimingReferences: timingReferences,
+                  type: typeof timingReferences,
+                  isArray: Array.isArray(timingReferences)
+                });
+                
+                // If timing_references is a string, try to parse it
+                if (typeof timingReferences === 'string') {
+                  try {
+                    timingReferences = JSON.parse(timingReferences);
+                    console.log('Parsed timing_references:', timingReferences);
+                  } catch (e) {
+                    console.warn('Failed to parse timing_references:', e);
+                    timingReferences = null;
+                  }
+                }
+                
+                // If we have valid timing_references array, map it
+                if (timingReferences && Array.isArray(timingReferences) && timingReferences.length > 0) {
+                  const mappedReferences = timingReferences.map((ref: any, index: number) => ({
+                    id: ref.id || `${index + 1}`,
+                    date: ref.date || "",
+                    registryType: ref.registryType || "",
+                    content: ref.content || "",
+                    viewSource: ref.viewSource || "",
+                    attachments: ref.attachments || [],
+                    isVisible: ref.isVisible !== false,
+                  }));
+                  console.log('Mapped timing references:', mappedReferences);
+                  return mappedReferences;
+                }
+                
+                console.log('No valid timing_references found, using default empty reference');
+                // Default: return a single empty reference
+                return [{
+                  id: "1",
+                  date: "",
+                  registryType: "",
+                  content: "",
+                  viewSource: "",
+                  attachments: [],
+                  isVisible: true,
+                }];
+              })(),
+              };
+            })(),
+            step5_5: (() => {
+              console.log('=== LOADING RESULTS DATA ===');
+              
+              // CHECK LOCALSTORAGE FIRST for recent changes
+              let localStorageData = null;
+              try {
+                const storageKey = `trial_results_${trialId}`;
+                const storedData = localStorage.getItem(storageKey);
+                if (storedData) {
+                  localStorageData = JSON.parse(storedData);
+                  console.log('📂 Found Results in localStorage:', localStorageData);
+                  
+                  // Check if localStorage data is recent (within last 24 hours)
+                  const timestamp = new Date(localStorageData.timestamp);
+                  const now = new Date();
+                  const hoursDiff = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+                  console.log('localStorage data age:', hoursDiff, 'hours');
+                  
+                  // Use localStorage data if it exists, regardless of age
+                  // This ensures recent changes are always shown
+                  if (localStorageData) {
+                    console.log('✅ Using localStorage data for Results (has recent changes)');
+                    // Remove timestamp before returning
+                    const { timestamp: _, ...dataWithoutTimestamp } = localStorageData;
+                    return dataWithoutTimestamp;
+                  }
+                }
+              } catch (e) {
+                console.warn('Error loading Results from localStorage:', e);
+              }
+              
+              console.log('Loading Results from API...');
+              console.log('foundTrial.results:', foundTrial.results);
+              console.log('foundTrial.results[0]:', foundTrial.results?.[0]);
+              
+              const resultsData = foundTrial.results?.[0];
+              console.log('Results Available raw:', resultsData?.results_available);
+              console.log('Endpoints met raw:', resultsData?.endpoints_met);
+              console.log('Adverse Event Reported raw:', resultsData?.adverse_event_reported);
+              console.log('Trial Outcome Reference raw:', resultsData?.reference);
+              
+              // Helper to format date for HTML date input (YYYY-MM-DD)
+              const formatDateForInput = (dateStr: string): string => {
+                if (!dateStr) return "";
+                try {
+                  // If already in YYYY-MM-DD format, return as-is
+                  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                    return dateStr;
+                  }
+                  // Try to parse and format
+                  const date = new Date(dateStr);
+                  if (!isNaN(date.getTime())) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                  }
+                  return dateStr;
+                } catch (e) {
+                  console.warn('Error formatting date for input:', dateStr, e);
+                  return "";
+                }
+              };
+              
+              const formattedDate = formatDateForInput(resultsData?.reference || "");
+              console.log('Formatted Trial Outcome Reference date:', formattedDate);
+              
+              const loadedData = {
+                results_available: resultsData?.results_available === 'Yes',
+                endpoints_met: resultsData?.endpoints_met === 'Yes',
+                adverse_events_reported: resultsData?.adverse_event_reported === 'Yes',
+                trial_outcome: resultsData?.trial_outcome || "",
+                trial_outcome_reference_date: formattedDate,
+              };
+              
+              console.log('Loaded Results Data from API (toggles and date):', loadedData);
+              
+              return {
+              ...loadedData,
+              trial_outcome_content: resultsData?.trial_outcome_content || "",
+              trial_outcome_link: resultsData?.trial_outcome_link || "",
+              trial_outcome_attachment: resultsData?.trial_outcome_attachment || "",
+              trial_results: Array.isArray(resultsData?.trial_results) 
+                ? resultsData.trial_results 
+                : (resultsData?.trial_results ? [resultsData.trial_results] : []),
+              adverse_event_reported: resultsData?.adverse_event_reported || "",
+              adverse_event_type: resultsData?.adverse_event_type || "",
+              treatment_for_adverse_events: resultsData?.treatment_for_adverse_events || "",
+              site_notes: (() => {
+                let siteNotes = foundTrial.results?.[0]?.site_notes;
+                if (typeof siteNotes === 'string') {
+                  try {
+                    siteNotes = JSON.parse(siteNotes);
+                  } catch (e) {
+                    console.warn('Failed to parse site_notes:', e);
+                    siteNotes = [];
+                  }
+                }
+                if (siteNotes && Array.isArray(siteNotes) && siteNotes.length > 0) {
+                  return siteNotes.map((note: any, index: number) => ({
+                    id: note.id || `${index + 1}`,
+                    date: note.date || "",
+                    noteType: note.noteType || "",
+                    content: note.content || "",
+                    sourceType: note.sourceType || "",
+                    attachments: note.attachments || [],
+                    isVisible: note.isVisible !== false,
+                  }));
+                }
+                return [{
+                  id: "1",
+                  date: "",
+                  noteType: "",
+                  content: "",
+                  sourceType: "",
+                  attachments: [],
+                  isVisible: true,
+                }];
+              })(),
+              };
+            })(),
             step5_6: {
-              study_start_date: foundTrial.timing?.[0]?.start_date_estimated || "",
+              study_start_date: foundTrial.sites?.[0]?.total?.toString() || "",
               first_patient_in: "",
               last_patient_in: "",
               study_end_date: foundTrial.timing?.[0]?.trial_end_date_estimated || "",
               interim_analysis_dates: [],
               final_analysis_date: "",
               regulatory_submission_date: "",
+              references: (() => {
+                // Parse site_notes if it's a string, or use it directly if it's an array
+                let siteNotes = foundTrial.sites?.[0]?.site_notes;
+                
+                console.log('Loading site_notes:', {
+                  rawSiteNotes: siteNotes,
+                  type: typeof siteNotes,
+                  isArray: Array.isArray(siteNotes)
+                });
+                
+                // If site_notes is a string, try to parse it
+                if (typeof siteNotes === 'string') {
+                  try {
+                    siteNotes = JSON.parse(siteNotes);
+                    console.log('Parsed site_notes:', siteNotes);
+                  } catch (e) {
+                    console.warn('Failed to parse site_notes:', e);
+                    siteNotes = null;
+                  }
+                }
+                
+                // If we have valid site_notes array, map it
+                if (siteNotes && Array.isArray(siteNotes) && siteNotes.length > 0) {
+                  const mappedReferences = siteNotes.map((note: any, index: number) => ({
+                    id: note.id || `${index + 1}`,
+                    date: note.date || "",
+                    registryType: note.registryType || note.sourceType || "",
+                    content: note.content || "",
+                    viewSource: note.viewSource || note.sourceLink || "",
+                    attachments: note.attachments || [],
+                    isVisible: note.isVisible !== false,
+                  }));
+                  console.log('Mapped references:', mappedReferences);
+                  return mappedReferences;
+                }
+                
+                console.log('No valid site_notes found, using default empty reference');
+                // Default: return a single empty reference
+                return [{
+                  id: "1",
+                  date: "",
+                  registryType: "",
+                  content: "",
+                  viewSource: "",
+                  attachments: [],
+                  isVisible: true,
+                }];
+              })(),
             },
-            step5_7: {
+            step5_7: (() => {
+              console.log('=== LOADING OTHER SOURCES ===');
+              
+              // CHECK LOCALSTORAGE FIRST for recent changes
+              try {
+                const storageKey = `trial_other_sources_${trialId}`;
+                const storedData = localStorage.getItem(storageKey);
+                if (storedData) {
+                  const localStorageData = JSON.parse(storedData);
+                  console.log('📂 Found Other Sources in localStorage:', localStorageData);
+                  
+                  // Check if localStorage data is recent
+                  const timestamp = new Date(localStorageData.timestamp);
+                  const now = new Date();
+                  const hoursDiff = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+                  console.log('localStorage data age:', hoursDiff, 'hours');
+                  
+                  // Use localStorage data if it exists
+                  if (localStorageData) {
+                    console.log('✅ Using localStorage data for Other Sources (has recent changes)');
+                    // Remove timestamp before returning
+                    const { timestamp: _, ...dataWithoutTimestamp } = localStorageData;
+                    return dataWithoutTimestamp;
+                  }
+                }
+              } catch (e) {
+                console.warn('Error loading Other Sources from localStorage:', e);
+              }
+              
+              console.log('Loading Other Sources from API...');
+              
+              // Parse other_sources data
+              // API returns it as 'other', localStorage returns it as 'other_sources'
+              // Each item from API has a 'data' field with JSON string
+              // Each item from localStorage is already in the correct format with category names
+              let otherSources = foundTrial.other || foundTrial.other_sources || [];
+              
+              console.log('foundTrial keys:', Object.keys(foundTrial));
+              console.log('foundTrial.other:', foundTrial.other);
+              console.log('foundTrial.other_sources:', foundTrial.other_sources);
+              console.log('otherSources array:', otherSources);
+              console.log('otherSources count:', otherSources.length);
+              console.log('First item sample:', otherSources[0]);
+              
+              const pipeline_data: any[] = [];
+              const press_releases: any[] = [];
+              const publications: any[] = [];
+              const trial_registries: any[] = [];
+              const associated_studies: any[] = [];
+              
+              otherSources.forEach((item: any, index: number) => {
+                try {
+                  console.log(`Processing item ${index}:`, item);
+                  
+                  // Handle two different formats:
+                  // 1. API format: { id, trial_id, data: '{"type":"pipeline_data",...}' }
+                  // 2. localStorage format: { pipeline_data: {...} } or { press_releases: {...} }, etc.
+                  
+                  let parsedData = null;
+                  let itemType = null;
+                  
+                  // Check if this is localStorage format (has category key)
+                  if (item.pipeline_data) {
+                    itemType = 'pipeline_data';
+                    parsedData = { type: 'pipeline_data', ...item.pipeline_data };
+                  } else if (item.press_releases) {
+                    itemType = 'press_releases';
+                    parsedData = { type: 'press_releases', ...item.press_releases };
+                  } else if (item.publications) {
+                    itemType = 'publications';
+                    parsedData = { type: 'publications', publicationType: item.publications.type, ...item.publications };
+                  } else if (item.trial_registries) {
+                    itemType = 'trial_registries';
+                    parsedData = { type: 'trial_registries', ...item.trial_registries };
+                  } else if (item.associated_studies) {
+                    itemType = 'associated_studies';
+                    parsedData = { type: 'associated_studies', studyType: item.associated_studies.type, ...item.associated_studies };
+                  } else if (item.data) {
+                    // API format - parse the data field
+                    parsedData = item.data;
+                    console.log(`Item ${index} data field (type: ${typeof parsedData}):`, parsedData);
+                    
+                    if (typeof parsedData === 'string') {
+                      parsedData = JSON.parse(parsedData);
+                      console.log(`Item ${index} parsed data:`, parsedData);
+                    }
+                    itemType = parsedData.type;
+                  }
+                  
+                  console.log(`Item ${index} type: ${itemType}, parsed data:`, parsedData);
+                  
+                  if (!parsedData || !itemType) {
+                    console.warn(`Item ${index} has unknown format, skipping`);
+                    return;
+                  }
+                  
+                  // Group by type
+                  if (itemType === 'pipeline_data') {
+                    pipeline_data.push({
+                      id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "",
+                      information: parsedData.information || "",
+                      url: parsedData.url || "",
+                      file: parsedData.file || "",
+                      isVisible: parsedData.isVisible !== false
+                    });
+                  } else if (itemType === 'press_releases') {
+                    press_releases.push({
+                      id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "",
+                      title: parsedData.title || "",
+                      description: parsedData.description || "",
+                      url: parsedData.url || "",
+                      file: parsedData.file || "",
+                      isVisible: parsedData.isVisible !== false
+                    });
+                  } else if (itemType === 'publications') {
+                    publications.push({
+                      id: item.id || parsedData.id || Date.now().toString(),
+                      type: parsedData.publicationType || parsedData.type || "",
+                      title: parsedData.title || "",
+                      description: parsedData.description || "",
+                      url: parsedData.url || "",
+                      file: parsedData.file || "",
+                      isVisible: parsedData.isVisible !== false
+                    });
+                  } else if (itemType === 'trial_registries') {
+                    trial_registries.push({
+                      id: item.id || parsedData.id || Date.now().toString(),
+                      registry: parsedData.registry || "",
+                      identifier: parsedData.identifier || "",
+                      description: parsedData.description || "",
+                      url: parsedData.url || "",
+                      file: parsedData.file || "",
+                      isVisible: parsedData.isVisible !== false
+                    });
+                  } else if (itemType === 'associated_studies') {
+                    associated_studies.push({
+                      id: item.id || parsedData.id || Date.now().toString(),
+                      type: parsedData.studyType || parsedData.type || "",
+                      title: parsedData.title || "",
+                      description: parsedData.description || "",
+                      url: parsedData.url || "",
+                      file: parsedData.file || "",
+                      isVisible: parsedData.isVisible !== false
+                    });
+                  }
+                } catch (e) {
+                  console.warn('Failed to parse other_source item:', e, item);
+                }
+              });
+              
+              console.log('Mapped other_sources:', {
+                pipeline_data_count: pipeline_data.length,
+                press_releases_count: press_releases.length,
+                publications_count: publications.length,
+                trial_registries_count: trial_registries.length,
+                associated_studies_count: associated_studies.length
+              });
+              
+              return {
               primary_endpoint_results: foundTrial.results?.[0]?.trial_outcome || "",
               secondary_endpoint_results: foundTrial.results?.[0]?.trial_results || [],
               safety_results: foundTrial.results?.[0]?.adverse_event_reported || "",
@@ -566,28 +1335,163 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               statistical_significance: "",
               adverse_events: foundTrial.results?.[0]?.adverse_event_type ? [foundTrial.results[0].adverse_event_type] : [],
               conclusion: "",
-              pipeline_data: [],
-              press_releases: [],
-              publications: [],
-              trial_registries: [],
-              associated_studies: [],
-            },
-            step5_8: {
-              notes: foundTrial.notes?.map((note: any) => ({
-                id: note.id || Date.now().toString(),
-                date: note.date || new Date().toISOString().split("T")[0],
-                type: note.type || "General",
-                content: note.content || "",
-                sourceLink: note.sourceLink || "",
-                attachments: note.attachments || [],
-                isVisible: note.isVisible !== false
-              })) || [],
+                pipeline_data,
+                press_releases,
+                publications,
+                trial_registries,
+                associated_studies,
+              };
+            })(),
+            step5_8: (() => {
+              // Parse notes - backend stores it as a single record with concatenated string
+              const notesData = foundTrial.notes?.[0];
+              console.log('Loading notes data:', {
+                rawNotes: notesData,
+                notesField: notesData?.notes
+              });
+              
+              let parsedNotes: any[] = [];
+              
+              if (notesData && notesData.notes) {
+                // Handle both string (from database) and array (from localStorage or already parsed) formats
+                if (typeof notesData.notes === 'string') {
+                  // Parse the concatenated string back into individual notes
+                  // Format: "2024-01-01 (General): Note content - Source: http://...; 2024-01-02 (Update): ..."
+                  const notesString = notesData.notes;
+                  
+                  if (notesString !== "No notes available") {
+                    const noteParts = notesString.split('; ');
+                    parsedNotes = noteParts.map((notePart: string, index: number) => {
+                      // Improved parsing: split by " - Source: " first to separate content from source
+                      const sourceMatch = notePart.match(/\s+-\s+Source:\s+(.+)$/);
+                      let sourceLink = "";
+                      let contentPart = notePart;
+                      
+                      if (sourceMatch) {
+                        sourceLink = String(sourceMatch[1] || "").trim();
+                        // Remove the source part from the notePart
+                        contentPart = notePart.substring(0, notePart.lastIndexOf(' - Source:'));
+                      }
+                      
+                      // Now extract date, type, and content
+                      // Format: "DATE (TYPE): CONTENT"
+                      // Use greedy match for content since we've already removed the source part
+                      const match = contentPart.match(/^(.+?)\s+\((.+?)\):\s+(.+)$/);
+                      
+                      if (match && match.length >= 4) {
+                        // Ensure all fields are strings
+                        const date = String(match[1] || "").trim();
+                        const type = String(match[2] || "General").trim();
+                        const content = String(match[3] || "").trim();
+                        
+                        return {
+                          id: `${index + 1}`,
+                          date: date,
+                          type: type,
+                          content: content, // Content is already a string from match
+                          sourceLink: sourceLink,
+                          attachments: [],
+                          isVisible: true
+                        };
+                      }
+                      
+                      // Fallback if regex doesn't match - try to parse manually
+                      // Look for pattern: "DATE (TYPE): CONTENT"
+                      const colonIndex = contentPart.indexOf(':');
+                      if (colonIndex > 0) {
+                        const beforeColon = contentPart.substring(0, colonIndex).trim();
+                        const afterColon = contentPart.substring(colonIndex + 1).trim();
+                        
+                        const parenMatch = beforeColon.match(/^(.+?)\s+\((.+?)\)$/);
+                        if (parenMatch) {
+                          return {
+                            id: `${index + 1}`,
+                            date: String(parenMatch[1] || "").trim(),
+                            type: String(parenMatch[2] || "General").trim(),
+                            content: String(afterColon || "").trim(),
+                            sourceLink: sourceLink,
+                            attachments: [],
+                            isVisible: true
+                          };
+                        }
+                      }
+                      
+                      // Final fallback - treat entire notePart as content
+                      return {
+                        id: `${index + 1}`,
+                        date: new Date().toISOString().split("T")[0],
+                        type: "General",
+                        content: String(notePart || "").trim(),
+                        sourceLink: "",
+                        attachments: [],
+                        isVisible: true
+                      };
+                    });
+                  }
+                } else if (Array.isArray(notesData.notes)) {
+                  // Notes are already in array format
+                  parsedNotes = notesData.notes.map((note: any, index: number) => ({
+                    id: note.id || `${index + 1}`,
+                    date: String(note.date || new Date().toISOString().split("T")[0]),
+                    type: String(note.type || "General"),
+                    content: typeof note.content === 'string' ? note.content : (typeof note.content === 'object' ? JSON.stringify(note.content) : String(note.content || "")),
+                    sourceLink: String(note.sourceLink || note.sourceUrl || ""),
+                    attachments: Array.isArray(note.attachments) ? note.attachments : [],
+                    isVisible: note.isVisible !== false
+                  }));
+                }
+              }
+              
+              console.log('Parsed notes:', parsedNotes);
+              
+              // Load Full Review data from logs
+              const logsData = foundTrial.logs?.[0];
+              const fullReviewUser = logsData?.full_review_user || "";
+              const nextReviewDate = logsData?.next_review_date || "";
+              const fullReview = !!(fullReviewUser || nextReviewDate);
+              
+              // Helper function to format date from database (YYYY-MM-DD) to UI (MM-DD-YYYY)
+              const formatDateForUI = (dateStr: string): string => {
+                if (!dateStr) return "";
+                
+                try {
+                  // Handle YYYY-MM-DD format (from database)
+                  if (dateStr.includes('-') && dateStr.length === 10) {
+                    const parts = dateStr.split('-');
+                    if (parts.length === 3 && parts[0].length === 4) {
+                      // Convert YYYY-MM-DD to MM-DD-YYYY
+                      const [year, month, day] = parts;
+                      return `${month}-${day}-${year}`;
+                    }
+                  }
+                  
+                  // Try to parse as Date object
+                  const date = new Date(dateStr);
+                  if (!isNaN(date.getTime())) {
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${month}-${day}-${year}`;
+                  }
+                  
+                  return dateStr; // Return as-is if can't parse
+                } catch (e) {
+                  console.warn('Error formatting date for UI:', dateStr, e);
+                  return dateStr;
+                }
+              };
+              
+              return {
+                notes: parsedNotes,
               attachments: [],
               regulatory_links: [],
               publication_links: [],
               additional_resources: [],
-              date_type: "",
-              link: "",
+                date_type: notesData?.date_type || "",
+                link: notesData?.link || "",
+                fullReview: fullReview,
+                fullReviewUser: fullReviewUser,
+                nextReviewDate: formatDateForUI(nextReviewDate),
               changesLog: [{
                 id: Date.now().toString(),
                 timestamp: new Date().toISOString(),
@@ -608,8 +1512,9 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 lastModifiedDate: foundTrial.updated_at || new Date().toISOString(),
                 lastModifiedUser: foundTrial.updated_by || "admin",
                 modificationCount: 0,
-              },
             },
+              };
+            })(),
           };
           
           dispatch({ type: "SET_TRIAL_DATA", payload: mappedData });
@@ -720,6 +1625,594 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           clearTimeout(timeoutId);
 
           if (response && response.ok) {
+            // Also update the sites data if we have a trial_id
+            const filteredReferences = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
+            const sitesData = {
+              total: formData.step5_6.study_start_date ? parseInt(formData.step5_6.study_start_date) : 0,
+              site_notes: filteredReferences.length > 0 ? JSON.stringify(filteredReferences) : null,
+            };
+
+            console.log('Updating sites with data:', sitesData);
+
+            // Update sites section via API
+            try {
+              const sitesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/sites/trial/${trialId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(sitesData),
+                credentials: 'include',
+              }).catch(() => null);
+              
+              if (sitesResponse && sitesResponse.ok) {
+                console.log('Sites updated successfully');
+              } else {
+                console.warn('Sites update failed, but overview updated successfully');
+              }
+            } catch (sitesError) {
+              console.warn('Sites update failed, but overview updated successfully');
+            }
+
+            // Update timing section via API
+            try {
+              console.log('=== SAVING TIMING DATA ===');
+              console.log('formData.step5_4:', formData.step5_4);
+              
+              // SAVE TO LOCALSTORAGE FIRST (for immediate persistence)
+              try {
+                const storageKey = `trial_timing_${trialId}`;
+                localStorage.setItem(storageKey, JSON.stringify({
+                  ...formData.step5_4,
+                  timestamp: new Date().toISOString(),
+                }));
+                console.log('💾 Saved Timing to localStorage during save:', storageKey);
+              } catch (e) {
+                console.warn('Failed to save Timing to localStorage:', e);
+              }
+              
+              // Helper function to format date to YYYY-MM-DD for database
+              const formatDateForDB = (dateStr: string): string | null => {
+                if (!dateStr) return null;
+                
+                try {
+                  // Handle MM-DD-YYYY format (from UI)
+                  if (dateStr.includes('-') && dateStr.length === 10) {
+                    const parts = dateStr.split('-');
+                    if (parts.length === 3) {
+                      // Check if it's MM-DD-YYYY or YYYY-MM-DD
+                      if (parts[0].length === 4) {
+                        // Already YYYY-MM-DD
+                        return dateStr;
+                      } else {
+                        // Convert MM-DD-YYYY to YYYY-MM-DD
+                        const [month, day, year] = parts;
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                      }
+                    }
+                  }
+                  
+                  // Try to parse as Date object
+                  const date = new Date(dateStr);
+                  if (!isNaN(date.getTime())) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                  }
+                  
+                  return dateStr; // Return as-is if can't parse
+                } catch (e) {
+                  console.warn('Error formatting date:', dateStr, e);
+                  return dateStr;
+                }
+              };
+              
+              const filteredTimingReferences = formData.step5_4.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
+              const timingData = {
+                start_date_actual: formatDateForDB(formData.step5_4.actual_start_date),
+                start_date_benchmark: formatDateForDB(formData.step5_4.benchmark_start_date),
+                start_date_estimated: formatDateForDB(formData.step5_4.estimated_start_date),
+                inclusion_period_actual: formData.step5_4.actual_inclusion_period || null,
+                inclusion_period_benchmark: formData.step5_4.benchmark_inclusion_period || null,
+                inclusion_period_estimated: formData.step5_4.estimated_inclusion_period || null,
+                enrollment_closed_actual: formatDateForDB(formData.step5_4.actual_enrollment_closed_date),
+                enrollment_closed_benchmark: formatDateForDB(formData.step5_4.benchmark_enrollment_closed_date),
+                enrollment_closed_estimated: formatDateForDB(formData.step5_4.estimated_enrollment_closed_date),
+                primary_outcome_duration_actual: formData.step5_4.actual_primary_outcome_duration || null,
+                primary_outcome_duration_benchmark: formData.step5_4.benchmark_primary_outcome_duration || null,
+                primary_outcome_duration_estimated: formData.step5_4.estimated_primary_outcome_duration || null,
+                trial_end_date_actual: formatDateForDB(formData.step5_4.actual_trial_end_date),
+                trial_end_date_benchmark: formatDateForDB(formData.step5_4.benchmark_trial_end_date),
+                trial_end_date_estimated: formatDateForDB(formData.step5_4.estimated_trial_end_date),
+                result_duration_actual: formData.step5_4.actual_result_duration || null,
+                result_duration_benchmark: formData.step5_4.benchmark_result_duration || null,
+                result_duration_estimated: formData.step5_4.estimated_result_duration || null,
+                result_published_date_actual: formatDateForDB(formData.step5_4.actual_result_published_date),
+                result_published_date_benchmark: formatDateForDB(formData.step5_4.benchmark_result_published_date),
+                result_published_date_estimated: formatDateForDB(formData.step5_4.estimated_result_published_date),
+                overall_duration_complete: formData.step5_4.overall_duration_complete || null,
+                overall_duration_publish: formData.step5_4.overall_duration_publish || null,
+                timing_references: filteredTimingReferences.length > 0 ? filteredTimingReferences : null,
+              };
+
+              console.log('Updating timing with data:', timingData);
+              console.log('Timing values to save:', {
+                actual_inclusion_period: timingData.inclusion_period_actual,
+                benchmark_inclusion_period: timingData.inclusion_period_benchmark,
+                estimated_inclusion_period: timingData.inclusion_period_estimated,
+                overall_duration_complete: timingData.overall_duration_complete,
+                overall_duration_publish: timingData.overall_duration_publish,
+              });
+
+              const timingResponse = await fetch(`${baseUrl}/api/v1/therapeutic/timing/trial/${trialId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(timingData),
+                credentials: 'include',
+              }).catch(() => null);
+              
+              if (timingResponse && timingResponse.ok) {
+                const responseData = await timingResponse.json().catch(() => null);
+                console.log('Timing updated successfully. Response:', responseData);
+              } else {
+                console.warn('Timing update failed, but overview updated successfully');
+                if (timingResponse) {
+                  const errorText = await timingResponse.text().catch(() => 'Unknown error');
+                  console.error('Timing update error:', timingResponse.status, errorText);
+                }
+              }
+            } catch (timingError) {
+              console.warn('Timing update failed:', timingError);
+            }
+
+            // Update results section via API
+            try {
+              console.log('=== SAVING RESULTS DATA ===');
+              console.log('formData.step5_5:', formData.step5_5);
+              console.log('Results Available:', formData.step5_5.results_available);
+              console.log('Endpoints met:', formData.step5_5.endpoints_met);
+              console.log('Adverse Events Reported:', formData.step5_5.adverse_events_reported);
+              console.log('Trial Outcome Reference Date:', formData.step5_5.trial_outcome_reference_date);
+              
+              // SAVE TO LOCALSTORAGE FIRST (for immediate persistence)
+              try {
+                const storageKey = `trial_results_${trialId}`;
+                localStorage.setItem(storageKey, JSON.stringify({
+                  ...formData.step5_5,
+                  timestamp: new Date().toISOString(),
+                }));
+                console.log('💾 Saved Results to localStorage during save:', storageKey);
+              } catch (e) {
+                console.warn('Failed to save to localStorage:', e);
+              }
+              
+              const filteredSiteNotes = formData.step5_5.site_notes.filter((note: any) => note.isVisible && (note.date || note.content));
+              const resultsData = {
+                results_available: formData.step5_5.results_available ? 'Yes' : 'No',
+                endpoints_met: formData.step5_5.endpoints_met ? 'Yes' : 'No',
+                trial_outcome: formData.step5_5.trial_outcome || null,
+                reference: formData.step5_5.trial_outcome_reference_date || null,
+                trial_outcome_content: formData.step5_5.trial_outcome_content || null,
+                trial_outcome_link: formData.step5_5.trial_outcome_link || null,
+                trial_outcome_attachment: formData.step5_5.trial_outcome_attachment || null,
+                trial_results: formData.step5_5.trial_results.length > 0 ? formData.step5_5.trial_results : null,
+                adverse_event_reported: formData.step5_5.adverse_event_reported || null,
+                adverse_event_type: formData.step5_5.adverse_event_type || null,
+                treatment_for_adverse_events: formData.step5_5.treatment_for_adverse_events || null,
+                site_notes: filteredSiteNotes.length > 0 ? JSON.stringify(filteredSiteNotes) : null,
+              };
+
+              console.log('Results data to be saved to API:', resultsData);
+
+              const resultsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/results/trial/${trialId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(resultsData),
+                credentials: 'include',
+              }).catch(() => null);
+              
+              if (resultsResponse && resultsResponse.ok) {
+                const responseData = await resultsResponse.json().catch(() => null);
+                console.log('Results updated successfully. Response:', responseData);
+              } else {
+                console.warn('Results update failed, but overview updated successfully');
+                if (resultsResponse) {
+                  const errorText = await resultsResponse.text().catch(() => 'Unknown error');
+                  console.error('Results update error:', resultsResponse.status, errorText);
+                }
+              }
+            } catch (resultsError) {
+              console.warn('Results update failed:', resultsError);
+            }
+
+            // Small delay to ensure database transaction completes
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Force reload trial data to show updated results
+            await loadTrialData(trialId);
+
+            // Update other_sources section via API
+            try {
+              console.log('=== OTHER SOURCES SAVE DEBUG ===');
+              console.log('step5_7 data:', {
+                pipeline_data: formData.step5_7.pipeline_data,
+                press_releases: formData.step5_7.press_releases,
+                publications: formData.step5_7.publications,
+                trial_registries: formData.step5_7.trial_registries,
+                associated_studies: formData.step5_7.associated_studies
+              });
+              
+              // SAVE TO LOCALSTORAGE FIRST (for immediate persistence)
+              try {
+                const storageKey = `trial_other_sources_${trialId}`;
+                localStorage.setItem(storageKey, JSON.stringify({
+                  ...formData.step5_7,
+                  timestamp: new Date().toISOString(),
+                }));
+                console.log('💾 Saved Other Sources to localStorage during save:', storageKey);
+              } catch (e) {
+                console.warn('Failed to save Other Sources to localStorage:', e);
+              }
+              
+              // Delete existing other_sources entries
+              const deleteResponse = await fetch(`${baseUrl}/api/v1/therapeutic/other/trial/${trialId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+              }).catch(() => null);
+              
+              console.log('Deleted existing other_sources, response:', deleteResponse?.status);
+
+              // Create new entries for each category with visible items
+              const otherSourcesPromises: Promise<Response | null>[] = [];
+              
+              if (formData.step5_7.pipeline_data && formData.step5_7.pipeline_data.length > 0) {
+                const filteredItems = formData.step5_7.pipeline_data
+                  .filter((item: any) => item.isVisible && (item.date || item.information || item.url || item.file));
+                
+                console.log('Pipeline data to save:', filteredItems);
+                
+                filteredItems.forEach((item: any) => {
+                    const sourceData = {
+                      type: 'pipeline_data',
+                      date: item.date,
+                      information: item.information,
+                      url: item.url,
+                      file: item.file
+                    };
+                    
+                    console.log('Creating pipeline_data entry:', sourceData);
+                    
+                    otherSourcesPromises.push(
+                      fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          trial_id: trialId,
+                          data: JSON.stringify(sourceData)
+                        }),
+                        credentials: 'include',
+                      }).then(res => {
+                        console.log('Pipeline data POST response:', res?.status);
+                        return res;
+                      }).catch(err => {
+                        console.error('Pipeline data POST error:', err);
+                        return null;
+                      })
+                    );
+                  });
+              }
+
+              if (formData.step5_7.press_releases && formData.step5_7.press_releases.length > 0) {
+                const filteredItems = formData.step5_7.press_releases
+                  .filter((item: any) => item.isVisible && (item.date || item.title || item.url || item.file));
+                
+                console.log('Press releases to save:', filteredItems);
+                
+                filteredItems.forEach((item: any) => {
+                    const sourceData = {
+                      type: 'press_releases',
+                      date: item.date,
+                      title: item.title,
+                      description: item.description,
+                      url: item.url,
+                      file: item.file
+                    };
+                    
+                    console.log('Creating press_releases entry:', sourceData);
+                    
+                    otherSourcesPromises.push(
+                      fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          trial_id: trialId,
+                          data: JSON.stringify(sourceData)
+                        }),
+                        credentials: 'include',
+                      }).then(res => {
+                        console.log('Press releases POST response:', res?.status);
+                        return res;
+                      }).catch(err => {
+                        console.error('Press releases POST error:', err);
+                        return null;
+                      })
+                    );
+                  });
+              }
+
+              if (formData.step5_7.publications && formData.step5_7.publications.length > 0) {
+                const filteredItems = formData.step5_7.publications
+                  .filter((item: any) => item.isVisible && (item.type || item.title || item.url || item.file));
+                
+                console.log('Publications to save:', filteredItems);
+                
+                filteredItems.forEach((item: any) => {
+                    const sourceData = {
+                      type: 'publications',
+                      publicationType: item.type,
+                      title: item.title,
+                      description: item.description,
+                      url: item.url,
+                      file: item.file
+                    };
+                    
+                    console.log('Creating publications entry:', sourceData);
+                    
+                    otherSourcesPromises.push(
+                      fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          trial_id: trialId,
+                          data: JSON.stringify(sourceData)
+                        }),
+                        credentials: 'include',
+                      }).then(res => {
+                        console.log('Publications POST response:', res?.status);
+                        return res;
+                      }).catch(err => {
+                        console.error('Publications POST error:', err);
+                        return null;
+                      })
+                    );
+                  });
+              }
+
+              if (formData.step5_7.trial_registries && formData.step5_7.trial_registries.length > 0) {
+                const filteredItems = formData.step5_7.trial_registries
+                  .filter((item: any) => item.isVisible && (item.registry || item.identifier || item.url || item.file));
+                
+                console.log('Trial registries to save:', filteredItems);
+                
+                filteredItems.forEach((item: any) => {
+                    const sourceData = {
+                      type: 'trial_registries',
+                      registry: item.registry,
+                      identifier: item.identifier,
+                      description: item.description,
+                      url: item.url,
+                      file: item.file
+                    };
+                    
+                    console.log('Creating trial_registries entry:', sourceData);
+                    
+                    otherSourcesPromises.push(
+                      fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          trial_id: trialId,
+                          data: JSON.stringify(sourceData)
+                        }),
+                        credentials: 'include',
+                      }).then(res => {
+                        console.log('Trial registries POST response:', res?.status);
+                        return res;
+                      }).catch(err => {
+                        console.error('Trial registries POST error:', err);
+                        return null;
+                      })
+                    );
+                  });
+              }
+
+              if (formData.step5_7.associated_studies && formData.step5_7.associated_studies.length > 0) {
+                const filteredItems = formData.step5_7.associated_studies
+                  .filter((item: any) => item.isVisible && (item.type || item.title || item.url || item.file));
+                
+                console.log('Associated studies to save:', filteredItems);
+                
+                filteredItems.forEach((item: any) => {
+                    const sourceData = {
+                      type: 'associated_studies',
+                      studyType: item.type,
+                      title: item.title,
+                      description: item.description,
+                      url: item.url,
+                      file: item.file
+                    };
+                    
+                    console.log('Creating associated_studies entry:', sourceData);
+                    
+                    otherSourcesPromises.push(
+                      fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          trial_id: trialId,
+                          data: JSON.stringify(sourceData)
+                        }),
+                        credentials: 'include',
+                      }).then(res => {
+                        console.log('Associated studies POST response:', res?.status);
+                        return res;
+                      }).catch(err => {
+                        console.error('Associated studies POST error:', err);
+                        return null;
+                      })
+                    );
+                  });
+              }
+
+              // Wait for all other_sources updates to complete
+              console.log(`Total other_sources requests to process: ${otherSourcesPromises.length}`);
+              const results = await Promise.all(otherSourcesPromises);
+              const successCount = results.filter(r => r && r.ok).length;
+              console.log(`Other sources updated: ${successCount}/${otherSourcesPromises.length} successful`);
+              console.log('=== END OTHER SOURCES SAVE DEBUG ===');
+            } catch (otherError) {
+              console.warn('Other sources update failed, but overview updated successfully');
+            }
+
+            // Update logs (Full Review data)
+            try {
+              console.log('Updating logs for trial:', trialId);
+              
+              // Helper function to format date from MM-DD-YYYY to YYYY-MM-DD for database
+              const formatDateForDB = (dateStr: string): string | null => {
+                if (!dateStr) return null;
+                
+                try {
+                  // Handle MM-DD-YYYY format (from UI)
+                  if (dateStr.includes('-') && dateStr.length === 10) {
+                    const parts = dateStr.split('-');
+                    if (parts.length === 3) {
+                      // Check if it's MM-DD-YYYY or YYYY-MM-DD
+                      if (parts[0].length === 4) {
+                        // Already YYYY-MM-DD
+                        return dateStr;
+                      } else {
+                        // Convert MM-DD-YYYY to YYYY-MM-DD
+                        const [month, day, year] = parts;
+                        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                      }
+                    }
+                  }
+                  
+                  // Try to parse as Date object
+                  const date = new Date(dateStr);
+                  if (!isNaN(date.getTime())) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                  }
+                  
+                  return dateStr; // Return as-is if can't parse
+                } catch (e) {
+                  console.warn('Error formatting date:', dateStr, e);
+                  return dateStr;
+                }
+              };
+              
+              // Get current user ID
+              const currentUserId = localStorage.getItem("userId") || "admin";
+              
+              // Prepare logs data
+              const logsData = {
+                last_modified_date: new Date().toISOString(),
+                last_modified_user: currentUserId,
+                full_review_user: formData.step5_8.fullReviewUser || null,
+                next_review_date: formatDateForDB(formData.step5_8.nextReviewDate),
+              };
+              
+              console.log('Updating logs with data:', logsData);
+              
+              const logsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/logs/trial/${trialId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(logsData),
+                credentials: 'include',
+              }).catch(() => null);
+              
+              if (logsResponse && logsResponse.ok) {
+                console.log('Logs updated successfully');
+              } else {
+                console.warn('Logs update failed, but other updates succeeded');
+                if (logsResponse) {
+                  const errorText = await logsResponse.text().catch(() => 'Unknown error');
+                  console.error('Logs update error:', logsResponse.status, errorText);
+                }
+              }
+            } catch (logsError) {
+              console.warn('Logs update failed:', logsError);
+            }
+
+            // Update notes
+            try {
+              console.log('Updating notes for trial:', trialId);
+              
+              // First, delete existing notes
+              await fetch(`${baseUrl}/api/v1/therapeutic/notes/trial/${trialId}`, {
+                method: 'DELETE',
+                credentials: 'include',
+              }).catch(() => console.log('No existing notes to delete'));
+
+              // Then create new notes if there are any visible notes
+              const visibleNotes = formData.step5_8.notes.filter((note: any) => {
+                // Ensure content is a string and not empty
+                const content = typeof note.content === 'string' ? note.content : 
+                  (note.content && typeof note.content === 'object' ? JSON.stringify(note.content) : String(note.content || ""));
+                return note.isVisible && content && content.trim().length > 0;
+              });
+              
+              if (visibleNotes.length > 0) {
+                // Convert notes array into a single concatenated string (like in create form)
+                const notesString = visibleNotes
+                  .map(note => {
+                    // Ensure content is always a string
+                    const content = typeof note.content === 'string' ? note.content : 
+                      (note.content && typeof note.content === 'object' ? JSON.stringify(note.content) : String(note.content || ""));
+                    const date = String(note.date || "");
+                    const type = String(note.type || "General");
+                    const sourceLink = String(note.sourceLink || "");
+                    return `${date} (${type}): ${content}${sourceLink ? ` - Source: ${sourceLink}` : ""}`;
+                  })
+                  .join("; ");
+                
+                const attachmentsArray = visibleNotes
+                  .filter((note: any) => note.attachments && note.attachments.length > 0)
+                  .flatMap((note: any) => note.attachments);
+                
+                const notesPayload = {
+                  trial_id: trialId,
+                  date_type: formData.step5_8.date_type || null,
+                  notes: notesString,
+                  link: formData.step5_8.link || null,
+                  attachments: attachmentsArray.length > 0 ? JSON.stringify(attachmentsArray) : null
+                };
+                
+                console.log('Creating new notes:', notesPayload);
+                
+                await fetch(`${baseUrl}/api/v1/therapeutic/notes`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(notesPayload),
+                  credentials: 'include',
+                });
+                
+                console.log('Notes updated successfully');
+              } else {
+                console.log('No visible notes to save');
+              }
+            } catch (notesError) {
+              console.warn('Notes update failed:', notesError);
+            }
+
+            // Clear the localStorage update flag to ensure fresh data on next load
+            localStorage.removeItem(`trial_updated_${trialId}`);
+            
+            // Small delay to ensure database transaction completes
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Force reload the trial data to show the updated values
+            await loadTrialData(trialId);
+            
             toast({
               title: "Success",
               description: "Clinical trial updated successfully! Changes have been saved to the database.",
@@ -744,6 +2237,55 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       }
 
       // Fallback: Update localStorage
+      const filteredReferencesForLocalStorage = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
+      
+      // Prepare other_sources data for localStorage
+      const otherSourcesForLocalStorage: any[] = [];
+      if (formData.step5_7.pipeline_data) {
+        formData.step5_7.pipeline_data
+          .filter((item: any) => item.isVisible && (item.date || item.information || item.url))
+          .forEach((item: any) => {
+            otherSourcesForLocalStorage.push({ pipeline_data: item });
+          });
+      }
+      if (formData.step5_7.press_releases) {
+        formData.step5_7.press_releases
+          .filter((item: any) => item.isVisible && (item.date || item.title || item.url))
+          .forEach((item: any) => {
+            otherSourcesForLocalStorage.push({ press_releases: item });
+          });
+      }
+      if (formData.step5_7.publications) {
+        formData.step5_7.publications
+          .filter((item: any) => item.isVisible && (item.type || item.title || item.url))
+          .forEach((item: any) => {
+            otherSourcesForLocalStorage.push({ publications: item });
+          });
+      }
+      if (formData.step5_7.trial_registries) {
+        formData.step5_7.trial_registries
+          .filter((item: any) => item.isVisible && (item.registry || item.identifier || item.url))
+          .forEach((item: any) => {
+            otherSourcesForLocalStorage.push({ trial_registries: item });
+          });
+      }
+      if (formData.step5_7.associated_studies) {
+        formData.step5_7.associated_studies
+          .filter((item: any) => item.isVisible && (item.type || item.title || item.url))
+          .forEach((item: any) => {
+            otherSourcesForLocalStorage.push({ associated_studies: item });
+          });
+      }
+      
+      // Prepare notes for localStorage (convert to concatenated string format)
+      const visibleNotes = formData.step5_8.notes.filter((note: any) => note.isVisible && note.content);
+      const notesString = visibleNotes.length > 0
+        ? visibleNotes.map(note => `${note.date} (${note.type}): ${note.content}${note.sourceLink ? ` - Source: ${note.sourceLink}` : ""}`).join("; ")
+        : "No notes available";
+      
+      // Prepare timing references for localStorage
+      const filteredTimingReferences = formData.step5_4.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
+      
       const updatedTrial = {
         ...originalTrial,
         overview: {
@@ -753,11 +2295,30 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         },
         outcomes: [formData.step5_2],
         criteria: [formData.step5_3],
-        timing: [formData.step5_6],
-        results: [formData.step5_7],
-        sites: [formData.step5_5],
-        notes: formData.step5_8.notes.map(note => ({ notes: note })),
+        timing: [{
+          ...formData.step5_4,
+          timing_references: filteredTimingReferences,
+        }],
+        results: [{
+          ...formData.step5_5,
+          site_notes: formData.step5_5.site_notes.filter((note: any) => note.isVisible && (note.date || note.content)),
+        }],
+        sites: [{
+          total: formData.step5_6.study_start_date ? parseInt(formData.step5_6.study_start_date) : 0,
+          site_notes: filteredReferencesForLocalStorage,
+        }],
+        other_sources: otherSourcesForLocalStorage,
+        notes: [{
+          date_type: formData.step5_8.date_type,
+          notes: notesString,
+          link: formData.step5_8.link,
+          attachments: visibleNotes
+            .filter((note: any) => note.attachments && note.attachments.length > 0)
+            .flatMap((note: any) => note.attachments)
+        }],
       };
+      
+      console.log('Updating localStorage with trial data:', updatedTrial);
 
       // Update localStorage safely
       try {

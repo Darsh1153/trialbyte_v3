@@ -123,7 +123,7 @@ export default function TherapeuticsStep5_4() {
       
       if (startDate && trialEndDate) {
         const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
-        updateField("step5_4", "estimated_enrollment", overallDurationComplete.toFixed(2));
+        updateField("step5_4", "overall_duration_complete", overallDurationComplete.toFixed(2));
       }
     }
 
@@ -134,7 +134,7 @@ export default function TherapeuticsStep5_4() {
       
       if (startDate && resultPublishedDate) {
         const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
-        updateField("step5_4", "actual_enrollment", overallDurationPublish.toFixed(2));
+        updateField("step5_4", "overall_duration_publish", overallDurationPublish.toFixed(2));
       }
     }
 
@@ -210,7 +210,7 @@ export default function TherapeuticsStep5_4() {
     // Subtract duration based on frequency
     if (calculatorData.frequency === "days") {
       resultDate.setDate(resultDate.getDate() - duration);
-    } else if (calculatorData.frequency === "weeks") {
+    } else if (calculatorData.frequency === "weeks") { 
       resultDate.setDate(resultDate.getDate() - (duration * 7));
     } else if (calculatorData.frequency === "months") {
       resultDate.setMonth(resultDate.getMonth() - duration);
@@ -415,9 +415,8 @@ export default function TherapeuticsStep5_4() {
       const result = await saveTrial();
       
       if (result.success) {
-        // Get the first trial identifier for the success message
-        // Use the generated trial identifier from the response
-        const trialId = result.trialIdentifier || "Trial";
+        // Always use the auto-generated trial_id (TB-000XXX format)
+        const trialId = result.trialId || "Trial";
         
         toast({
           title: "Success",
@@ -532,9 +531,9 @@ export default function TherapeuticsStep5_4() {
                 type="number"
                 className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 placeholder="Months"
-                value={form.estimated_enrollment || ""}
+                value={form.overall_duration_complete || ""}
                 onChange={(e) =>
-                  updateField("step5_4", "estimated_enrollment", e.target.value)
+                  updateField("step5_4", "overall_duration_complete", e.target.value)
                 }
               />
               <span className="text-sm text-gray-500">(months)</span>
@@ -547,9 +546,9 @@ export default function TherapeuticsStep5_4() {
                 type="number"
                 className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 placeholder="Months"
-                value={form.actual_enrollment || ""}
+                value={form.overall_duration_publish || ""}
                 onChange={(e) =>
-                  updateField("step5_4", "actual_enrollment", e.target.value)
+                  updateField("step5_4", "overall_duration_publish", e.target.value)
                 }
               />
               <span className="text-sm text-gray-500">(months)</span>

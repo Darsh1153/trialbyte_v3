@@ -61,18 +61,19 @@ export default function EditTherapeuticsStep5_5() {
   const handleSaveChanges = async () => {
     try {
       setIsSavingStep(true);
+      // Save via context which handles both API, localStorage, and reload
       await saveTrial(params.id as string);
-      
+
       toast({
-        title: "Success",
-        description: "Trial updated successfully",
+        title: 'Success',
+        description: 'Trial results saved successfully',
         duration: 5000,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to save trial. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to save trial results. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSavingStep(false);
@@ -157,7 +158,7 @@ export default function EditTherapeuticsStep5_5() {
                     role="combobox"
                     className="w-full justify-between border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   >
-                    {form.study_sites[0] || "Select outcome"}
+                    {form.trial_outcome || "Select outcome"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -171,14 +172,14 @@ export default function EditTherapeuticsStep5_5() {
                           key={outcome}
                           value={outcome}
                           onSelect={() => {
-                            updateField("step5_5", "study_sites", [outcome]);
+                            updateField("step5_5", "trial_outcome", outcome);
                             setOpenOutcome(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              form.study_sites[0] === outcome ? "opacity-100" : "opacity-0"
+                              form.trial_outcome === outcome ? "opacity-100" : "opacity-0"
                             )}
                           />
                           {outcome}
@@ -195,9 +196,9 @@ export default function EditTherapeuticsStep5_5() {
               <Label>Trial Outcome Reference</Label>
               <Input
                 type="date"
-                value={form.principal_investigators[0] || ""}
+                value={form.trial_outcome_reference_date || ""}
                 onChange={(e) =>
-                  updateField("step5_5", "principal_investigators", [e.target.value])
+                  updateField("step5_5", "trial_outcome_reference_date", e.target.value)
                 }
                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
@@ -207,9 +208,9 @@ export default function EditTherapeuticsStep5_5() {
                   <Input
                     type="url"
                     placeholder="Enter link"
-                    value={form.site_countries[0] || ""}
+                    value={form.trial_outcome_link || ""}
                     onChange={(e) =>
-                      updateField("step5_5", "site_countries", [e.target.value])
+                      updateField("step5_5", "trial_outcome_link", e.target.value)
                     }
                     className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
@@ -238,24 +239,24 @@ export default function EditTherapeuticsStep5_5() {
             <div className="space-y-2">
             <Label>Trial Results</Label>
             <div className="space-y-3">
-              {(form.site_regions || []).length > 0 ? (
-                (form.site_regions || []).map((result, index) => (
+              {(form.trial_results || []).length > 0 ? (
+                (form.trial_results || []).map((result, index) => (
                   <div key={index} className="relative">
                     <Textarea
                       rows={3}
                       placeholder="Enter trial results here..."
                       value={result}
-                      onChange={(e) => updateArrayItem("step5_5", "site_regions", index, e.target.value)}
+                      onChange={(e) => updateArrayItem("step5_5", "trial_results", index, e.target.value)}
                       className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-12"
                     />
                     <div className="absolute top-2 right-2 flex gap-1">
-                      {(form.site_regions || []).length > 1 && (
+                      {(form.trial_results || []).length > 1 && (
                   <Button
                           type="button"
                     variant="outline"
                           size="icon"
                           className="rounded-full h-8 w-8"
-                          onClick={() => removeArrayItem("step5_5", "site_regions", index)}
+                          onClick={() => removeArrayItem("step5_5", "trial_results", index)}
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -265,7 +266,7 @@ export default function EditTherapeuticsStep5_5() {
                         variant="outline"
                         size="icon"
                         className="rounded-full h-8 w-8"
-                        onClick={() => addArrayItem("step5_5", "site_regions", "")}
+                        onClick={() => addArrayItem("step5_5", "trial_results", "")}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
@@ -280,8 +281,8 @@ export default function EditTherapeuticsStep5_5() {
                     value=""
                     onChange={(e) => {
                       // Add the first trial result
-                      addArrayItem("step5_5", "site_regions", "");
-                      updateArrayItem("step5_5", "site_regions", 0, e.target.value);
+                      addArrayItem("step5_5", "trial_results", "");
+                      updateArrayItem("step5_5", "trial_results", 0, e.target.value);
                     }}
                     className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-12"
                   />
@@ -291,7 +292,7 @@ export default function EditTherapeuticsStep5_5() {
                 variant="outline"
                       size="icon"
                       className="rounded-full h-8 w-8"
-                      onClick={() => addArrayItem("step5_5", "site_regions", "")}
+                      onClick={() => addArrayItem("step5_5", "trial_results", "")}
               >
                       <Plus className="h-4 w-4" />
               </Button>
@@ -313,7 +314,7 @@ export default function EditTherapeuticsStep5_5() {
                     role="combobox"
                     className="w-full justify-between border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   >
-                    {form.site_contact_info[0] || "Select option"}
+                    {form.adverse_event_reported || "Select option"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -327,14 +328,14 @@ export default function EditTherapeuticsStep5_5() {
                           key={opt}
                           value={opt}
                           onSelect={() => {
-                            updateField("step5_5", "site_contact_info", [opt]);
+                            updateField("step5_5", "adverse_event_reported", opt);
                             setOpenAdverseReported(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              form.site_contact_info[0] === opt ? "opacity-100" : "opacity-0"
+                              form.adverse_event_reported === opt ? "opacity-100" : "opacity-0"
                             )}
                           />
                           {opt}
@@ -356,7 +357,7 @@ export default function EditTherapeuticsStep5_5() {
                     role="combobox"
                     className="w-full justify-between border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   >
-                    {form.site_contact_info[1] || "Select type"}
+                    {form.adverse_event_type || "Select type"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -370,17 +371,14 @@ export default function EditTherapeuticsStep5_5() {
                           key={type}
                           value={type}
                           onSelect={() => {
-                            const current = form.site_contact_info || [""];
-                            const updated = [...current];
-                            updated[1] = type;
-                            updateField("step5_5", "site_contact_info", updated);
+                            updateField("step5_5", "adverse_event_type", type);
                             setOpenAdverseType(false);
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              form.site_contact_info[1] === type ? "opacity-100" : "opacity-0"
+                              form.adverse_event_type === type ? "opacity-100" : "opacity-0"
                             )}
                           />
                           {type}
@@ -399,12 +397,9 @@ export default function EditTherapeuticsStep5_5() {
             <Textarea
               rows={3}
               placeholder="Describe treatments for adverse events..."
-              value={form.site_contact_info[2] || ""}
+              value={form.treatment_for_adverse_events || ""}
               onChange={(e) => {
-                const current = form.site_contact_info || [""];
-                const updated = [...current];
-                updated[2] = e.target.value;
-                updateField("step5_5", "site_contact_info", updated);
+                updateField("step5_5", "treatment_for_adverse_events", e.target.value);
               }}
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />

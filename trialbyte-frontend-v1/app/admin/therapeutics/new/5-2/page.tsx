@@ -92,8 +92,8 @@ export default function TherapeuticsStep5_2() {
       const result = await saveTrial();
       
       if (result.success) {
-        // Use the generated trial identifier from the response
-        const trialId = result.trialIdentifier || "Trial";
+        // Always use the auto-generated trial_id (TB-000XXX format)
+        const trialId = result.trialId || "Trial";
         
         toast({
           title: "Success",

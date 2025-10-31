@@ -250,7 +250,7 @@ export interface TherapeuticFormData {
 const initialFormState: TherapeuticFormData = {
   step5_1: {
     therapeutic_area: "",
-    trial_identifier: [""],
+    trial_identifier: [],
     trial_phase: "",
     status: "",
     primary_drugs: "",
@@ -1420,21 +1420,30 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           result_published_date_estimated: formatDate(allFormData.step5_4.estimated_result_published_date),
           overall_duration_complete: ensureString(allFormData.step5_4.overall_duration_complete),
           overall_duration_publish: ensureString(allFormData.step5_4.overall_duration_publish),
+          timing_references: allFormData.step5_4.references.filter(ref => ref.isVisible && (ref.date || ref.content)).map(ref => ({
+            id: ref.id,
+            date: formatDate(ref.date),
+            registryType: ref.registryType,
+            content: ref.content,
+            viewSource: ref.viewSource,
+            attachments: ref.attachments,
+            isVisible: ref.isVisible
+          }))
         },
         results: {
+          results_available: allFormData.step5_5.results_available ? "Yes" : "No",
+          endpoints_met: allFormData.step5_5.endpoints_met ? "Yes" : "No",
           trial_outcome: ensureString(allFormData.step5_5.study_sites[0]) || ensureString(allFormData.step5_7.primary_endpoint_results),
           reference: formatDate(allFormData.step5_5.principal_investigators[0]) || ensureString(allFormData.step5_7.conclusion),
+          trial_outcome_content: ensureString(allFormData.step5_5.trial_outcome_content),
+          trial_outcome_link: ensureString(allFormData.step5_5.site_countries[0]),
+          trial_outcome_attachment: allFormData.step5_5.trial_outcome_attachment ? "Yes" : "No",
           trial_results: allFormData.step5_5.trial_results.filter(Boolean).length > 0 
             ? allFormData.step5_5.trial_results.filter(Boolean) 
             : allFormData.step5_7.secondary_endpoint_results.filter(Boolean),
           adverse_event_reported: allFormData.step5_5.adverse_events_reported ? "Yes" : "No",
           adverse_event_type: allFormData.step5_5.site_contact_info[1] || allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || "",
           treatment_for_adverse_events: allFormData.step5_5.site_contact_info[2] || ensureString(allFormData.step5_7.safety_results),
-          results_available: allFormData.step5_5.results_available ? "Yes" : "No",
-          endpoints_met: allFormData.step5_5.endpoints_met ? "Yes" : "No",
-          trial_outcome_content: ensureString(allFormData.step5_5.trial_outcome_content),
-          trial_outcome_link: ensureString(allFormData.step5_5.site_countries[0]),
-          trial_outcome_attachment: allFormData.step5_5.trial_outcome_attachment ? "Yes" : "No",
           site_notes: allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).map(note => ({
             date: formatDate(note.date),
             type: note.noteType,
@@ -1445,7 +1454,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           }))
         },
         sites: {
-          total: allFormData.step5_5.study_sites.filter(Boolean).length || 0,
+          total: ensureNumber(allFormData.step5_6.study_start_date, 0),
           notes: allFormData.step5_5.study_sites.filter(Boolean).join(", ") || "",
           study_sites: allFormData.step5_5.study_sites.filter(Boolean),
           principal_investigators: allFormData.step5_5.principal_investigators.filter(Boolean),
@@ -1453,6 +1462,15 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           site_countries: allFormData.step5_5.site_countries.filter(Boolean),
           site_regions: allFormData.step5_5.site_regions.filter(Boolean),
           site_contact_info: allFormData.step5_5.site_contact_info.filter(Boolean),
+          site_notes: allFormData.step5_6.references.filter(ref => ref.isVisible && (ref.date || ref.content)).map(ref => ({
+            id: ref.id,
+            date: formatDate(ref.date),
+            registryType: ref.registryType,
+            content: ref.content,
+            viewSource: ref.viewSource,
+            attachments: ref.attachments,
+            isVisible: ref.isVisible
+          }))
         },
         other_sources: {
           pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information || item.url || item.file)),
@@ -1470,8 +1488,10 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           trial_added_date: new Date().toISOString(),
           last_modified_date: new Date().toISOString(),
           last_modified_user: "admin",
-          full_review_user: "admin",
-          next_review_date: null,
+          full_review_user: (allFormData.step5_8 as any).fullReviewUser || "admin",
+          next_review_date: (allFormData.step5_8 as any).nextReviewDate 
+            ? formatDate((allFormData.step5_8 as any).nextReviewDate)
+            : null,
         },
         notes: {
           date_type: ensureString(allFormData.step5_8.date_type),

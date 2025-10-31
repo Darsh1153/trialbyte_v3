@@ -17,6 +17,7 @@ import NotesSection, { NoteItem } from "@/components/notes-section";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import TrialChangesLog from "@/components/trial-changes-log";
 import { useParams } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EditTherapeuticsStep5_8() {
   const {
@@ -51,6 +52,32 @@ export default function EditTherapeuticsStep5_8() {
       return new Date(dateString).toISOString().split("T")[0];
     } catch {
       return new Date().toISOString().split("T")[0];
+    }
+  };
+
+  // Calculate date + 90 days
+  const calculateNextReviewDate = (): string => {
+    const today = new Date();
+    const futureDate = new Date(today);
+    futureDate.setDate(today.getDate() + 90);
+    // Format as MM-DD-YYYY for CustomDateInput
+    const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+    const day = String(futureDate.getDate()).padStart(2, '0');
+    const year = futureDate.getFullYear();
+    return `${month}-${day}-${year}`;
+  };
+
+  // Handle Full Review checkbox change
+  const handleFullReviewChange = (checked: boolean) => {
+    updateField("step5_8", "fullReview", checked);
+    if (checked) {
+      // Auto-populate fields when checked
+      updateField("step5_8", "fullReviewUser", "admin");
+      updateField("step5_8", "nextReviewDate", calculateNextReviewDate());
+    } else {
+      // Clear fields when unchecked
+      updateField("step5_8", "fullReviewUser", "");
+      updateField("step5_8", "nextReviewDate", "");
     }
   };
 
@@ -202,18 +229,31 @@ export default function EditTherapeuticsStep5_8() {
           {/* Full Review Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             <div className="flex items-center gap-2">
-              <Checkbox id="fullReview" />
+              <Checkbox 
+                id="fullReview" 
+                checked={form.fullReview || false}
+                onCheckedChange={handleFullReviewChange}
+              />
               <Label htmlFor="fullReview">Full Review</Label>
             </div>
             <div className="space-y-2">
               <Label>Full Review User</Label>
-              <Input placeholder="" className="border-gray-600 focus:border-gray-800 focus:ring-gray-800" />
+              <Input 
+                placeholder="User name" 
+                value={form.fullReviewUser || ""}
+                onChange={(e) => updateField("step5_8", "fullReviewUser", e.target.value)}
+                readOnly={form.fullReview}
+                className={`border-gray-600 focus:border-gray-800 focus:ring-gray-800 ${form.fullReview ? 'bg-gray-50' : ''}`}
+              />
             </div>
             <div className="space-y-2">
               <Label>Next Review Date</Label>
               <CustomDateInput 
                 placeholder="Month Day Year"
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                value={form.nextReviewDate || ""}
+                onChange={(value) => updateField("step5_8", "nextReviewDate", value)}
+                readOnly={form.fullReview}
+                className={`border-gray-600 focus:border-gray-800 focus:ring-gray-800 ${form.fullReview ? 'bg-gray-50' : ''}`}
               />
             </div>
         </div>
@@ -221,17 +261,30 @@ export default function EditTherapeuticsStep5_8() {
             {/* Notes Section */}
             <NotesSection
               title="Notes & Documentation"
-            notes={(form.notes || []).map(note => ({
-              id: note.id,
-              date: note.date,
-                type: note.type || "General",
-              content: note.content,
-                sourceLink: note.sourceLink,
-                sourceType: note.sourceType,
-                sourceUrl: note.sourceUrl,
-                attachments: note.attachments || [],
-              isVisible: note.isVisible
-            }))}
+            notes={(form.notes || []).map(note => {
+              // Ensure content is always a string, not an object
+              let content = "";
+              if (typeof note.content === 'string') {
+                content = note.content;
+              } else if (note.content && typeof note.content === 'object') {
+                // If content is an object, try to extract text or stringify
+                content = note.content.text || note.content.content || JSON.stringify(note.content);
+              } else {
+                content = String(note.content || "");
+              }
+              
+              return {
+                id: note.id,
+                date: String(note.date || ""),
+                type: String(note.type || "General"),
+                content: content,
+                sourceLink: String(note.sourceLink || ""),
+                sourceType: String(note.sourceType || ""),
+                sourceUrl: String(note.sourceUrl || ""),
+                attachments: Array.isArray(note.attachments) ? note.attachments : [],
+                isVisible: note.isVisible !== false
+              };
+            })}
             onAddNote={() => {
               const newNote = {
                 id: Date.now().toString(),
