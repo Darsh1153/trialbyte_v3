@@ -260,7 +260,14 @@ beforeAll(async () => {
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
       trial_id UUID REFERENCES therapeutic_trial_overview(id) ON DELETE CASCADE,
       total INT,
-      notes TEXT
+      notes TEXT,
+      study_sites TEXT[],
+      principal_investigators TEXT[],
+      site_status TEXT,
+      site_countries TEXT[],
+      site_regions TEXT[],
+      site_contact_info TEXT[],
+      site_notes JSONB
     );
 
     CREATE TABLE IF NOT EXISTS therapeutic_other_sources (

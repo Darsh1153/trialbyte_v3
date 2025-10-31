@@ -632,7 +632,7 @@ const createWithAllData = async (req, res) => {
 
     return res.status(StatusCodes.CREATED).json({
       message: "Trial created successfully with all data",
-      trial_id,
+      trial_id: createdOverview.trial_id || trial_id, // Use formatted TB-000XXX trial_id, fallback to UUID
       trial_identifier: createdOverview.trial_identifier && createdOverview.trial_identifier.length > 0 
         ? createdOverview.trial_identifier[0] 
         : null,

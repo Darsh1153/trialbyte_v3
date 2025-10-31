@@ -7,7 +7,7 @@ class TherapeuticSitesRepository {
 
   async create(data) {
     const r = await this.pool.query(
-      'INSERT INTO "therapeutic_sites" (trial_id, total, notes, study_sites, principal_investigators, site_status, site_countries, site_regions, site_contact_info) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+      'INSERT INTO "therapeutic_sites" (trial_id, total, notes, study_sites, principal_investigators, site_status, site_countries, site_regions, site_contact_info, site_notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
       [
         data.trial_id, 
         data.total || null, 
@@ -17,7 +17,8 @@ class TherapeuticSitesRepository {
         data.site_status || null,
         data.site_countries || null,
         data.site_regions || null,
-        data.site_contact_info || null
+        data.site_contact_info || null,
+        data.site_notes ? JSON.stringify(data.site_notes) : null
       ]
     );
     return r.rows[0];
@@ -25,7 +26,7 @@ class TherapeuticSitesRepository {
 
   async createWithClient(client, data) {
     const r = await client.query(
-      'INSERT INTO "therapeutic_sites" (trial_id, total, notes, study_sites, principal_investigators, site_status, site_countries, site_regions, site_contact_info) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+      'INSERT INTO "therapeutic_sites" (trial_id, total, notes, study_sites, principal_investigators, site_status, site_countries, site_regions, site_contact_info, site_notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
       [
         data.trial_id, 
         data.total || null, 
@@ -35,7 +36,8 @@ class TherapeuticSitesRepository {
         data.site_status || null,
         data.site_countries || null,
         data.site_regions || null,
-        data.site_contact_info || null
+        data.site_contact_info || null,
+        data.site_notes ? JSON.stringify(data.site_notes) : null
       ]
     );
     return r.rows[0];
