@@ -86,9 +86,12 @@ export default function TherapeuticsStep5_8() {
       setIsCreating(true);
       const allFormData = getFormData();
       
+      // Get user ID from localStorage or use default admin UUID
+      const currentUserId = localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
+      
       // Transform the form data to match the API structure
       const therapeuticPayload = {
-        user_id: "admin", // Admin user ID
+        user_id: currentUserId, // Use valid UUID from localStorage or default admin UUID
         overview: {
           therapeutic_area: ensureString(allFormData.step5_1.therapeutic_area),
           trial_identifier: allFormData.step5_1.trial_identifier.filter(Boolean),
@@ -151,7 +154,7 @@ export default function TherapeuticsStep5_8() {
           trial_changes_log: "Trial created via therapeutic form",
           trial_added_date: new Date().toISOString().split("T")[0],
           last_modified_date: new Date().toISOString(),
-          last_modified_user: "admin",
+          last_modified_user: currentUserId, // Use valid UUID instead of "admin"
           full_review_user: fullReviewUser || null,
           next_review_date: nextReviewDate ? formatDate(nextReviewDate) : null,
         },

@@ -61,7 +61,7 @@ export default function EditTherapeuticsStep5_5() {
   const handleSaveChanges = async () => {
     try {
       setIsSavingStep(true);
-      // Save via context which handles both API, localStorage, and reload
+      // Save via context which handles API and reload
       await saveTrial(params.id as string);
 
       toast({

@@ -1347,11 +1347,14 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         throw new Error("API base URL is not configured. Please check your environment variables.");
       }
       
+      // Get user ID from localStorage or use default admin UUID
+      const currentUserId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
+      
       console.log("API Base URL:", apiBaseUrl);
       
       // Transform the form data to match the API structure
       const therapeuticPayload = {
-        user_id: "2be97b5e-5bf3-43f2-b84a-4db4a138e497", // Admin user UUID
+        user_id: currentUserId, // Use valid UUID from localStorage or default admin UUID
         overview: {
           therapeutic_area: ensureString(allFormData.step5_1.therapeutic_area),
           trial_identifier: allFormData.step5_1.trial_identifier.filter(Boolean).length > 0 ? allFormData.step5_1.trial_identifier.filter(Boolean) : [],
@@ -1396,40 +1399,49 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           prior_treatments: allFormData.step5_3.prior_treatments.filter(Boolean).join(", ") || "",
           biomarker_requirements: allFormData.step5_3.biomarker_requirements.filter(Boolean).join(", ") || "",
         },
-        timing: {
-          start_date_actual: formatDate(allFormData.step5_4.actual_start_date),
-          start_date_benchmark: formatDate(allFormData.step5_4.benchmark_start_date),
-          start_date_estimated: formatDate(allFormData.step5_4.estimated_start_date),
-          inclusion_period_actual: ensureString(allFormData.step5_4.actual_inclusion_period),
-          inclusion_period_benchmark: ensureString(allFormData.step5_4.benchmark_inclusion_period),
-          inclusion_period_estimated: ensureString(allFormData.step5_4.estimated_inclusion_period),
-          enrollment_closed_actual: formatDate(allFormData.step5_4.actual_enrollment_closed_date),
-          enrollment_closed_benchmark: formatDate(allFormData.step5_4.benchmark_enrollment_closed_date),
-          enrollment_closed_estimated: formatDate(allFormData.step5_4.estimated_enrollment_closed_date),
-          primary_outcome_duration_actual: ensureString(allFormData.step5_4.actual_primary_outcome_duration),
-          primary_outcome_duration_benchmark: ensureString(allFormData.step5_4.benchmark_primary_outcome_duration),
-          primary_outcome_duration_estimated: ensureString(allFormData.step5_4.estimated_primary_outcome_duration),
-          trial_end_date_actual: formatDate(allFormData.step5_4.actual_trial_end_date),
-          trial_end_date_benchmark: formatDate(allFormData.step5_4.benchmark_trial_end_date),
-          trial_end_date_estimated: formatDate(allFormData.step5_4.estimated_trial_end_date),
-          result_duration_actual: ensureString(allFormData.step5_4.actual_result_duration),
-          result_duration_benchmark: ensureString(allFormData.step5_4.benchmark_result_duration),
-          result_duration_estimated: ensureString(allFormData.step5_4.estimated_result_duration),
-          result_published_date_actual: formatDate(allFormData.step5_4.actual_result_published_date),
-          result_published_date_benchmark: formatDate(allFormData.step5_4.benchmark_result_published_date),
-          result_published_date_estimated: formatDate(allFormData.step5_4.estimated_result_published_date),
-          overall_duration_complete: ensureString(allFormData.step5_4.overall_duration_complete),
-          overall_duration_publish: ensureString(allFormData.step5_4.overall_duration_publish),
-          timing_references: allFormData.step5_4.references.filter(ref => ref.isVisible && (ref.date || ref.content)).map(ref => ({
-            id: ref.id,
-            date: formatDate(ref.date),
-            registryType: ref.registryType,
-            content: ref.content,
-            viewSource: ref.viewSource,
-            attachments: ref.attachments,
-            isVisible: ref.isVisible
-          }))
-        },
+        timing: (() => {
+          const timingData = {
+            start_date_actual: formatDate(allFormData.step5_4.actual_start_date),
+            start_date_benchmark: formatDate(allFormData.step5_4.benchmark_start_date),
+            start_date_estimated: formatDate(allFormData.step5_4.estimated_start_date),
+            inclusion_period_actual: ensureString(allFormData.step5_4.actual_inclusion_period),
+            inclusion_period_benchmark: ensureString(allFormData.step5_4.benchmark_inclusion_period),
+            inclusion_period_estimated: ensureString(allFormData.step5_4.estimated_inclusion_period),
+            enrollment_closed_actual: formatDate(allFormData.step5_4.actual_enrollment_closed_date),
+            enrollment_closed_benchmark: formatDate(allFormData.step5_4.benchmark_enrollment_closed_date),
+            enrollment_closed_estimated: formatDate(allFormData.step5_4.estimated_enrollment_closed_date),
+            primary_outcome_duration_actual: ensureString(allFormData.step5_4.actual_primary_outcome_duration),
+            primary_outcome_duration_benchmark: ensureString(allFormData.step5_4.benchmark_primary_outcome_duration),
+            primary_outcome_duration_estimated: ensureString(allFormData.step5_4.estimated_primary_outcome_duration),
+            trial_end_date_actual: formatDate(allFormData.step5_4.actual_trial_end_date),
+            trial_end_date_benchmark: formatDate(allFormData.step5_4.benchmark_trial_end_date),
+            trial_end_date_estimated: formatDate(allFormData.step5_4.estimated_trial_end_date),
+            result_duration_actual: ensureString(allFormData.step5_4.actual_result_duration),
+            result_duration_benchmark: ensureString(allFormData.step5_4.benchmark_result_duration),
+            result_duration_estimated: ensureString(allFormData.step5_4.estimated_result_duration),
+            result_published_date_actual: formatDate(allFormData.step5_4.actual_result_published_date),
+            result_published_date_benchmark: formatDate(allFormData.step5_4.benchmark_result_published_date),
+            result_published_date_estimated: formatDate(allFormData.step5_4.estimated_result_published_date),
+            overall_duration_complete: ensureString(allFormData.step5_4.overall_duration_complete),
+            overall_duration_publish: ensureString(allFormData.step5_4.overall_duration_publish),
+            timing_references: allFormData.step5_4.references.filter(ref => ref.isVisible && (ref.date || ref.content)).map(ref => ({
+              id: ref.id,
+              date: formatDate(ref.date),
+              registryType: ref.registryType,
+              content: ref.content,
+              viewSource: ref.viewSource,
+              attachments: ref.attachments,
+              isVisible: ref.isVisible
+            }))
+          };
+          
+          console.log('📊 TIMING DATA BEING SAVED:', {
+            rawFormData: allFormData.step5_4,
+            formattedTimingData: timingData
+          });
+          
+          return timingData;
+        })(),
         results: {
           results_available: allFormData.step5_5.results_available ? "Yes" : "No",
           endpoints_met: allFormData.step5_5.endpoints_met ? "Yes" : "No",
@@ -1487,8 +1499,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             : "Trial created",
           trial_added_date: new Date().toISOString(),
           last_modified_date: new Date().toISOString(),
-          last_modified_user: "admin",
-          full_review_user: (allFormData.step5_8 as any).fullReviewUser || "admin",
+          last_modified_user: currentUserId, // Use valid UUID instead of "admin"
+          full_review_user: (allFormData.step5_8 as any).fullReviewUser || null, // Can be null, not "admin"
           next_review_date: (allFormData.step5_8 as any).nextReviewDate 
             ? formatDate((allFormData.step5_8 as any).nextReviewDate)
             : null,

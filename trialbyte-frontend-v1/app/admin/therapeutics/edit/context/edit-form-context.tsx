@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 // Define the complete form structure for editing
@@ -390,6 +390,14 @@ function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction)
   
   switch (action.type) {
     case "SET_TRIAL_DATA":
+      console.log('🔄 Reducer: Setting trial data', {
+        has_step5_4: !!action.payload?.step5_4,
+        has_step5_5: !!action.payload?.step5_5,
+        has_step5_6: !!action.payload?.step5_6,
+        has_step5_7: !!action.payload?.step5_7,
+        step5_4_sample: action.payload?.step5_4?.actual_start_date,
+        step5_5_sample: action.payload?.step5_5?.trial_outcome,
+      });
       return action.payload;
     case "UPDATE_FIELD":
       newState = {
@@ -400,66 +408,6 @@ function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction)
         },
       };
       
-      // Save step5_5 (Results) to localStorage immediately for persistence
-      if (action.step === "step5_5") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            const storageKey = `trial_results_${trialId}`;
-            const resultsData = newState.step5_5;
-            localStorage.setItem(storageKey, JSON.stringify({
-              ...resultsData,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Results to localStorage:', storageKey, resultsData);
-          } else {
-            console.warn('Cannot save Results to localStorage: No trialId found');
-          }
-        } catch (e) {
-          console.warn('Failed to save Results to localStorage:', e);
-        }
-      }
-      
-      // Save step5_7 (Other Sources) to localStorage immediately for persistence
-      if (action.step === "step5_7") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            const storageKey = `trial_other_sources_${trialId}`;
-            const otherSourcesData = newState.step5_7;
-            localStorage.setItem(storageKey, JSON.stringify({
-              ...otherSourcesData,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Other Sources to localStorage:', storageKey, otherSourcesData);
-          } else {
-            console.warn('Cannot save Other Sources to localStorage: No trialId found');
-          }
-        } catch (e) {
-          console.warn('Failed to save Other Sources to localStorage:', e);
-        }
-      }
-      
-      // Save step5_4 (Timing) to localStorage immediately for persistence
-      if (action.step === "step5_4") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            const storageKey = `trial_timing_${trialId}`;
-            const timingData = newState.step5_4;
-            localStorage.setItem(storageKey, JSON.stringify({
-              ...timingData,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Timing to localStorage:', storageKey, timingData);
-          } else {
-            console.warn('Cannot save Timing to localStorage: No trialId found');
-          }
-        } catch (e) {
-          console.warn('Failed to save Timing to localStorage:', e);
-        }
-      }
-      
       return newState;
     case "ADD_ARRAY_ITEM":
       newState = {
@@ -469,48 +417,6 @@ function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction)
           [action.field]: [...(state[action.step] as any)[action.field], action.value],
         },
       };
-      
-      // Save to localStorage for step5_5
-      if (action.step === "step5_5") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_results_${trialId}`, JSON.stringify({
-              ...newState.step5_5,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Results array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
-      
-      // Save to localStorage for step5_7 (Other Sources)
-      if (action.step === "step5_7") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_other_sources_${trialId}`, JSON.stringify({
-              ...newState.step5_7,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Other Sources array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
-      
-      // Save to localStorage for step5_4 (Timing)
-      if (action.step === "step5_4") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_timing_${trialId}`, JSON.stringify({
-              ...newState.step5_4,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Timing array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
       
       return newState;
     case "REMOVE_ARRAY_ITEM":
@@ -524,48 +430,6 @@ function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction)
         },
       };
       
-      // Save to localStorage for step5_5
-      if (action.step === "step5_5") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_results_${trialId}`, JSON.stringify({
-              ...newState.step5_5,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Results array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
-      
-      // Save to localStorage for step5_7 (Other Sources)
-      if (action.step === "step5_7") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_other_sources_${trialId}`, JSON.stringify({
-              ...newState.step5_7,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Other Sources array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
-      
-      // Save to localStorage for step5_4 (Timing)
-      if (action.step === "step5_4") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_timing_${trialId}`, JSON.stringify({
-              ...newState.step5_4,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Timing array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
-      
       return newState;
     case "UPDATE_ARRAY_ITEM":
       newState = {
@@ -577,48 +441,6 @@ function editFormReducer(state: EditTherapeuticFormData, action: EditFormAction)
           ),
         },
       };
-      
-      // Save to localStorage for step5_5
-      if (action.step === "step5_5") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_results_${trialId}`, JSON.stringify({
-              ...newState.step5_5,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Results array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
-      
-      // Save to localStorage for step5_7 (Other Sources)
-      if (action.step === "step5_7") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_other_sources_${trialId}`, JSON.stringify({
-              ...newState.step5_7,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Other Sources array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
-      
-      // Save to localStorage for step5_4 (Timing)
-      if (action.step === "step5_4") {
-        try {
-          const trialId = currentEditingTrialId || getTrialIdFromURL();
-          if (trialId) {
-            localStorage.setItem(`trial_timing_${trialId}`, JSON.stringify({
-              ...newState.step5_4,
-              timestamp: new Date().toISOString(),
-            }));
-            console.log('💾 Saved Timing array to localStorage (ADD)');
-          }
-        } catch (e) {}
-      }
       
       return newState;
     case "RESET_FORM":
@@ -648,10 +470,7 @@ interface EditTherapeuticFormContextType {
   isSaving: boolean;
 }
 
-// Module-level variable to store current trialId for localStorage
-let currentEditingTrialId: string | null = null;
-
-// Helper function to get trialId from URL
+// Helper function to get trialId from URL (kept for potential future use)
 const getTrialIdFromURL = (): string | null => {
   if (typeof window === 'undefined') return null;
   const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -671,89 +490,202 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
   const [formData, dispatch] = useReducer(editFormReducer, initialFormData);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
-  
-  // Set the module-level trialId for localStorage access
-  React.useEffect(() => {
-    currentEditingTrialId = trialId;
-    console.log('🔑 Set currentEditingTrialId:', trialId);
-  }, [trialId]);
   const { toast } = useToast();
 
   // Store the original trial data for reference
   const [originalTrial, setOriginalTrial] = React.useState<any>(null);
 
   // Load trial data
-  const loadTrialData = async (trialId: string) => {
+  const loadTrialData = useCallback(async (trialId: string) => {
     try {
-      // Set the module-level trialId for localStorage access
-      currentEditingTrialId = trialId;
-      console.log('🔑 Set currentEditingTrialId in loadTrialData:', trialId);
-      
+      console.log('🔍 Loading trial data for:', trialId);
       setIsLoading(true);
       
-      // Try to fetch from API first
-      let data = null;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
-        // Wrap fetch in a promise that never rejects
-        // Add timestamp to prevent caching
-        const timestamp = new Date().getTime();
-        const fetchPromise = fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data?_t=${timestamp}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-          },
-          credentials: 'include',
-          signal: controller.signal,
-          cache: 'no-store',
-        }).catch(() => null); // Convert rejection to null
-        
-        const response = await fetchPromise;
-        clearTimeout(timeoutId);
-        
-        if (response && response.ok) {
-          data = await response.json().catch(() => null);
-        } else if (response) {
-          console.warn('API response not ok:', response.status);
-        } else {
-          console.warn('API fetch failed, trying localStorage');
+      // Use the EXACT same query as view page (line 194 of page.tsx)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trial/${trialId}/all-data`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast({
+            title: "Trial Not Found",
+            description: "The requested clinical trial could not be found.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
         }
-      } catch (apiError) {
-        console.warn('API fetch failed, trying localStorage:', apiError);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      // If API failed, try localStorage
-      if (!data) {
-        const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
-        if (localTrials.length > 0) {
-          data = { trials: localTrials };
-        }
-      }
+      const data = await response.json();
       
-      if (data.trials && data.trials.length > 0) {
-        // First, check if we have localStorage data that might be more recent
-        const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
-        const localTrial = localTrials.find((t: any) => t.trial_id === trialId);
-        const recentlyUpdated = localStorage.getItem(`trial_updated_${trialId}`);
-        
-        let foundTrial = data.trials.find((t: any) => t.trial_id === trialId);
-        
-        // Always prefer API data when available (it's the source of truth)
-        if (foundTrial) {
-          console.log('Using API data for trial:', trialId);
-        } else if (localTrial) {
-          // Only use localStorage as fallback when API data is not available
-          console.log('API data not found, using localStorage for trial:', trialId);
-          foundTrial = localTrial;
-        }
-        
-        if (foundTrial) {
+      if (data && data.data) {
+        // Transform the API response using EXACT same structure as view page (lines 213-325)
+        // View page uses: data.data.overview, data.data.outcomes, etc.
+        const transformedTrial = {
+            trial_id: data.trial_id,
+            overview: {
+              id: data.data.overview.id,
+              therapeutic_area: data.data.overview.therapeutic_area || "",
+              trial_identifier: data.data.overview.trial_identifier || [],
+              trial_phase: data.data.overview.trial_phase || "",
+              status: data.data.overview.status || "",
+              primary_drugs: data.data.overview.primary_drugs || "",
+              other_drugs: data.data.overview.other_drugs || "",
+              title: data.data.overview.title || "",
+              disease_type: data.data.overview.disease_type || "",
+              patient_segment: data.data.overview.patient_segment || "",
+              line_of_therapy: data.data.overview.line_of_therapy || "",
+              reference_links: data.data.overview.reference_links || [],
+              trial_tags: data.data.overview.trial_tags || "",
+              sponsor_collaborators: data.data.overview.sponsor_collaborators || "",
+              sponsor_field_activity: data.data.overview.sponsor_field_activity || "",
+              associated_cro: data.data.overview.associated_cro || "",
+              countries: data.data.overview.countries || "",
+              region: data.data.overview.region || "",
+              trial_record_status: data.data.overview.trial_record_status || "",
+              created_at: data.data.overview.created_at || "",
+              updated_at: data.data.overview.updated_at || "",
+            },
+            // EXACT same transformation as view page line 238
+            outcomes: data.data.outcomes.map((outcome: any) => ({
+              id: outcome.id,
+              trial_id: outcome.trial_id,
+              purpose_of_trial: outcome.purpose_of_trial || "",
+              summary: outcome.summary || "",
+              primary_outcome_measure: outcome.primary_outcome_measure || "",
+              other_outcome_measure: outcome.other_outcome_measure || "",
+              study_design_keywords: outcome.study_design_keywords || "",
+              study_design: outcome.study_design || "",
+              treatment_regimen: outcome.treatment_regimen || "",
+              number_of_arms: outcome.number_of_arms || 0,
+            })),
+            // EXACT same transformation as view page line 250
+            criteria: data.data.criteria.map((criterion: any) => ({
+              id: criterion.id,
+              trial_id: criterion.trial_id,
+              inclusion_criteria: criterion.inclusion_criteria || "",
+              exclusion_criteria: criterion.exclusion_criteria || "",
+              age_from: criterion.age_from || "",
+              subject_type: criterion.subject_type || "",
+              age_to: criterion.age_to || "",
+              sex: criterion.sex || "",
+              healthy_volunteers: criterion.healthy_volunteers || "",
+              target_no_volunteers: criterion.target_no_volunteers || 0,
+              actual_enrolled_volunteers: criterion.actual_enrolled_volunteers || 0,
+            })),
+            // EXACT same transformation as view page line 263 (but include ALL fields for editing)
+            timing: data.data.timing.map((timing: any) => ({
+              id: timing.id,
+              trial_id: timing.trial_id,
+              start_date_actual: timing.start_date_actual || null,
+              start_date_benchmark: timing.start_date_benchmark || null,
+              start_date_estimated: timing.start_date_estimated || null,
+              inclusion_period_actual: timing.inclusion_period_actual || null,
+              inclusion_period_benchmark: timing.inclusion_period_benchmark || null,
+              inclusion_period_estimated: timing.inclusion_period_estimated || null,
+              enrollment_closed_actual: timing.enrollment_closed_actual || null,
+              enrollment_closed_benchmark: timing.enrollment_closed_benchmark || null,
+              enrollment_closed_estimated: timing.enrollment_closed_estimated || null,
+              primary_outcome_duration_actual: timing.primary_outcome_duration_actual || null,
+              primary_outcome_duration_benchmark: timing.primary_outcome_duration_benchmark || null,
+              primary_outcome_duration_estimated: timing.primary_outcome_duration_estimated || null,
+              trial_end_date_actual: timing.trial_end_date_actual || null,
+              trial_end_date_benchmark: timing.trial_end_date_benchmark || null,
+              trial_end_date_estimated: timing.trial_end_date_estimated || null,
+              result_duration_actual: timing.result_duration_actual || null,
+              result_duration_benchmark: timing.result_duration_benchmark || null,
+              result_duration_estimated: timing.result_duration_estimated || null,
+              result_published_date_actual: timing.result_published_date_actual || null,
+              result_published_date_benchmark: timing.result_published_date_benchmark || null,
+              result_published_date_estimated: timing.result_published_date_estimated || null,
+              overall_duration_complete: timing.overall_duration_complete || null,
+              overall_duration_publish: timing.overall_duration_publish || null,
+              timing_references: timing.timing_references || null,
+            })),
+            // EXACT same transformation as view page line 269
+            results: data.data.results.map((result: any) => ({
+              id: result.id,
+              trial_id: result.trial_id,
+              trial_outcome: result.trial_outcome || "",
+              reference: result.reference || "",
+              trial_results: result.trial_results || [],
+              adverse_event_reported: result.adverse_event_reported || "",
+              adverse_event_type: result.adverse_event_type || "",
+              treatment_for_adverse_events: result.treatment_for_adverse_events || "",
+              results_available: result.results_available || "",
+              endpoints_met: result.endpoints_met || "",
+              trial_outcome_content: result.trial_outcome_content || "",
+              trial_outcome_link: result.trial_outcome_link || "",
+              trial_outcome_attachment: result.trial_outcome_attachment || "",
+              site_notes: result.site_notes || null,
+            })),
+            // EXACT same transformation as view page line 279
+            sites: data.data.sites.map((site: any) => ({
+              id: site.id,
+              trial_id: site.trial_id,
+              total: site.total || 0,
+              notes: site.notes || "", // Note: view page uses 'notes', not 'site_notes'
+            })),
+            // EXACT same transformation as view page line 285
+            other: data.data.other.map((other: any) => ({
+              id: other.id,
+              trial_id: other.trial_id,
+              data: other.data || "",
+              url: other.url || "",
+            })),
+            // EXACT same transformation as view page line 291
+            logs: data.data.logs.map((log: any) => ({
+              id: log.id,
+              trial_id: log.trial_id,
+              trial_changes_log: log.trial_changes_log || "",
+              trial_added_date: log.trial_added_date || "",
+              last_modified_date: log.last_modified_date || null,
+              last_modified_user: log.last_modified_user || null,
+              full_review_user: log.full_review_user || null,
+              next_review_date: log.next_review_date || null,
+            })),
+            // EXACT same transformation as view page line 301 (including attachment parsing logic)
+            notes: data.data.notes.map((note: any) => ({
+              id: note.id,
+              trial_id: note.trial_id,
+              date_type: note.date_type || "",
+              notes: note.notes || "",
+              link: note.link || "",
+              attachments: (() => {
+                if (Array.isArray(note.attachments)) {
+                  return note.attachments;
+                } else if (typeof note.attachments === 'string' && note.attachments.trim()) {
+                  try {
+                    const parsed = JSON.parse(note.attachments);
+                    return Array.isArray(parsed) ? parsed : [note.attachments];
+                  } catch {
+                    return note.attachments.includes(',') 
+                      ? note.attachments.split(',').map((item: string) => item.trim()).filter((item: string) => item)
+                      : [note.attachments];
+                  }
+                }
+                return [];
+              })(),
+            })),
+          };
+          
+          const foundTrial = transformedTrial;
+          
           // Store original trial data for reference
           setOriginalTrial(foundTrial);
+          console.log('✅ Found trial data:', {
+            trial_id: foundTrial.trial_id,
+            overview: foundTrial.overview,
+            hasOutcomes: !!foundTrial.outcomes?.length,
+            hasCriteria: !!foundTrial.criteria?.length,
+            hasTiming: !!foundTrial.timing?.length,
+            hasResults: !!foundTrial.results?.length,
+            hasSites: !!foundTrial.sites?.length,
+            hasOther: !!foundTrial.other?.length,
+            hasLogs: !!foundTrial.logs?.length,
+            hasNotes: !!foundTrial.notes?.length
+          });
           
           // Helper function to format date from database (YYYY-MM-DD) to UI (MM-DD-YYYY)
           const formatDateForUI = (dateStr: string): string => {
@@ -787,10 +719,34 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           };
           
           // Map trial data to form structure
+          console.log('🔧 Mapping overview data:', {
+            therapeutic_area: foundTrial.overview?.therapeutic_area,
+            trial_identifier: foundTrial.overview?.trial_identifier,
+            trial_identifier_type: typeof foundTrial.overview?.trial_identifier,
+            trial_phase: foundTrial.overview?.trial_phase,
+            status: foundTrial.overview?.status,
+            primary_drugs: foundTrial.overview?.primary_drugs
+          });
+          
+          // Handle trial_identifier - could be string or array
+          const parseTrialIdentifier = (value: any): string[] => {
+            if (!value) return [];
+            if (Array.isArray(value)) return value;
+            if (typeof value === 'string') {
+              try {
+                const parsed = JSON.parse(value);
+                return Array.isArray(parsed) ? parsed : [value];
+              } catch {
+                return [value];
+              }
+            }
+            return [];
+          };
+          
           const mappedData: EditTherapeuticFormData = {
             step5_1: {
               therapeutic_area: foundTrial.overview?.therapeutic_area || "",
-              trial_identifier: foundTrial.overview?.trial_identifier || [],
+              trial_identifier: parseTrialIdentifier(foundTrial.overview?.trial_identifier),
               trial_phase: foundTrial.overview?.trial_phase || "",
               status: foundTrial.overview?.status || "",
               primary_drugs: foundTrial.overview?.primary_drugs || "",
@@ -799,7 +755,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               disease_type: foundTrial.overview?.disease_type || "",
               patient_segment: foundTrial.overview?.patient_segment || "",
               line_of_therapy: foundTrial.overview?.line_of_therapy || "",
-              reference_links: foundTrial.overview?.reference_links || [],
+              reference_links: parseTrialIdentifier(foundTrial.overview?.reference_links), // Use same parser for arrays
               trial_tags: foundTrial.overview?.trial_tags || "",
               sponsor_collaborators: foundTrial.overview?.sponsor_collaborators || "",
               sponsor_field_activity: foundTrial.overview?.sponsor_field_activity || "",
@@ -854,40 +810,24 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               age_min: foundTrial.criteria?.[0]?.age_from || "",
               age_max: foundTrial.criteria?.[0]?.age_to || "",
               gender: foundTrial.criteria?.[0]?.sex || "",
-              ecog_performance_status: "",
-              prior_treatments: [],
-              biomarker_requirements: [],
+              ecog_performance_status: foundTrial.criteria?.[0]?.ecog_performance_status || "",
+              prior_treatments: foundTrial.criteria?.[0]?.prior_treatments
+                ? Array.isArray(foundTrial.criteria[0].prior_treatments)
+                  ? foundTrial.criteria[0].prior_treatments.filter(Boolean)
+                  : typeof foundTrial.criteria[0].prior_treatments === 'string'
+                    ? foundTrial.criteria[0].prior_treatments.split(", ").filter(Boolean)
+                    : [foundTrial.criteria[0].prior_treatments].filter(Boolean)
+                : [],
+              biomarker_requirements: foundTrial.criteria?.[0]?.biomarker_requirements
+                ? Array.isArray(foundTrial.criteria[0].biomarker_requirements)
+                  ? foundTrial.criteria[0].biomarker_requirements.filter(Boolean)
+                  : typeof foundTrial.criteria[0].biomarker_requirements === 'string'
+                    ? foundTrial.criteria[0].biomarker_requirements.split(", ").filter(Boolean)
+                    : [foundTrial.criteria[0].biomarker_requirements].filter(Boolean)
+                : [],
             },
             step5_4: (() => {
-              console.log('=== LOADING TIMING DATA ===');
-              
-              // CHECK LOCALSTORAGE FIRST for recent changes
-              try {
-                const storageKey = `trial_timing_${trialId}`;
-                const storedData = localStorage.getItem(storageKey);
-                if (storedData) {
-                  const localStorageData = JSON.parse(storedData);
-                  console.log('📂 Found Timing in localStorage:', localStorageData);
-                  
-                  // Check if localStorage data is recent
-                  const timestamp = new Date(localStorageData.timestamp);
-                  const now = new Date();
-                  const hoursDiff = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
-                  console.log('localStorage data age:', hoursDiff, 'hours');
-                  
-                  // Use localStorage data if it exists
-                  if (localStorageData) {
-                    console.log('✅ Using localStorage data for Timing (has recent changes)');
-                    // Remove timestamp before returning
-                    const { timestamp: _, ...dataWithoutTimestamp } = localStorageData;
-                    return dataWithoutTimestamp;
-                  }
-                }
-              } catch (e) {
-                console.warn('Error loading Timing from localStorage:', e);
-              }
-              
-              console.log('Loading Timing from API...');
+              console.log('=== LOADING TIMING DATA FROM API ===');
               
               return {
               estimated_enrollment: foundTrial.criteria?.[0]?.target_no_volunteers?.toString() || "",
@@ -990,37 +930,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               };
             })(),
             step5_5: (() => {
-              console.log('=== LOADING RESULTS DATA ===');
-              
-              // CHECK LOCALSTORAGE FIRST for recent changes
-              let localStorageData = null;
-              try {
-                const storageKey = `trial_results_${trialId}`;
-                const storedData = localStorage.getItem(storageKey);
-                if (storedData) {
-                  localStorageData = JSON.parse(storedData);
-                  console.log('📂 Found Results in localStorage:', localStorageData);
-                  
-                  // Check if localStorage data is recent (within last 24 hours)
-                  const timestamp = new Date(localStorageData.timestamp);
-                  const now = new Date();
-                  const hoursDiff = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
-                  console.log('localStorage data age:', hoursDiff, 'hours');
-                  
-                  // Use localStorage data if it exists, regardless of age
-                  // This ensures recent changes are always shown
-                  if (localStorageData) {
-                    console.log('✅ Using localStorage data for Results (has recent changes)');
-                    // Remove timestamp before returning
-                    const { timestamp: _, ...dataWithoutTimestamp } = localStorageData;
-                    return dataWithoutTimestamp;
-                  }
-                }
-              } catch (e) {
-                console.warn('Error loading Results from localStorage:', e);
-              }
-              
-              console.log('Loading Results from API...');
+              console.log('=== LOADING RESULTS DATA FROM API ===');
               console.log('foundTrial.results:', foundTrial.results);
               console.log('foundTrial.results[0]:', foundTrial.results?.[0]);
               
@@ -1119,8 +1029,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               final_analysis_date: "",
               regulatory_submission_date: "",
               references: (() => {
-                // Parse site_notes if it's a string, or use it directly if it's an array
-                let siteNotes = foundTrial.sites?.[0]?.site_notes;
+                // Parse site notes from sites.notes (same structure as view page)
+                let siteNotes = foundTrial.sites?.[0]?.notes;
                 
                 console.log('Loading site_notes:', {
                   rawSiteNotes: siteNotes,
@@ -1168,45 +1078,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               })(),
             },
             step5_7: (() => {
-              console.log('=== LOADING OTHER SOURCES ===');
+              console.log('=== LOADING OTHER SOURCES FROM API ===');
               
-              // CHECK LOCALSTORAGE FIRST for recent changes
-              try {
-                const storageKey = `trial_other_sources_${trialId}`;
-                const storedData = localStorage.getItem(storageKey);
-                if (storedData) {
-                  const localStorageData = JSON.parse(storedData);
-                  console.log('📂 Found Other Sources in localStorage:', localStorageData);
-                  
-                  // Check if localStorage data is recent
-                  const timestamp = new Date(localStorageData.timestamp);
-                  const now = new Date();
-                  const hoursDiff = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
-                  console.log('localStorage data age:', hoursDiff, 'hours');
-                  
-                  // Use localStorage data if it exists
-                  if (localStorageData) {
-                    console.log('✅ Using localStorage data for Other Sources (has recent changes)');
-                    // Remove timestamp before returning
-                    const { timestamp: _, ...dataWithoutTimestamp } = localStorageData;
-                    return dataWithoutTimestamp;
-                  }
-                }
-              } catch (e) {
-                console.warn('Error loading Other Sources from localStorage:', e);
-              }
-              
-              console.log('Loading Other Sources from API...');
-              
-              // Parse other_sources data
-              // API returns it as 'other', localStorage returns it as 'other_sources'
-              // Each item from API has a 'data' field with JSON string
-              // Each item from localStorage is already in the correct format with category names
-              let otherSources = foundTrial.other || foundTrial.other_sources || [];
+              // Parse other_sources data from API
+              // API returns it as 'other' with each item having a 'data' field with JSON string
+              let otherSources = foundTrial.other || [];
               
               console.log('foundTrial keys:', Object.keys(foundTrial));
               console.log('foundTrial.other:', foundTrial.other);
-              console.log('foundTrial.other_sources:', foundTrial.other_sources);
               console.log('otherSources array:', otherSources);
               console.log('otherSources count:', otherSources.length);
               console.log('First item sample:', otherSources[0]);
@@ -1221,30 +1100,11 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 try {
                   console.log(`Processing item ${index}:`, item);
                   
-                  // Handle two different formats:
-                  // 1. API format: { id, trial_id, data: '{"type":"pipeline_data",...}' }
-                  // 2. localStorage format: { pipeline_data: {...} } or { press_releases: {...} }, etc.
-                  
+                  // Parse API format: { id, trial_id, data: '{"type":"pipeline_data",...}' }
                   let parsedData = null;
                   let itemType = null;
                   
-                  // Check if this is localStorage format (has category key)
-                  if (item.pipeline_data) {
-                    itemType = 'pipeline_data';
-                    parsedData = { type: 'pipeline_data', ...item.pipeline_data };
-                  } else if (item.press_releases) {
-                    itemType = 'press_releases';
-                    parsedData = { type: 'press_releases', ...item.press_releases };
-                  } else if (item.publications) {
-                    itemType = 'publications';
-                    parsedData = { type: 'publications', publicationType: item.publications.type, ...item.publications };
-                  } else if (item.trial_registries) {
-                    itemType = 'trial_registries';
-                    parsedData = { type: 'trial_registries', ...item.trial_registries };
-                  } else if (item.associated_studies) {
-                    itemType = 'associated_studies';
-                    parsedData = { type: 'associated_studies', studyType: item.associated_studies.type, ...item.associated_studies };
-                  } else if (item.data) {
+                  if (item.data) {
                     // API format - parse the data field
                     parsedData = item.data;
                     console.log(`Item ${index} data field (type: ${typeof parsedData}):`, parsedData);
@@ -1353,7 +1213,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               let parsedNotes: any[] = [];
               
               if (notesData && notesData.notes) {
-                // Handle both string (from database) and array (from localStorage or already parsed) formats
+                // Handle both string (from database) and array (already parsed) formats
                 if (typeof notesData.notes === 'string') {
                   // Parse the concatenated string back into individual notes
                   // Format: "2024-01-01 (General): Note content - Source: http://...; 2024-01-02 (Update): ..."
@@ -1505,33 +1365,57 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 changeType: "creation"
               }],
               creationInfo: {
-                createdDate: foundTrial.created_at || new Date().toISOString(),
-                createdUser: foundTrial.created_by || "admin",
+                createdDate: foundTrial.overview?.created_at || foundTrial.logs?.[0]?.trial_added_date || new Date().toISOString(),
+                createdUser: "admin",
               },
               modificationInfo: {
-                lastModifiedDate: foundTrial.updated_at || new Date().toISOString(),
-                lastModifiedUser: foundTrial.updated_by || "admin",
+                lastModifiedDate: foundTrial.overview?.updated_at || foundTrial.logs?.[0]?.last_modified_date || new Date().toISOString(),
+                lastModifiedUser: foundTrial.logs?.[0]?.last_modified_user || "admin",
                 modificationCount: 0,
             },
               };
             })(),
           };
           
+          console.log('📤 Dispatching trial data to form:', {
+            step5_1: mappedData.step5_1,
+            therapeutic_area: mappedData.step5_1?.therapeutic_area,
+            trial_phase: mappedData.step5_1?.trial_phase,
+            status: mappedData.step5_1?.status,
+            primary_drugs: mappedData.step5_1?.primary_drugs,
+            step5_4_timing_fields: {
+              actual_start_date: mappedData.step5_4?.actual_start_date,
+              estimated_start_date: mappedData.step5_4?.estimated_start_date,
+            },
+            step5_5_results_fields: {
+              trial_outcome: mappedData.step5_5?.trial_outcome,
+              results_available: mappedData.step5_5?.results_available,
+            },
+            step5_6_sites_fields: {
+              study_start_date: mappedData.step5_6?.study_start_date,
+              references_count: mappedData.step5_6?.references?.length,
+            },
+            step5_7_other_sources: {
+              pipeline_data_count: mappedData.step5_7?.pipeline_data?.length,
+              press_releases_count: mappedData.step5_7?.press_releases?.length,
+            }
+          });
+          
           dispatch({ type: "SET_TRIAL_DATA", payload: mappedData });
+          console.log('✅ Trial data dispatched successfully');
+          console.log('✅ Dispatched data includes:', {
+            has_step5_4: !!mappedData.step5_4,
+            has_step5_5: !!mappedData.step5_5,
+            has_step5_6: !!mappedData.step5_6,
+            has_step5_7: !!mappedData.step5_7,
+          });
         } else {
           toast({
-            title: "Trial Not Found",
-            description: "The requested clinical trial could not be found.",
+            title: "No Data Available",
+            description: "Unable to load trial data from the server.",
             variant: "destructive",
           });
         }
-      } else {
-        toast({
-          title: "No Data Available",
-          description: "No clinical trials data available.",
-          variant: "destructive",
-        });
-      }
     } catch (error) {
       console.error("Error loading trial data:", error);
       toast({
@@ -1542,7 +1426,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [dispatch, toast]);
 
   // Save trial function
   const saveTrial = async (trialId: string) => {
@@ -1572,7 +1456,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       // Get the overview ID from the original trial
       const overviewId = originalTrial.overview?.id;
       if (!overviewId) {
-        console.warn('No overview ID found, skipping API update and using localStorage only');
+        console.warn('No overview ID found, cannot save trial');
       }
 
       // Check if backend is reachable first
@@ -1580,23 +1464,15 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       let backendAvailable = false;
       
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout for health check
-        
-        // Wrap health check in a promise that never rejects
-        const healthCheckPromise = fetch(`${baseUrl}/api/v1/therapeutic/overview`, {
+        const healthCheck = await fetch(`${baseUrl}/api/v1/therapeutic/overview`, {
           method: 'GET',
           credentials: 'include',
-          signal: controller.signal,
         }).catch(() => null); // Convert rejection to null
-        
-        const healthCheck = await healthCheckPromise;
-        clearTimeout(timeoutId);
         
         if (healthCheck && healthCheck.ok) {
           backendAvailable = true;
         } else {
-          console.warn('Backend health check failed, using localStorage only');
+          console.warn('Backend health check failed');
           backendAvailable = false;
         }
       } catch (healthError) {
@@ -1607,29 +1483,21 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       // Try API update if backend is available and we have an overview ID
       if (backendAvailable && overviewId) {
         try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-          
-          // Wrap fetch in a promise that never rejects
-          const fetchPromise = fetch(`${baseUrl}/api/v1/therapeutic/overview/${overviewId}`, {
+          const response = await fetch(`${baseUrl}/api/v1/therapeutic/overview/${overviewId}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(updateData),
             credentials: 'include',
-            signal: controller.signal,
           }).catch(() => null); // Convert rejection to null
-
-          const response = await fetchPromise;
-          clearTimeout(timeoutId);
 
           if (response && response.ok) {
             // Also update the sites data if we have a trial_id
             const filteredReferences = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
             const sitesData = {
               total: formData.step5_6.study_start_date ? parseInt(formData.step5_6.study_start_date) : 0,
-              site_notes: filteredReferences.length > 0 ? JSON.stringify(filteredReferences) : null,
+              notes: filteredReferences.length > 0 ? JSON.stringify(filteredReferences) : null,
             };
 
             console.log('Updating sites with data:', sitesData);
@@ -1656,20 +1524,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
             // Update timing section via API
             try {
-              console.log('=== SAVING TIMING DATA ===');
+              console.log('=== SAVING TIMING DATA TO API ===');
               console.log('formData.step5_4:', formData.step5_4);
-              
-              // SAVE TO LOCALSTORAGE FIRST (for immediate persistence)
-              try {
-                const storageKey = `trial_timing_${trialId}`;
-                localStorage.setItem(storageKey, JSON.stringify({
-                  ...formData.step5_4,
-                  timestamp: new Date().toISOString(),
-                }));
-                console.log('💾 Saved Timing to localStorage during save:', storageKey);
-              } catch (e) {
-                console.warn('Failed to save Timing to localStorage:', e);
-              }
               
               // Helper function to format date to YYYY-MM-DD for database
               const formatDateForDB = (dateStr: string): string | null => {
@@ -1768,26 +1624,113 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               console.warn('Timing update failed:', timingError);
             }
 
+            // Update outcomes section via API (step5_2)
+            try {
+              console.log('=== SAVING OUTCOMES DATA TO API ===');
+              
+              // Helper function to ensure string
+              const ensureString = (value: any): string => {
+                return value ? String(value).trim() : "";
+              };
+              
+              const outcomesData = {
+                purpose_of_trial: ensureString(formData.step5_2.purpose_of_trial),
+                summary: ensureString(formData.step5_2.summary),
+                primary_outcome_measure: formData.step5_2.primaryOutcomeMeasures.filter(Boolean).join(", ") || "",
+                other_outcome_measure: formData.step5_2.otherOutcomeMeasures.filter(Boolean).join(", ") || "",
+                study_design_keywords: formData.step5_2.study_design_keywords.filter(Boolean).join(", ") || "",
+                study_design: ensureString(formData.step5_2.study_design),
+                treatment_regimen: ensureString(formData.step5_2.treatment_regimen),
+                number_of_arms: parseInt(formData.step5_2.number_of_arms) || 0,
+              };
+
+              console.log('Updating outcomes with data:', outcomesData);
+
+              const outcomesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/outcome/trial/${trialId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(outcomesData),
+                credentials: 'include',
+              }).catch(() => null);
+              
+              if (outcomesResponse && outcomesResponse.ok) {
+                const responseData = await outcomesResponse.json().catch(() => null);
+                console.log('Outcomes updated successfully. Response:', responseData);
+              } else {
+                console.warn('Outcomes update failed, but overview updated successfully');
+                if (outcomesResponse) {
+                  const errorText = await outcomesResponse.text().catch(() => 'Unknown error');
+                  console.error('Outcomes update error:', outcomesResponse.status, errorText);
+                }
+              }
+            } catch (outcomesError) {
+              console.warn('Outcomes update failed:', outcomesError);
+            }
+
+            // Update criteria section via API (step5_3)
+            try {
+              console.log('=== SAVING CRITERIA DATA TO API ===');
+              
+              // Helper functions
+              const ensureString = (value: any): string => {
+                return value ? String(value).trim() : "";
+              };
+              
+              const ensureNumber = (value: any, defaultValue: number = 0): number => {
+                const num = parseInt(String(value));
+                return isNaN(num) ? defaultValue : num;
+              };
+              
+              const criteriaData = {
+                inclusion_criteria: formData.step5_3.inclusion_criteria.filter(Boolean).join("; ") || "",
+                exclusion_criteria: formData.step5_3.exclusion_criteria.filter(Boolean).join("; ") || "",
+                age_from: ensureString(formData.step5_3.age_min),
+                age_to: ensureString(formData.step5_3.age_max),
+                sex: ensureString(formData.step5_3.gender),
+                healthy_volunteers: formData.step5_3.biomarker_requirements[0] || "",
+                subject_type: formData.step5_3.prior_treatments[0] || "",
+                target_no_volunteers: ensureNumber(formData.step5_4.estimated_enrollment, 0),
+                actual_enrolled_volunteers: ensureNumber(formData.step5_4.actual_enrollment, 0),
+                ecog_performance_status: ensureString(formData.step5_3.ecog_performance_status),
+                prior_treatments: formData.step5_3.prior_treatments.filter(Boolean).join(", ") || "",
+                biomarker_requirements: formData.step5_3.biomarker_requirements.filter(Boolean).join(", ") || "",
+              };
+
+              console.log('Updating criteria with data:', criteriaData);
+
+              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${trialId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(criteriaData),
+                credentials: 'include',
+              }).catch(() => null);
+              
+              if (criteriaResponse && criteriaResponse.ok) {
+                const responseData = await criteriaResponse.json().catch(() => null);
+                console.log('Criteria updated successfully. Response:', responseData);
+              } else {
+                console.warn('Criteria update failed, but overview updated successfully');
+                if (criteriaResponse) {
+                  const errorText = await criteriaResponse.text().catch(() => 'Unknown error');
+                  console.error('Criteria update error:', criteriaResponse.status, errorText);
+                }
+              }
+            } catch (criteriaError) {
+              console.warn('Criteria update failed:', criteriaError);
+            }
+
             // Update results section via API
             try {
-              console.log('=== SAVING RESULTS DATA ===');
+              console.log('=== SAVING RESULTS DATA TO API ===');
               console.log('formData.step5_5:', formData.step5_5);
               console.log('Results Available:', formData.step5_5.results_available);
               console.log('Endpoints met:', formData.step5_5.endpoints_met);
               console.log('Adverse Events Reported:', formData.step5_5.adverse_events_reported);
               console.log('Trial Outcome Reference Date:', formData.step5_5.trial_outcome_reference_date);
-              
-              // SAVE TO LOCALSTORAGE FIRST (for immediate persistence)
-              try {
-                const storageKey = `trial_results_${trialId}`;
-                localStorage.setItem(storageKey, JSON.stringify({
-                  ...formData.step5_5,
-                  timestamp: new Date().toISOString(),
-                }));
-                console.log('💾 Saved Results to localStorage during save:', storageKey);
-              } catch (e) {
-                console.warn('Failed to save to localStorage:', e);
-              }
               
               const filteredSiteNotes = formData.step5_5.site_notes.filter((note: any) => note.isVisible && (note.date || note.content));
               const resultsData = {
@@ -1829,16 +1772,13 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             } catch (resultsError) {
               console.warn('Results update failed:', resultsError);
             }
-
-            // Small delay to ensure database transaction completes
-            await new Promise(resolve => setTimeout(resolve, 500));
             
             // Force reload trial data to show updated results
             await loadTrialData(trialId);
 
             // Update other_sources section via API
             try {
-              console.log('=== OTHER SOURCES SAVE DEBUG ===');
+              console.log('=== SAVING OTHER SOURCES TO API ===');
               console.log('step5_7 data:', {
                 pipeline_data: formData.step5_7.pipeline_data,
                 press_releases: formData.step5_7.press_releases,
@@ -1846,18 +1786,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 trial_registries: formData.step5_7.trial_registries,
                 associated_studies: formData.step5_7.associated_studies
               });
-              
-              // SAVE TO LOCALSTORAGE FIRST (for immediate persistence)
-              try {
-                const storageKey = `trial_other_sources_${trialId}`;
-                localStorage.setItem(storageKey, JSON.stringify({
-                  ...formData.step5_7,
-                  timestamp: new Date().toISOString(),
-                }));
-                console.log('💾 Saved Other Sources to localStorage during save:', storageKey);
-              } catch (e) {
-                console.warn('Failed to save Other Sources to localStorage:', e);
-              }
               
               // Delete existing other_sources entries
               const deleteResponse = await fetch(`${baseUrl}/api/v1/therapeutic/other/trial/${trialId}`, {
@@ -2203,12 +2131,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             } catch (notesError) {
               console.warn('Notes update failed:', notesError);
             }
-
-            // Clear the localStorage update flag to ensure fresh data on next load
-            localStorage.removeItem(`trial_updated_${trialId}`);
-            
-            // Small delay to ensure database transaction completes
-            await new Promise(resolve => setTimeout(resolve, 500));
             
             // Force reload the trial data to show the updated values
             await loadTrialData(trialId);
@@ -2225,124 +2147,21 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             return;
           } else if (response) {
             const errorText = await response.text().catch(() => 'Unknown error');
-            console.warn('API update failed:', response.status, errorText);
-            console.warn('API update failed, falling back to localStorage');
+            console.error('❌ API update failed:', response.status, errorText);
+            throw new Error(`API update failed: ${response.status} - ${errorText}`);
           } else {
-            console.warn('API request failed, falling back to localStorage');
+            console.error('❌ API request failed');
+            throw new Error('API request failed');
           }
         } catch (error) {
-          // This should never happen now, but just in case
-          console.warn('API update failed, falling back to localStorage');
+          console.error('❌ API update failed:', error);
+          throw error;
         }
-      }
-
-      // Fallback: Update localStorage
-      const filteredReferencesForLocalStorage = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
-      
-      // Prepare other_sources data for localStorage
-      const otherSourcesForLocalStorage: any[] = [];
-      if (formData.step5_7.pipeline_data) {
-        formData.step5_7.pipeline_data
-          .filter((item: any) => item.isVisible && (item.date || item.information || item.url))
-          .forEach((item: any) => {
-            otherSourcesForLocalStorage.push({ pipeline_data: item });
-          });
-      }
-      if (formData.step5_7.press_releases) {
-        formData.step5_7.press_releases
-          .filter((item: any) => item.isVisible && (item.date || item.title || item.url))
-          .forEach((item: any) => {
-            otherSourcesForLocalStorage.push({ press_releases: item });
-          });
-      }
-      if (formData.step5_7.publications) {
-        formData.step5_7.publications
-          .filter((item: any) => item.isVisible && (item.type || item.title || item.url))
-          .forEach((item: any) => {
-            otherSourcesForLocalStorage.push({ publications: item });
-          });
-      }
-      if (formData.step5_7.trial_registries) {
-        formData.step5_7.trial_registries
-          .filter((item: any) => item.isVisible && (item.registry || item.identifier || item.url))
-          .forEach((item: any) => {
-            otherSourcesForLocalStorage.push({ trial_registries: item });
-          });
-      }
-      if (formData.step5_7.associated_studies) {
-        formData.step5_7.associated_studies
-          .filter((item: any) => item.isVisible && (item.type || item.title || item.url))
-          .forEach((item: any) => {
-            otherSourcesForLocalStorage.push({ associated_studies: item });
-          });
-      }
-      
-      // Prepare notes for localStorage (convert to concatenated string format)
-      const visibleNotes = formData.step5_8.notes.filter((note: any) => note.isVisible && note.content);
-      const notesString = visibleNotes.length > 0
-        ? visibleNotes.map(note => `${note.date} (${note.type}): ${note.content}${note.sourceLink ? ` - Source: ${note.sourceLink}` : ""}`).join("; ")
-        : "No notes available";
-      
-      // Prepare timing references for localStorage
-      const filteredTimingReferences = formData.step5_4.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
-      
-      const updatedTrial = {
-        ...originalTrial,
-        overview: {
-          ...originalTrial.overview,
-          ...formData.step5_1,
-          updated_at: new Date().toISOString(),
-        },
-        outcomes: [formData.step5_2],
-        criteria: [formData.step5_3],
-        timing: [{
-          ...formData.step5_4,
-          timing_references: filteredTimingReferences,
-        }],
-        results: [{
-          ...formData.step5_5,
-          site_notes: formData.step5_5.site_notes.filter((note: any) => note.isVisible && (note.date || note.content)),
-        }],
-        sites: [{
-          total: formData.step5_6.study_start_date ? parseInt(formData.step5_6.study_start_date) : 0,
-          site_notes: filteredReferencesForLocalStorage,
-        }],
-        other_sources: otherSourcesForLocalStorage,
-        notes: [{
-          date_type: formData.step5_8.date_type,
-          notes: notesString,
-          link: formData.step5_8.link,
-          attachments: visibleNotes
-            .filter((note: any) => note.attachments && note.attachments.length > 0)
-            .flatMap((note: any) => note.attachments)
-        }],
-      };
-      
-      console.log('Updating localStorage with trial data:', updatedTrial);
-
-      // Update localStorage safely
-      try {
-        const existingTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
-        const updatedTrials = existingTrials.map((t: any) => 
-          t.trial_id === trialId ? updatedTrial : t
-        );
-        localStorage.setItem('therapeuticTrials', JSON.stringify(updatedTrials));
-        
-        // Store update flag
-        localStorage.setItem(`trial_updated_${trialId}`, new Date().toISOString());
-      } catch (localStorageError) {
-        console.error('Error updating localStorage:', localStorageError);
-        // Continue anyway, the main functionality should still work
-      }
-      
-      toast({
-        title: "Success",
-        description: "Clinical trial updated successfully! Changes are saved locally and visible immediately.",
-      });
-
-      // Trigger refresh event for the main page
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('refreshFromEdit'));
+      } else {
+        // Backend not available or no overview ID
+        const reason = !backendAvailable ? 'Backend is not available' : 'No overview ID found';
+        console.error(`❌ Cannot save trial: ${reason}`);
+        throw new Error(`Cannot save trial: ${reason}`);
       }
 
     } catch (error) {
@@ -2375,9 +2194,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
   // Load trial data on mount
   useEffect(() => {
     if (trialId) {
+      console.log('🔄 useEffect triggered for trialId:', trialId);
       loadTrialData(trialId);
     }
-  }, [trialId]);
+  }, [trialId, loadTrialData]);
 
   const updateField = (step: keyof EditTherapeuticFormData, field: string, value: any) => {
     const oldValue = (formData[step] as any)[field];
@@ -2385,7 +2205,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     dispatch({ type: "UPDATE_FIELD", step, field, value });
     
     // Log the field update
-    setTimeout(() => {
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
@@ -2406,14 +2225,12 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         field: "changesLog",
         value: [...changesArray, newLogEntry],
       });
-    }, 0);
   };
 
   const addArrayItem = (step: keyof EditTherapeuticFormData, field: string, value: any) => {
     dispatch({ type: "ADD_ARRAY_ITEM", step, field, value });
     
     // Log the array addition
-    setTimeout(() => {
       const currentArray = (formData[step] as any)[field] as any[];
       const newLogEntry = {
         id: Date.now().toString(),
@@ -2435,7 +2252,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         field: "changesLog",
         value: [...changesArray, newLogEntry],
       });
-    }, 0);
   };
 
   const removeArrayItem = (step: keyof EditTherapeuticFormData, field: string, index: number) => {
@@ -2445,28 +2261,26 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     dispatch({ type: "REMOVE_ARRAY_ITEM", step, field, index });
     
     // Log the array removal
-    setTimeout(() => {
-      const newLogEntry = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        user: "admin",
-        action: "removed",
-        details: `Removed item from ${field}`,
-        field,
-        oldValue: typeof removedItem === 'string' ? removedItem : JSON.stringify(removedItem),
-        newValue: "",
-        step,
-        changeType: "content_removal" as const,
-      };
-      
-      const changesArray = (formData.step5_8 as any).changesLog || [];
-      dispatch({
-        type: "UPDATE_FIELD",
-        step: "step5_8",
-        field: "changesLog",
-        value: [...changesArray, newLogEntry],
-      });
-    }, 0);
+    const newLogEntry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      user: "admin",
+      action: "removed",
+      details: `Removed item from ${field}`,
+      field,
+      oldValue: typeof removedItem === 'string' ? removedItem : JSON.stringify(removedItem),
+      newValue: "",
+      step,
+      changeType: "content_removal" as const,
+    };
+    
+    const changesArray = (formData.step5_8 as any).changesLog || [];
+    dispatch({
+      type: "UPDATE_FIELD",
+      step: "step5_8",
+      field: "changesLog",
+      value: [...changesArray, newLogEntry],
+    });
   };
 
   const updateArrayItem = (step: keyof EditTherapeuticFormData, field: string, index: number, value: any) => {
@@ -2476,28 +2290,26 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value });
     
     // Log the array update
-    setTimeout(() => {
-      const newLogEntry = {
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        user: "admin",
-        action: "changed",
-        details: `Updated item in ${field}`,
-        field,
-        oldValue: typeof oldValue === 'string' ? oldValue : JSON.stringify(oldValue),
-        newValue: typeof value === 'string' ? value : JSON.stringify(value),
-        step,
-        changeType: "field_change" as const,
-      };
-      
-      const changesArray = (formData.step5_8 as any).changesLog || [];
-      dispatch({
-        type: "UPDATE_FIELD",
-        step: "step5_8",
-        field: "changesLog",
-        value: [...changesArray, newLogEntry],
-      });
-    }, 0);
+    const newLogEntry = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      user: "admin",
+      action: "changed",
+      details: `Updated item in ${field}`,
+      field,
+      oldValue: typeof oldValue === 'string' ? oldValue : JSON.stringify(oldValue),
+      newValue: typeof value === 'string' ? value : JSON.stringify(value),
+      step,
+      changeType: "field_change" as const,
+    };
+    
+    const changesArray = (formData.step5_8 as any).changesLog || [];
+    dispatch({
+      type: "UPDATE_FIELD",
+      step: "step5_8",
+      field: "changesLog",
+      value: [...changesArray, newLogEntry],
+    });
   };
 
   // Reference management functions
