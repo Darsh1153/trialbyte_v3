@@ -41,10 +41,51 @@ export default function EditTherapeuticsConsolidated() {
     { key: "review_notes", label: "Logs", component: ReviewNotesSection },
   ];
 
+  // Helper function to clear all localStorage items for this trial
+  const clearTrialLocalStorage = (trialId: string) => {
+    try {
+      // Clear known section-specific keys
+      const keysToRemove = [
+        `trial_timing_${trialId}`,           // Step 5-4: Timing
+        `trial_results_${trialId}`,        // Step 5-5: Results
+        `trial_other_sources_${trialId}`,  // Step 5-7: Other Sources
+        `trial_updated_${trialId}`,         // Update flag
+        // Clear potential keys for all sections (step5_1 through step5_8)
+        `trial_step5_1_${trialId}`,         // Basic Info
+        `trial_step5_2_${trialId}`,         // Study Design
+        `trial_step5_3_${trialId}`,         // Eligibility
+        `trial_step5_4_${trialId}`,         // Timing (alternative key)
+        `trial_step5_5_${trialId}`,         // Results (alternative key)
+        `trial_step5_6_${trialId}`,         // Sites
+        `trial_step5_7_${trialId}`,         // Other Sources (alternative key)
+        `trial_step5_8_${trialId}`,         // Review Notes
+        // Clear any section-specific keys
+        `trial_basic_info_${trialId}`,
+        `trial_study_design_${trialId}`,
+        `trial_eligibility_${trialId}`,
+        `trial_sites_${trialId}`,
+        `trial_additional_info_${trialId}`,
+        `trial_review_notes_${trialId}`,
+      ];
+
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+      });
+
+      console.log('🗑️ Cleared all localStorage items for trial:', trialId);
+      console.log('🗑️ Removed keys:', keysToRemove);
+    } catch (error) {
+      console.warn('Failed to clear localStorage:', error);
+    }
+  };
+
   const handleSaveChanges = async () => {
     try {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
+      
+      // Clear all localStorage items for this trial after successful save
+      clearTrialLocalStorage(params.id as string);
       
       toast({
         title: "Success",
@@ -66,6 +107,9 @@ export default function EditTherapeuticsConsolidated() {
     try {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
+      
+      // Clear all localStorage items for this trial after successful save
+      clearTrialLocalStorage(params.id as string);
       
       toast({
         title: "Success",
