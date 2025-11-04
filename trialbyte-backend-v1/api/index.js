@@ -6,18 +6,18 @@ const cors = require("cors");
 const serverless = require("serverless-http");
 
 //connectDB
-const { connect_PgSQL_DB } = require("./src/infrastructure/PgDB/connect");
+const { connect_PgSQL_DB } = require("../src/infrastructure/PgDB/connect");
 
 //routers
-const userRouter = require("./src/routers/userRouter");
-const roleRouter = require("./src/routers/roleRouter");
-const userRoleRouter = require("./src/routers/userRoleRouter");
-const pendingChangeRouter = require("./src/routers/pendingChangeRouter");
-const userActivityRouter = require("./src/routers/userActivityRouter");
-const therapeuticRouter = require("./src/routers/therapeuticRouter");
-const drugRouter = require("./src/routers/drugRouter");
-const queryRouter = require("./src/routers/queryRouter");
-const dropdownManagementRouter = require("./src/routers/dropdownManagementRouter");
+const userRouter = require("../src/routers/userRouter");
+const roleRouter = require("../src/routers/roleRouter");
+const userRoleRouter = require("../src/routers/userRoleRouter");
+const pendingChangeRouter = require("../src/routers/pendingChangeRouter");
+const userActivityRouter = require("../src/routers/userActivityRouter");
+const therapeuticRouter = require("../src/routers/therapeuticRouter");
+const drugRouter = require("../src/routers/drugRouter");
+const queryRouter = require("../src/routers/queryRouter");
+const dropdownManagementRouter = require("../src/routers/dropdownManagementRouter");
 
 // CORS configuration
 const corsOptions = {
