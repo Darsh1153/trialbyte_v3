@@ -119,8 +119,14 @@ export interface TherapeuticFormData {
     site_regions: string[];
     site_contact_info: string[];
     trial_results: string[];
+    trial_outcome: string;
     trial_outcome_content: string;
+    trial_outcome_reference_date: string;
+    trial_outcome_link: string;
     trial_outcome_attachment: any;
+    adverse_event_reported: string;
+    adverse_event_type: string;
+    treatment_for_adverse_events: string;
     site_notes: Array<{
       id: string;
       date: string;
@@ -128,7 +134,7 @@ export interface TherapeuticFormData {
       content: string;
       viewSource: string;
       sourceType: string;
-      attachments: string[];
+      attachments: (string | { url: string; name: string; size: number; type: string })[];
       isVisible: boolean;
     }>;
     results_available: boolean;
@@ -152,7 +158,7 @@ export interface TherapeuticFormData {
       registryType: string;
       content: string;
       viewSource: string;
-      attachments: any[];
+      attachments: (string | { url: string; name: string; size: number; type: string })[];
       isVisible: boolean;
     }>;
   };
@@ -172,7 +178,7 @@ export interface TherapeuticFormData {
       date: string;
       information: string;
       url: string;
-      file: string;
+      attachments: any[];
       isVisible: boolean;
     }>;
     press_releases: Array<{
@@ -180,7 +186,7 @@ export interface TherapeuticFormData {
       date: string;
       title: string;
       url: string;
-      file: string;
+      attachments: any[];
       isVisible: boolean;
     }>;
     publications: Array<{
@@ -188,7 +194,7 @@ export interface TherapeuticFormData {
       type: string;
       title: string;
       url: string;
-      file: string;
+      attachments: any[];
       isVisible: boolean;
     }>;
     trial_registries: Array<{
@@ -196,7 +202,7 @@ export interface TherapeuticFormData {
       registry: string;
       identifier: string;
       url: string;
-      file: string;
+      attachments: any[];
       isVisible: boolean;
     }>;
     associated_studies: Array<{
@@ -204,7 +210,7 @@ export interface TherapeuticFormData {
       type: string;
       title: string;
       url: string;
-      file: string;
+      attachments: any[];
       isVisible: boolean;
     }>;
   };
@@ -222,6 +228,7 @@ export interface TherapeuticFormData {
       isVisible: boolean;
     }>;
     link: string;
+    internalNote: string;
     changesLog: Array<{
       id: string;
       timestamp: string;
@@ -353,8 +360,14 @@ const initialFormState: TherapeuticFormData = {
     site_regions: [""],
     site_contact_info: [""],
     trial_results: [""],
+    trial_outcome: "",
     trial_outcome_content: "",
+    trial_outcome_reference_date: "",
+    trial_outcome_link: "",
     trial_outcome_attachment: null,
+    adverse_event_reported: "",
+    adverse_event_type: "",
+    treatment_for_adverse_events: "",
     site_notes: [{
       id: "1",
       date: "",
@@ -401,7 +414,7 @@ const initialFormState: TherapeuticFormData = {
       date: "",
       information: "",
       url: "",
-      file: "",
+      attachments: [],
       isVisible: true,
     }],
     press_releases: [{
@@ -409,7 +422,7 @@ const initialFormState: TherapeuticFormData = {
       date: "",
       title: "",
       url: "",
-      file: "",
+      attachments: [],
       isVisible: true,
     }],
     publications: [{
@@ -417,7 +430,7 @@ const initialFormState: TherapeuticFormData = {
       type: "",
       title: "",
       url: "",
-      file: "",
+      attachments: [],
       isVisible: true,
     }],
     trial_registries: [{
@@ -425,7 +438,7 @@ const initialFormState: TherapeuticFormData = {
       registry: "",
       identifier: "",
       url: "",
-      file: "",
+      attachments: [],
       isVisible: true,
     }],
     associated_studies: [{
@@ -433,7 +446,7 @@ const initialFormState: TherapeuticFormData = {
       type: "",
       title: "",
       url: "",
-      file: "",
+      attachments: [],
       isVisible: true,
     }],
   },
@@ -441,6 +454,7 @@ const initialFormState: TherapeuticFormData = {
     date_type: "",
     notes: [],
     link: "",
+    internalNote: "",
     changesLog: [{
       id: "1",
       timestamp: new Date().toISOString(),
@@ -1341,6 +1355,19 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     try {
       const allFormData = getFormData();
       
+      console.log("🚀 ============ SAVING NEW TRIAL - START ============");
+      console.log("📋 All Form Data Being Saved:", JSON.stringify(allFormData, null, 2));
+      console.log("📊 Form Data Structure Check:", {
+        step5_1_keys: Object.keys(allFormData.step5_1),
+        step5_2_keys: Object.keys(allFormData.step5_2),
+        step5_3_keys: Object.keys(allFormData.step5_3),
+        step5_4_keys: Object.keys(allFormData.step5_4),
+        step5_5_keys: Object.keys(allFormData.step5_5),
+        step5_6_keys: Object.keys(allFormData.step5_6),
+        step5_7_keys: Object.keys(allFormData.step5_7),
+        step5_8_keys: Object.keys(allFormData.step5_8),
+      });
+      
       // Check if API base URL is configured
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
       if (!apiBaseUrl) {
@@ -1350,7 +1377,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       // Get user ID from localStorage or use default admin UUID
       const currentUserId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
       
-      console.log("API Base URL:", apiBaseUrl);
+      console.log("🌐 API Base URL:", apiBaseUrl);
+      console.log("👤 Current User ID:", currentUserId);
       
       // Transform the form data to match the API structure
       const therapeuticPayload = {
@@ -1449,7 +1477,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           reference: formatDate(allFormData.step5_5.principal_investigators[0]) || ensureString(allFormData.step5_7.conclusion),
           trial_outcome_content: ensureString(allFormData.step5_5.trial_outcome_content),
           trial_outcome_link: ensureString(allFormData.step5_5.site_countries[0]),
-          trial_outcome_attachment: allFormData.step5_5.trial_outcome_attachment ? "Yes" : "No",
+          trial_outcome_attachment: allFormData.step5_5.trial_outcome_attachment?.url || (allFormData.step5_5.trial_outcome_attachment ? "Yes" : "No"),
           trial_results: allFormData.step5_5.trial_results.filter(Boolean).length > 0 
             ? allFormData.step5_5.trial_results.filter(Boolean) 
             : allFormData.step5_7.secondary_endpoint_results.filter(Boolean),
@@ -1462,25 +1490,57 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             content: note.content,
             sourceLink: note.viewSource,
             sourceType: note.sourceType,
-            attachments: note.attachments
+            attachments: (note.attachments || []).map((att: any) => 
+              typeof att === 'string' ? att : (att.url || att.name || att)
+            )
           }))
         },
         sites: {
           total: ensureNumber(allFormData.step5_6.study_start_date, 0),
-          notes: allFormData.step5_5.study_sites.filter(Boolean).join(", ") || "",
+          // Save references as JSON stringified array in notes field (same as edit form expects)
+          notes: (() => {
+            const filteredReferences = allFormData.step5_6.references.filter(ref => ref.isVisible && (ref.date || ref.content));
+            console.log('📝 Sites - Saving references:', {
+              total_references: allFormData.step5_6.references?.length || 0,
+              filtered_references: filteredReferences.length,
+              references_data: filteredReferences
+            });
+            
+            if (filteredReferences.length > 0) {
+              const mappedReferences = filteredReferences.map(ref => ({
+                id: ref.id,
+                date: formatDate(ref.date),
+                registryType: ref.registryType,
+                content: ref.content,
+                viewSource: ref.viewSource,
+                attachments: (ref.attachments || []).map((att: any) => 
+                  typeof att === 'string' ? att : (att.url || att.name || att)
+                ),
+                isVisible: ref.isVisible
+              }));
+              const jsonString = JSON.stringify(mappedReferences);
+              console.log('📝 Sites - Notes JSON stringified:', jsonString);
+              return jsonString;
+            }
+            console.log('📝 Sites - No references to save');
+            return null;
+          })(),
           study_sites: allFormData.step5_5.study_sites.filter(Boolean),
           principal_investigators: allFormData.step5_5.principal_investigators.filter(Boolean),
           site_status: allFormData.step5_5.site_status || "",
           site_countries: allFormData.step5_5.site_countries.filter(Boolean),
           site_regions: allFormData.step5_5.site_regions.filter(Boolean),
           site_contact_info: allFormData.step5_5.site_contact_info.filter(Boolean),
+          // Keep site_notes for backward compatibility (but notes field is the primary one)
           site_notes: allFormData.step5_6.references.filter(ref => ref.isVisible && (ref.date || ref.content)).map(ref => ({
             id: ref.id,
             date: formatDate(ref.date),
             registryType: ref.registryType,
             content: ref.content,
             viewSource: ref.viewSource,
-            attachments: ref.attachments,
+            attachments: (ref.attachments || []).map((att: any) => 
+              typeof att === 'string' ? att : (att.url || att.name || att)
+            ),
             isVisible: ref.isVisible
           }))
         },
@@ -1504,6 +1564,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           next_review_date: (allFormData.step5_8 as any).nextReviewDate 
             ? formatDate((allFormData.step5_8 as any).nextReviewDate)
             : null,
+          internal_note: (allFormData.step5_8 as any).internalNote || null,
         },
         notes: {
           date_type: ensureString(allFormData.step5_8.date_type),
@@ -1519,10 +1580,21 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       };
 
       const fullUrl = `${apiBaseUrl}/api/v1/therapeutic/create-therapeutic`;
-      console.log("Making request to:", fullUrl);
-      console.log("Payload:", therapeuticPayload);
-      console.log("Payload size:", JSON.stringify(therapeuticPayload).length, "characters");
-      console.log("Timing data specifically:", JSON.stringify(therapeuticPayload.timing, null, 2));
+      console.log("📤 Making POST request to:", fullUrl);
+      console.log("📦 Complete Payload Being Sent:", JSON.stringify(therapeuticPayload, null, 2));
+      console.log("📏 Payload size:", JSON.stringify(therapeuticPayload).length, "characters");
+      console.log("🔍 Individual Sections Check:");
+      console.log("  - Overview:", therapeuticPayload.overview ? "✅ Present" : "❌ Missing");
+      console.log("  - Outcome:", therapeuticPayload.outcome ? "✅ Present" : "❌ Missing");
+      console.log("  - Criteria:", therapeuticPayload.criteria ? "✅ Present" : "❌ Missing");
+      console.log("  - Timing:", therapeuticPayload.timing ? "✅ Present" : "❌ Missing");
+      console.log("  - Results:", therapeuticPayload.results ? "✅ Present" : "❌ Missing");
+      console.log("  - Sites:", therapeuticPayload.sites ? "✅ Present" : "❌ Missing");
+      console.log("  - Other Sources:", therapeuticPayload.other_sources ? "✅ Present" : "❌ Missing");
+      console.log("  - Logs:", therapeuticPayload.logs ? "✅ Present" : "❌ Missing");
+      console.log("  - Notes:", therapeuticPayload.notes ? "✅ Present" : "❌ Missing");
+      console.log("📊 Timing data specifically:", JSON.stringify(therapeuticPayload.timing, null, 2));
+      console.log("📊 Other Sources data:", JSON.stringify(therapeuticPayload.other_sources, null, 2));
       
       const response = await fetch(fullUrl, {
         method: "POST",
@@ -1532,6 +1604,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(therapeuticPayload),
         credentials: 'include',
       });
+      
+      console.log("📨 Response Status:", response.status, response.statusText);
 
       if (!response.ok) {
         let errorMessage = "Failed to create therapeutic trial";
@@ -1554,10 +1628,15 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       let result;
       try {
         result = await response.json();
+        console.log("✅ Response Data Received:", result);
+        console.log("🆔 Created Trial ID:", result.trial_id);
+        console.log("🏷️ Created Trial Identifier:", result.trial_identifier);
       } catch (jsonError) {
-        console.error("Failed to parse JSON response:", jsonError);
+        console.error("❌ Failed to parse JSON response:", jsonError);
         throw new Error("Invalid response format from server");
       }
+
+      console.log("🎉 ============ SAVING NEW TRIAL - SUCCESS ============");
 
       return {
         success: true,
@@ -1566,7 +1645,12 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         trialIdentifier: result.trial_identifier,
       };
     } catch (error) {
-      console.error("Error creating trial:", error);
+      console.error("❌ ============ SAVING NEW TRIAL - ERROR ============");
+      console.error("❌ Error Details:", error);
+      if (error instanceof Error) {
+        console.error("❌ Error Message:", error.message);
+        console.error("❌ Error Stack:", error.stack);
+      }
       return {
         success: false,
         message: error instanceof Error ? error.message : "Failed to create therapeutic trial",

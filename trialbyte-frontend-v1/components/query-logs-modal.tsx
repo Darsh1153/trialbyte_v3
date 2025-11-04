@@ -188,7 +188,15 @@ export function QueryLogsModal({ open, onOpenChange, onExecuteQuery }: QueryLogs
         </DialogHeader>
         
         <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
-          {/* Retention Policy Banner */}
+          {/* Retention Policy Banner - Permanent */}
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>Retention Policy:</strong> Query log executions will be automatically removed after 30 days.
+            </AlertDescription>
+          </Alert>
+
+          {/* Auto-Cleanup Notification */}
           {deletedCount > 0 && (
             <Alert className="bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-600" />

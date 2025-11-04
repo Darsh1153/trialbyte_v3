@@ -8,14 +8,14 @@ interface FormProgressProps {
 }
 
 const steps = [
-  { number: 1, title: "Trial Overview", path: "/admin/therapeutics/edit/[id]/5-1" },
-  { number: 2, title: "Outcome Measured", path: "/admin/therapeutics/edit/[id]/5-2" },
-  { number: 3, title: "Participation Criteria", path: "/admin/therapeutics/edit/[id]/5-3" },
-  { number: 4, title: "Timing", path: "/admin/therapeutics/edit/[id]/5-4" },
-  { number: 5, title: "Results", path: "/admin/therapeutics/edit/[id]/5-5" },
-  { number: 6, title: "Sites", path: "/admin/therapeutics/edit/[id]/5-6" },
-  { number: 7, title: "Other Sources", path: "/admin/therapeutics/edit/[id]/5-7" },
-  { number: 8, title: "Logs", path: "/admin/therapeutics/edit/[id]/5-8" },
+  { number: 1, title: "Trial Overview", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
+  { number: 2, title: "Outcome Measured", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
+  { number: 3, title: "Participation Criteria", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
+  { number: 4, title: "Timing", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
+  { number: 5, title: "Results", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
+  { number: 6, title: "Sites", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
+  { number: 7, title: "Other Sources", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
+  { number: 8, title: "Logs", path: "/admin/therapeutics/edit/[id]/5-consolidated" },
 ];
 
 export default function FormProgress({ currentStep }: FormProgressProps) {

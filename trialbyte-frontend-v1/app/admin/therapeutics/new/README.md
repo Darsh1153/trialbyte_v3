@@ -14,16 +14,26 @@ This directory contains a multi-step form for creating therapeutic trials using 
   - Cleaner, more maintainable code
   - Better performance (no JSON parsing on every render)
 
-### Form Steps
+### Form Structure
 
-1. **5-1**: Trial Overview - Basic trial information
-2. **5-2**: Purpose & Design - Trial objectives and structure
-3. **5-3**: Eligibility - Patient criteria
-4. **5-4**: Population - Patient population details
-5. **5-5**: Study Sites - Research locations
-6. **5-6**: Timeline - Key dates and milestones
-7. **5-7**: Results - Trial outcomes
-8. **5-8**: Notes - Documentation and final submission
+All 8 form sections are now consolidated into a single page (`5-consolidated/page.tsx`) with internal tab navigation:
+
+1. **Trial Overview** - Basic trial information (therapeutic area, trial phase, status, etc.)
+2. **Outcome Measured** - Trial objectives and study design
+3. **Participation Criteria** - Inclusion/exclusion criteria and patient population
+4. **Timing** - Study timeline, dates, and durations
+5. **Results** - Trial outcomes and results availability
+6. **Sites** - Research locations and site information
+7. **Other Sources** - External references (pipeline data, press releases, publications)
+8. **Logs** - Documentation, notes, and final submission
+
+**Location**: `/admin/therapeutics/new/5-consolidated/`
+
+The consolidated form provides:
+- ✅ Single page with all sections accessible via tabs
+- ✅ Improved user experience with no page navigation between sections
+- ✅ Faster data entry with all fields in one view
+- ✅ Better performance with reduced page loads
 
 ### Key Components
 

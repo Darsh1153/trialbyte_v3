@@ -8,9 +8,9 @@ export default function EditTherapeuticTrialPage() {
   const params = useParams();
 
   useEffect(() => {
-    // Redirect to the first step of the edit flow
+    // Redirect to the consolidated edit page
     if (params.id) {
-      router.push(`/admin/therapeutics/edit/${params.id}/5-1`);
+      router.push(`/admin/therapeutics/edit/${params.id}/5-consolidated`);
     }
   }, [params.id, router]);
 

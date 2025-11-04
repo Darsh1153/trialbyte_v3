@@ -179,8 +179,8 @@ const MAX_COLUMNS = 15;
 export const COLUMN_OPTIONS = [
   { key: 'therapeuticArea' as keyof ColumnSettings, label: 'Therapeutic Area' },
   { key: 'diseaseType' as keyof ColumnSettings, label: 'Disease Type' },
-  { key: 'primaryDrug' as keyof ColumnSettings, label: 'Primary Drug' },
-  { key: 'trialPhase' as keyof ColumnSettings, label: 'Trial Phase' },
+  { key: 'primaryDrug' as keyof ColumnSettings, label: 'Primary Drugs' },
+  { key: 'trialPhase' as keyof ColumnSettings, label: 'Phases' },
   { key: 'patientSegment' as keyof ColumnSettings, label: 'Patient Segment' },
   { key: 'lineOfTherapy' as keyof ColumnSettings, label: 'Line of Therapy' },
   { key: 'countries' as keyof ColumnSettings, label: 'Countries' },

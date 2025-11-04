@@ -1492,7 +1492,7 @@ export default function AdminTherapeuticsPage() {
           </Button>
           <Button onClick={() => {
             const popup = window.open(
-              "/admin/therapeutics/new/5-1",
+              "/admin/therapeutics/new/5-consolidated",
               "add_new_trial",
               "width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no"
             );
