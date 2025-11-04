@@ -21,18 +21,27 @@ const dropdownManagementRouter = require("./src/routers/dropdownManagementRouter
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    "http://localhost:3000", // React default
-    "http://localhost:3001", // Alternative React port
-    "http://localhost:5173", // Vite default
-    "http://localhost:4200", // Angular default
-    "http://127.0.0.1:3000", // Alternative localhost format
-    "http://127.0.0.1:5173", // Alternative localhost format
-    process.env.FRONTEND_URL, // Production frontend URL from env
-  ].filter(Boolean), // Remove undefined values
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:3000", // React default
+      "http://localhost:3001", // Alternative React port
+      "http://localhost:5173", // Vite default
+      "http://localhost:4200", // Angular default
+      "http://127.0.0.1:3000", // Alternative localhost format
+      "http://127.0.0.1:5173", // Alternative localhost format
+      process.env.FRONTEND_URL, // Production frontend URL from env
+    ].filter(Boolean);
+    
+    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
@@ -41,15 +50,20 @@ const corsOptions = {
     "Origin",
     "Cache-Control",
     "Pragma",
+    "X-CSRF-Token",
   ],
+  exposedHeaders: ["Content-Range", "X-Content-Range"],
+  maxAge: 600, // Cache preflight response for 10 minutes
 };
 
 // extra packages
 app.use(express.json());
-app.use(cors(corsOptions));
 
-// Handle preflight requests explicitly
+// Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
 //routes
 app.use("/api/v1/users", userRouter);

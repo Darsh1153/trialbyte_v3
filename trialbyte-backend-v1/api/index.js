@@ -6,62 +6,64 @@ const cors = require("cors");
 const serverless = require("serverless-http");
 
 //connectDB
-const { connect_PgSQL_DB } = require("../src/infrastructure/PgDB/connect");
+const { connect_PgSQL_DB } = require("./src/infrastructure/PgDB/connect");
 
 //routers
-const userRouter = require("../src/routers/userRouter");
-const roleRouter = require("../src/routers/roleRouter");
-const userRoleRouter = require("../src/routers/userRoleRouter");
-const pendingChangeRouter = require("../src/routers/pendingChangeRouter");
-const userActivityRouter = require("../src/routers/userActivityRouter");
-const therapeuticRouter = require("../src/routers/therapeuticRouter");
-const drugRouter = require("../src/routers/drugRouter");
-const queryRouter = require("../src/routers/queryRouter");
-const dropdownManagementRouter = require("../src/routers/dropdownManagementRouter");
+const userRouter = require("./src/routers/userRouter");
+const roleRouter = require("./src/routers/roleRouter");
+const userRoleRouter = require("./src/routers/userRoleRouter");
+const pendingChangeRouter = require("./src/routers/pendingChangeRouter");
+const userActivityRouter = require("./src/routers/userActivityRouter");
+const therapeuticRouter = require("./src/routers/therapeuticRouter");
+const drugRouter = require("./src/routers/drugRouter");
+const queryRouter = require("./src/routers/queryRouter");
+const dropdownManagementRouter = require("./src/routers/dropdownManagementRouter");
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    "http://localhost:3000", // React default
-    "http://localhost:3001", // Alternative React port
-    "http://localhost:5173", // Vite default
-    "http://localhost:4200", // Angular default
-    "http://127.0.0.1:3000", // Alternative localhost format
-    "http://127.0.0.1:5173", // Alternative localhost format
-    process.env.FRONTEND_URL, // Production frontend URL from env
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null, // Vercel deployment URL
-  ].filter(Boolean), // Remove undefined values
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      "http://localhost:3000", // React default
+      "http://localhost:3001", // Alternative React port
+      "http://localhost:5173", // Vite default
+      "http://localhost:4200", // Angular default
+      "http://127.0.0.1:3000", // Alternative localhost format
+      "http://127.0.0.1:5173", // Alternative localhost format
+      process.env.FRONTEND_URL, // Production frontend URL from env
+    ].filter(Boolean);
+    
+    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
     "X-Requested-With",
     "Accept",
     "Origin",
+    "Cache-Control",
+    "Pragma",
+    "X-CSRF-Token",
   ],
+  exposedHeaders: ["Content-Range", "X-Content-Range"],
+  maxAge: 600, // Cache preflight response for 10 minutes
 };
 
 // extra packages
 app.use(express.json());
-app.use(cors(corsOptions));
 
-// Database connection middleware for serverless
-let dbConnected = false;
-app.use(async (req, res, next) => {
-  if (!dbConnected && process.env.VERCEL) {
-    try {
-      await connect_PgSQL_DB(process.env.DATABASE_URL);
-      dbConnected = true;
-      console.log("Database connected for serverless function");
-    } catch (error) {
-      console.error("Database connection failed:", error);
-      return res.status(500).json({ message: "Database connection failed" });
-    }
-  }
-  next();
-});
+// Handle preflight requests for all routes
+app.options('*', cors(corsOptions));
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
 //routes
 app.use("/api/v1/users", userRouter);
@@ -83,7 +85,7 @@ app.use((err, req, res, next) => {
     .json({ message: "Internal Server Error", error: err.message });
 });
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5002;
 
 const start = async () => {
   try {
@@ -96,8 +98,7 @@ const start = async () => {
   }
 };
 
-// Only start server if not in serverless environment
-if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
+if (process.env.NODE_ENV !== "test") {
   start();
 }
 
