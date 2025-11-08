@@ -11,6 +11,7 @@ import { SearchableSelect, SearchableSelectOption } from "@/components/ui/search
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ArrowRight, Check, Loader2, Plus, X, Eye, EyeOff } from "lucide-react";
+import NotesSection, { NoteItem } from "@/components/notes-section";
 import { useToast } from "@/hooks/use-toast";
 import { useEditDrugForm } from "../context/edit-drug-form-context";
 import { useDrugNames } from "@/hooks/use-drug-names";
@@ -952,63 +953,163 @@ export default function EditDrugPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {/* Tab Navigation */}
-                <div className="flex gap-2 border-b pb-2 px-6 pt-4">
-                  {[
-                    { key: "pipeline_data", label: "Pipeline Data" },
-                    { key: "press_releases", label: "Press Releases" },
-                    { key: "publications", label: "Publications" },
-                  ].map((tab) => (
-                    <Button
-                      key={tab.key}
-                      type="button"
-                      variant={activeTab === tab.key ? "default" : "outline"}
-                      onClick={() => setActiveTab(tab.key)}
-                      className="text-sm"
-                    >
-                      {tab.label}
-                    </Button>
-                  ))}
+                <div className="flex">
+                  <button
+                    onClick={() => setActiveTab("pipeline_data")}
+                    className={`px-6 py-3 text-sm font-medium transition-all ${
+                      activeTab === "pipeline_data"
+                        ? "text-white"
+                        : "text-gray-600 bg-gray-200 hover:bg-gray-300"
+                    }`}
+                    style={activeTab === "pipeline_data" ? { backgroundColor: '#204B73' } : {}}
+                  >
+                    Pipeline Data
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("press_releases")}
+                    className={`px-6 py-3 text-sm font-medium transition-all ${
+                      activeTab === "press_releases"
+                        ? "text-white"
+                        : "text-gray-600 bg-gray-200 hover:bg-gray-300"
+                    }`}
+                    style={activeTab === "press_releases" ? { backgroundColor: '#204B73' } : {}}
+                  >
+                    Press Releases
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("publications")}
+                    className={`px-6 py-3 text-sm font-medium transition-all ${
+                      activeTab === "publications"
+                        ? "text-white"
+                        : "text-gray-600 bg-gray-200 hover:bg-gray-300"
+                    }`}
+                    style={activeTab === "publications" ? { backgroundColor: '#204B73' } : {}}
+                  >
+                    Publications
+                  </button>
                 </div>
 
                 {/* Tab Content */}
                 <div className="p-6">
                   {activeTab === "pipeline_data" && (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       <Label className="text-sm font-medium text-gray-700">Pipeline Data</Label>
-                      <Textarea
-                        value={formData.otherSources.pipelineData}
-                        onChange={(e) => updateField("otherSources", "pipelineData", e.target.value)}
-                        placeholder="Enter pipeline data information"
-                        rows={6}
-                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                      />
+                      <div className="relative">
+                        <Textarea
+                          value={formData.otherSources.pipelineData}
+                          onChange={(e) => updateField("otherSources", "pipelineData", e.target.value)}
+                          placeholder="Enter pipeline data information..."
+                          rows={6}
+                          className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800 pr-10"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-gray-600 hover:bg-gray-700"
+                        >
+                          <Plus className="h-4 w-4 text-white" />
+                        </Button>
+                      </div>
                     </div>
                   )}
 
                   {activeTab === "press_releases" && (
-                    <div className="space-y-4">
-                      <Label className="text-sm font-medium text-gray-700">Press Releases</Label>
-                      <Textarea
-                        value={formData.otherSources.pressReleases}
-                        onChange={(e) => updateField("otherSources", "pressReleases", e.target.value)}
-                        placeholder="Enter press releases information"
-                        rows={6}
-                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                      />
-                    </div>
+                    <NotesSection
+                      title="Press Release Notes"
+                      notes={formData.otherSources?.pressReleaseNotes ? (Array.isArray(formData.otherSources.pressReleaseNotes) ? formData.otherSources.pressReleaseNotes : [{
+                        id: "1",
+                        date: new Date().toISOString().split("T")[0],
+                        type: "Press Release",
+                        content: formData.otherSources.pressReleases || "",
+                        sourceLink: "",
+                        sourceType: "",
+                        sourceUrl: "",
+                        attachments: [],
+                        isVisible: true
+                      }]) : []}
+                      onAddNote={() => {
+                        const newNote = {
+                          id: Date.now().toString(),
+                          date: new Date().toISOString().split("T")[0],
+                          type: "Press Release",
+                          content: "",
+                          sourceLink: "",
+                          attachments: [],
+                          isVisible: true
+                        };
+                        const currentNotes = Array.isArray(formData.otherSources?.pressReleaseNotes) ? formData.otherSources.pressReleaseNotes : [];
+                        updateField("otherSources", "pressReleaseNotes", [...currentNotes, newNote]);
+                      }}
+                      onUpdateNote={(index, updatedNote) => {
+                        const currentNotes = Array.isArray(formData.otherSources?.pressReleaseNotes) ? formData.otherSources.pressReleaseNotes : [];
+                        const updatedNotes = currentNotes.map((note, i) => 
+                          i === index ? { ...note, ...updatedNote } : note
+                        );
+                        updateField("otherSources", "pressReleaseNotes", updatedNotes);
+                      }}
+                      onRemoveNote={(index) => {
+                        const currentNotes = Array.isArray(formData.otherSources?.pressReleaseNotes) ? formData.otherSources.pressReleaseNotes : [];
+                        const updatedNotes = currentNotes.filter((_, i) => i !== index);
+                        updateField("otherSources", "pressReleaseNotes", updatedNotes);
+                      }}
+                      noteTypes={[
+                        "Press Release",
+                        "Announcement",
+                        "Media Coverage",
+                        "News Article",
+                        "Other"
+                      ]}
+                    />
                   )}
 
                   {activeTab === "publications" && (
-                    <div className="space-y-4">
-                      <Label className="text-sm font-medium text-gray-700">Publications</Label>
-                      <Textarea
-                        value={formData.otherSources.publications}
-                        onChange={(e) => updateField("otherSources", "publications", e.target.value)}
-                        placeholder="Enter publications information"
-                        rows={6}
-                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                      />
-                    </div>
+                    <NotesSection
+                      title="Publication Notes"
+                      notes={formData.otherSources?.publicationNotes ? (Array.isArray(formData.otherSources.publicationNotes) ? formData.otherSources.publicationNotes : [{
+                        id: "1",
+                        date: new Date().toISOString().split("T")[0],
+                        type: "Publication",
+                        content: formData.otherSources.publications || "",
+                        sourceLink: "",
+                        sourceType: "",
+                        sourceUrl: "",
+                        attachments: [],
+                        isVisible: true
+                      }]) : []}
+                      onAddNote={() => {
+                        const newNote = {
+                          id: Date.now().toString(),
+                          date: new Date().toISOString().split("T")[0],
+                          type: "Publication",
+                          content: "",
+                          sourceLink: "",
+                          attachments: [],
+                          isVisible: true
+                        };
+                        const currentNotes = Array.isArray(formData.otherSources?.publicationNotes) ? formData.otherSources.publicationNotes : [];
+                        updateField("otherSources", "publicationNotes", [...currentNotes, newNote]);
+                      }}
+                      onUpdateNote={(index, updatedNote) => {
+                        const currentNotes = Array.isArray(formData.otherSources?.publicationNotes) ? formData.otherSources.publicationNotes : [];
+                        const updatedNotes = currentNotes.map((note, i) => 
+                          i === index ? { ...note, ...updatedNote } : note
+                        );
+                        updateField("otherSources", "publicationNotes", updatedNotes);
+                      }}
+                      onRemoveNote={(index) => {
+                        const currentNotes = Array.isArray(formData.otherSources?.publicationNotes) ? formData.otherSources.publicationNotes : [];
+                        const updatedNotes = currentNotes.filter((_, i) => i !== index);
+                        updateField("otherSources", "publicationNotes", updatedNotes);
+                      }}
+                      noteTypes={[
+                        "Publication",
+                        "Research Paper",
+                        "Journal Article",
+                        "Conference Paper",
+                        "Patent",
+                        "Other"
+                      ]}
+                    />
                   )}
                 </div>
               </CardContent>

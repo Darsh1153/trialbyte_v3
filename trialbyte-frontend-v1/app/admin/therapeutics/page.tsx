@@ -45,6 +45,8 @@ import { SaveQueryModal } from "@/components/save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
 import { QueryLogsModal } from "@/components/query-logs-modal";
 import { CustomizeColumnModal, ColumnSettings, DEFAULT_COLUMN_SETTINGS, COLUMN_OPTIONS } from "@/components/customize-column-modal";
+import { usersApi } from "@/app/_lib/api";
+import { ScrollArea ,ScrollBar} from "@/components/ui/scroll-area";
 
 // Types based on the API response
 interface TherapeuticTrial {
@@ -270,6 +272,60 @@ export default function AdminTherapeuticsPage() {
   const [selectedTrials, setSelectedTrials] = useState<Set<string>>(new Set());
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
   const [showViewSelectedButton, setShowViewSelectedButton] = useState(false);
+  
+  // User name mapping cache
+  const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
+
+  // Populate user name mapping cache from trials data
+  const populateUserNameMap = async (trialsData: TherapeuticTrial[]) => {
+    const userIds = new Set<string>();
+    
+    // Collect all unique user IDs from logs
+    trialsData.forEach(trial => {
+      if (trial.logs && trial.logs.length > 0) {
+        trial.logs.forEach(log => {
+          if (log.last_modified_user && log.last_modified_user.trim() !== "") {
+            userIds.add(log.last_modified_user);
+          }
+        });
+      }
+    });
+    
+    // Fetch users and build mapping
+    try {
+      const users = await usersApi.list();
+      const newMap: Record<string, string> = {};
+      
+      userIds.forEach(userId => {
+        // Check if it's already "Admin" or "admin"
+        const lowerUserId = userId.toLowerCase();
+        if (lowerUserId === 'admin' || lowerUserId === 'administrator') {
+          newMap[userId] = 'Admin';
+          return;
+        }
+        
+        // Check if it's a UUID (user ID format)
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(userId)) {
+          const user = users.find((u: any) => u.id === userId);
+          if (user && user.username) {
+            newMap[userId] = user.username;
+          } else {
+            // Default to "Admin" if user not found
+            newMap[userId] = 'Admin';
+          }
+        } else {
+          // If it's not a UUID, it might already be a username/name
+          newMap[userId] = userId;
+        }
+      });
+      
+      setUserNameMap(prev => ({ ...prev, ...newMap }));
+      console.log('User name mapping populated:', newMap);
+    } catch (error) {
+      console.log('Error populating user name map:', error);
+    }
+  };
 
   // Fetch trials data
   // Filter function to show only the latest version of each record
@@ -396,6 +452,9 @@ export default function AdminTherapeuticsPage() {
       
       // Update localStorage with the combined data (API + local updates)
       localStorage.setItem('therapeuticTrials', JSON.stringify(trialsWithLocalUpdates));
+      
+      // Pre-populate user name mapping cache
+      populateUserNameMap(trialsWithLocalUpdates);
       
     } catch (error) {
       console.error("Error fetching trials:", error);
@@ -666,6 +725,17 @@ export default function AdminTherapeuticsPage() {
     setEditingQueryDescription("");
   };
 
+  // Handle search term change
+  const handleSearchTermChange = (value: string) => {
+    console.log('Search term changed:', {
+      previousValue: searchTerm,
+      newValue: value,
+      trimmedValue: value.trim(),
+      totalTrials: trials.length
+    });
+    setSearchTerm(value);
+  };
+
   // Handle filter application
   const handleApplyFilters = (filters: TherapeuticFilterState) => {
     const startTime = Date.now();
@@ -710,6 +780,24 @@ export default function AdminTherapeuticsPage() {
 
   // Apply advanced search criteria to filter trials
   const applyAdvancedSearchFilter = (trial: TherapeuticTrial, criteria: TherapeuticSearchCriteria[]): boolean => {
+    // Helper to get user name synchronously (using cache)
+    const getUserNameSync = (userId: string): string => {
+      if (!userId || userId.trim() === "") return "";
+      
+      // Check cache first
+      if (userNameMap[userId]) {
+        return userNameMap[userId];
+      }
+      
+      // Check if it's already "Admin" or "admin"
+      const lowerUserId = userId.toLowerCase();
+      if (lowerUserId === 'admin' || lowerUserId === 'administrator') {
+        return 'Admin';
+      }
+      
+      // If it's not in cache and not "admin", return as-is (will be resolved later)
+      return userId;
+    };
     if (criteria.length === 0) return true;
 
     // Debug: Log all trials and their trial_tags/disease_type for debugging
@@ -879,6 +967,42 @@ export default function AdminTherapeuticsPage() {
           fieldValue = trial.sites.length > 0 ? (trial.sites[0].notes || "") : "";
           break;
 
+        // Logs fields
+        case "last_modified_date":
+          // Get the most recent last_modified_date from logs array
+          if (trial.logs && trial.logs.length > 0) {
+            const dates = trial.logs
+              .map(log => log.last_modified_date)
+              .filter(date => date !== null && date !== undefined)
+              .sort()
+              .reverse(); // Most recent first
+            fieldValue = dates.length > 0 ? dates[0] : "";
+            console.log('last_modified_date search:', { trialId: trial.trial_id, fieldValue, dates });
+          } else {
+            fieldValue = "";
+          }
+          break;
+        case "last_modified_user":
+          // Get all unique last_modified_user values from logs array and convert IDs to names
+          if (trial.logs && trial.logs.length > 0) {
+            const users = trial.logs
+              .map(log => {
+                const userId = log.last_modified_user;
+                if (!userId || userId.trim() === "") return null;
+                
+                // Convert user ID to name using cached mapping
+                return getUserNameSync(userId);
+              })
+              .filter(user => user !== null && user !== undefined && user.trim() !== "")
+              .filter((user, index, self) => self.indexOf(user) === index); // Get unique values
+            
+            fieldValue = users.join(", ");
+            console.log('last_modified_user search:', { trialId: trial.trial_id, fieldValue, users });
+          } else {
+            fieldValue = "";
+          }
+          break;
+
         default:
           fieldValue = "";
       }
@@ -972,6 +1096,94 @@ export default function AdminTherapeuticsPage() {
       }
 
       const searchValue = typeof value === 'string' ? value.toLowerCase() : '';
+
+      // Special handling for date fields
+      const dateFields = ['created_at', 'updated_at', 'last_modified_date', 'start_date_estimated', 'trial_end_date_estimated'];
+      if (dateFields.includes(field)) {
+        // Parse dates for comparison
+        const parseDate = (dateStr: string): Date | null => {
+          if (!dateStr || dateStr.trim() === '') return null;
+          
+          // Try multiple date formats
+          const formats = [
+            /^\d{4}-\d{2}-\d{2}/, // YYYY-MM-DD
+            /^\d{2}\/\d{2}\/\d{4}/, // MM/DD/YYYY
+            /^\d{2}-\d{2}-\d{4}/, // MM-DD-YYYY
+          ];
+          
+          let date: Date | null = null;
+          try {
+            // Try ISO format first
+            if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+              date = new Date(dateStr);
+            } else if (dateStr.match(/^\d{2}[\/-]\d{2}[\/-]\d{4}/)) {
+              // MM/DD/YYYY or MM-DD-YYYY
+              const parts = dateStr.split(/[\/-]/);
+              if (parts.length === 3) {
+                date = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+              }
+            }
+            
+            if (!date || isNaN(date.getTime())) {
+              return null;
+            }
+            return date;
+          } catch (e) {
+            console.log('Date parsing error:', e, 'for value:', dateStr);
+            return null;
+          }
+        };
+
+        const trialDate = parseDate(fieldValue);
+        const searchDate = parseDate(value as string);
+
+        console.log('Date field search:', { field, fieldValue, searchValue: value, trialDate, searchDate, operator });
+
+        if (!trialDate || !searchDate) {
+          // If either date is invalid, fall back to string comparison
+          console.log('Date parsing failed, using string comparison');
+          switch (operator) {
+            case "contains":
+              return targetValue.includes(searchValue);
+            case "equals":
+            case "is":
+              return targetValue === searchValue;
+            case "not_equals":
+            case "is_not":
+              return targetValue !== searchValue;
+            default:
+              return false;
+          }
+        }
+
+        // Date comparison
+        const comparisonResult = (() => {
+          switch (operator) {
+            case "equals":
+            case "is":
+              return trialDate.getTime() === searchDate.getTime();
+            case "not_equals":
+            case "is_not":
+              return trialDate.getTime() !== searchDate.getTime();
+            case "greater_than":
+              return trialDate.getTime() > searchDate.getTime();
+            case "greater_than_equal":
+              return trialDate.getTime() >= searchDate.getTime();
+            case "less_than":
+              return trialDate.getTime() < searchDate.getTime();
+            case "less_than_equal":
+              return trialDate.getTime() <= searchDate.getTime();
+            case "contains":
+              // For date fields, "contains" means same day (ignore time)
+              return trialDate.toDateString() === searchDate.toDateString();
+            default:
+              return false;
+          }
+        })();
+        
+        console.log('Date comparison result:', { comparisonResult, operator });
+        return comparisonResult;
+      }
 
       switch (operator) {
         case "contains":
@@ -1125,15 +1337,29 @@ export default function AdminTherapeuticsPage() {
   // Filter trials based on search term, advanced search criteria, and filters
   const filteredTrials = trials.filter((trial) => {
     // Basic search term filter - search across multiple fields
-    const matchesSearchTerm = searchTerm === "" || (() => {
-      if (!searchTerm.trim()) return true;
+    const matchesSearchTerm = (() => {
+      // If search term is empty or only whitespace, match all
+      if (!searchTerm || !searchTerm.trim()) {
+        return true;
+      }
       
-      const searchLower = searchTerm.toLowerCase();
-      const searchableText = [
+      // Trim and normalize search term
+      const trimmedSearch = searchTerm.trim();
+      const searchLower = trimmedSearch.toLowerCase();
+      
+      // Build comprehensive searchable text from all relevant fields
+      const searchableFields = [
+        // Trial ID fields
+        trial.trial_id || "",
+        trial.overview?.trial_id || "",
+        trial.overview?.id || "",
+        // Overview fields
         trial.overview?.title || "",
         trial.overview?.therapeutic_area || "",
         trial.overview?.disease_type || "",
         trial.overview?.sponsor_collaborators || "",
+        trial.overview?.sponsor_field_activity || "",
+        trial.overview?.associated_cro || "",
         trial.overview?.primary_drugs || "",
         trial.overview?.other_drugs || "",
         trial.overview?.patient_segment || "",
@@ -1144,9 +1370,10 @@ export default function AdminTherapeuticsPage() {
         trial.overview?.trial_record_status || "",
         trial.overview?.trial_phase || "",
         trial.overview?.status || "",
-        trial.overview?.trial_identifier?.join(" ") || "",
-        trial.overview?.reference_links?.join(" ") || "",
-        // Also search in outcomes
+        // Trial identifiers and references
+        ...(trial.overview?.trial_identifier || []),
+        ...(trial.overview?.reference_links || []),
+        // Outcomes fields
         trial.outcomes?.[0]?.purpose_of_trial || "",
         trial.outcomes?.[0]?.summary || "",
         trial.outcomes?.[0]?.primary_outcome_measure || "",
@@ -1154,19 +1381,48 @@ export default function AdminTherapeuticsPage() {
         trial.outcomes?.[0]?.study_design_keywords || "",
         trial.outcomes?.[0]?.study_design || "",
         trial.outcomes?.[0]?.treatment_regimen || "",
-        // Also search in criteria
+        // Criteria fields
         trial.criteria?.[0]?.inclusion_criteria || "",
         trial.criteria?.[0]?.exclusion_criteria || "",
         trial.criteria?.[0]?.subject_type || "",
-        // Also search in results
+        trial.criteria?.[0]?.sex || "",
+        trial.criteria?.[0]?.healthy_volunteers || "",
+        trial.criteria?.[0]?.age_from || "",
+        trial.criteria?.[0]?.age_to || "",
+        // Results fields
         trial.results?.[0]?.trial_outcome || "",
-        trial.results?.[0]?.trial_results?.join(" ") || "",
+        ...(trial.results?.[0]?.trial_results || []),
         trial.results?.[0]?.adverse_event_reported || "",
         trial.results?.[0]?.adverse_event_type || "",
         trial.results?.[0]?.treatment_for_adverse_events || "",
-      ].join(" ").toLowerCase();
+        // Sites fields
+        trial.sites?.[0]?.notes || "",
+        trial.sites?.[0]?.total?.toString() || "",
+      ];
       
-      return searchableText.includes(searchLower);
+      // Join all searchable fields and normalize
+      const searchableText = searchableFields
+        .filter(field => field !== null && field !== undefined && field !== "")
+        .join(" ")
+        .toLowerCase()
+        .trim();
+      
+      // Perform case-insensitive search
+      const matches = searchableText.includes(searchLower);
+      
+      // Debug logging (only log when search term is provided)
+      if (trimmedSearch && matches) {
+        console.log('Search match found:', {
+          trialId: trial.trial_id,
+          title: trial.overview?.title,
+          searchTerm: trimmedSearch,
+          matchedFields: searchableFields.filter(f => 
+            f && f.toString().toLowerCase().includes(searchLower)
+          ).slice(0, 3) // Log first 3 matching fields
+        });
+      }
+      
+      return matches;
     })();
 
     // Advanced search filter
@@ -1242,6 +1498,19 @@ export default function AdminTherapeuticsPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, advancedSearchCriteria, appliedFilters, itemsPerPage]);
+
+  // Log search results summary when filters change
+  useEffect(() => {
+    console.log('Search results summary:', {
+      totalTrials: trials.length,
+      filteredTrials: filteredTrials.length,
+      searchTerm: searchTerm || '(empty)',
+      hasAdvancedSearch: advancedSearchCriteria.length > 0,
+      hasFilters: Object.values(appliedFilters).some(arr => arr.length > 0),
+      currentPage: currentPage,
+      itemsPerPage: itemsPerPage
+    });
+  }, [filteredTrials.length, searchTerm, advancedSearchCriteria.length, appliedFilters, currentPage, itemsPerPage, trials.length]);
 
   // Pagination handlers
   const handlePageChange = (page: number) => {
@@ -1517,15 +1786,17 @@ export default function AdminTherapeuticsPage() {
           <Input
             placeholder="Search trials by title, therapeutic area, disease type, drugs, sponsor, etc..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchTermChange(e.target.value)}
             className="pl-10"
           />
         </div>
-        {(advancedSearchCriteria.length > 0 || Object.values(appliedFilters).some(arr => arr.length > 0)) && (
+        {(searchTerm || advancedSearchCriteria.length > 0 || Object.values(appliedFilters).some(arr => arr.length > 0)) && (
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
+              console.log('Clearing all filters and search term');
+              setSearchTerm("");
               setAdvancedSearchCriteria([]);
               setAppliedFilters({
                 therapeuticAreas: [],
@@ -1757,10 +2028,11 @@ export default function AdminTherapeuticsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="rounded-xl border bg-card ">
         {/* Desktop / larger screens → normal table */}
-        <div className="hidden md:block">
-          <Table>
+        <ScrollArea className="h-[30rem]  w-[70rem] rounded-md border">
+          <div className="">
+        <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
                 <TableHead className="w-12">
@@ -1849,7 +2121,7 @@ export default function AdminTherapeuticsPage() {
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="">
               {paginatedTrials.map((trial) => (
                 <TableRow key={trial.trial_id} className="hover:bg-muted/40">
                   <TableCell>
@@ -2124,7 +2396,10 @@ export default function AdminTherapeuticsPage() {
               Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} Clinical Trials
             </TableCaption>
           </Table>
-        </div>
+          </div>
+          <ScrollBar orientation="horizontal" />
+
+        </ScrollArea>
 
         {/* Mobile / small screens → cards */}
         <div className="block md:hidden space-y-4 p-2">

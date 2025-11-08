@@ -110,6 +110,11 @@ interface TherapeuticTrial {
     id: string;
     trial_id: string;
     trial_changes_log: string;
+    trial_added_date: string;
+    last_modified_date: string | null;
+    last_modified_user: string | null;
+    full_review_user: string | null;
+    next_review_date: string | null;
   }>;
   notes: Array<{
     id: string;
@@ -187,7 +192,11 @@ const therapeuticSearchFields = [
   
   // Date fields
   { value: "created_at", label: "Created Date" },
-  { value: "updated_at", label: "Updated Date" }
+  { value: "updated_at", label: "Updated Date" },
+  
+  // Logs fields
+  { value: "last_modified_date", label: "Last Modified Date" },
+  { value: "last_modified_user", label: "Last Modified User" }
 ]
 
 const operators = [
@@ -479,13 +488,18 @@ const fieldOptions: Record<string, { value: string; label: string }[]> = {
     { value: "Single group assignment", label: "Single group assignment" },
     { value: "Prospective", label: "Prospective" },
     { value: "Cohort", label: "Cohort" }
+  ],
+  // Logs fields - Last Modified User
+  last_modified_user: [
+    { value: "Admin", label: "Admin" }
   ]
 }
 
 // Date fields that should show calendar input
 const dateFields = [
   "created_at",
-  "updated_at"
+  "updated_at",
+  "last_modified_date"
 ]
 
 export function TherapeuticAdvancedSearchModal({ 
@@ -616,6 +630,16 @@ export function TherapeuticAdvancedSearchModal({
               trial.overview.reference_links.forEach(link => values.add(link))
             }
             break
+          case 'last_modified_date':
+            if (trial.logs && trial.logs.length > 0) {
+              trial.logs.forEach(log => {
+                if (log.last_modified_date && log.last_modified_date.trim()) {
+                  values.add(log.last_modified_date.trim())
+                }
+              })
+            }
+            break
+          // Don't add dynamic values for last_modified_user - only use hardcoded "Admin"
         }
       }
       
@@ -1059,7 +1083,8 @@ export function TherapeuticAdvancedSearchModal({
                             'disease_type', 'patient_segment', 'line_of_therapy', 'sponsor_collaborators',
                             'sponsor_field_activity', 'associated_cro', 'countries', 'region', 'trial_record_status',
                             'gender', 'healthy_volunteers', 'trial_outcome', 'adverse_event_reported', 'adverse_event_type',
-                            'publication_type', 'registry_name', 'study_type', 'study_design_keywords'
+                            'publication_type', 'registry_name', 'study_type', 'study_design_keywords',
+                            'last_modified_user'
                           ];
                           
                           // For dropdown fields, suggest exact matching operators
@@ -1075,6 +1100,16 @@ export function TherapeuticAdvancedSearchModal({
                                 {op.label}
                               </SelectItem>
                             ));
+                          }
+                          
+                          // For date fields, show date comparison operators
+                          if (dateFields.includes(criterion.field)) {
+                            return operators.filter(op => ["equals", "is", "is_not", "not_equals", "greater_than", "greater_than_equal", "less_than", "less_than_equal", "contains"].includes(op.value))
+                              .map((op) => (
+                                <SelectItem key={op.value} value={op.value}>
+                                  {op.label}
+                                </SelectItem>
+                              ));
                           }
                           
                           // For numeric fields, show numeric operators

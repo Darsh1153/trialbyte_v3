@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
-import { Calculator, Plus, X, Eye, EyeOff } from "lucide-react";
+import { Calculator, Plus, X, Eye, EyeOff, ArrowLeft, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TimingSection() {
@@ -25,14 +25,23 @@ export default function TimingSection() {
   
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorData, setCalculatorData] = useState({
-    startDate: "",
-    enrollmentClosedDate: "",
-    trialEndDate: "",
-    resultPublishedDate: "",
-    inclusionPeriod: "",
-    resultDuration: "",
-    overallDurationComplete: "",
-    overallDurationPublish: ""
+    date: "",
+    duration: "",
+    frequency: "days",
+    outputDate: ""
+  });
+  // State for Duration to Months Converter
+  const [durationConverterData, setDurationConverterData] = useState({
+    duration: "",
+    frequency: "days",
+    outputMonths: ""
+  });
+  // State for Enhanced Date Calculator
+  const [enhancedCalculatorData, setEnhancedCalculatorData] = useState({
+    date: "",
+    duration: "",
+    frequency: "months",
+    outputDate: ""
   });
 
   console.log("TimingSection - Current form data:", form);
@@ -175,51 +184,162 @@ export default function TimingSection() {
     performAutoCalculations(row, col, value);
   };
 
-  // Manual calculator functions
-  const calculateManualValues = () => {
-    console.log("Manual calculation triggered with data:", calculatorData);
-    const { startDate, enrollmentClosedDate, trialEndDate, resultPublishedDate } = calculatorData;
-    
-    if (startDate && enrollmentClosedDate) {
-      const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
-      setCalculatorData(prev => ({ ...prev, inclusionPeriod: inclusionPeriod.toFixed(2) }));
+  // New calculator functions for forward/backward date calculation
+  const calculateForwardDate = () => {
+    console.log("Calculating date forward:", calculatorData);
+    if (!calculatorData.date || !calculatorData.duration) return;
+    const startDate = new Date(calculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    const duration = parseFloat(calculatorData.duration);
+    if (isNaN(duration)) return;
+    const resultDate = new Date(startDate);
+    // Add duration based on frequency
+    if (calculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() + duration);
+    } else if (calculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() + (duration * 7));
+    } else if (calculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() + duration);
     }
-    
-    if (trialEndDate && resultPublishedDate) {
-      const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
-      setCalculatorData(prev => ({ ...prev, resultDuration: resultDuration.toFixed(2) }));
-    }
-    
-    if (startDate && trialEndDate) {
-      const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
-      setCalculatorData(prev => ({ ...prev, overallDurationComplete: overallDurationComplete.toFixed(2) }));
-    }
-    
-    if (startDate && resultPublishedDate) {
-      const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
-      setCalculatorData(prev => ({ ...prev, overallDurationPublish: overallDurationPublish.toFixed(2) }));
-    }
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
+    setCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
+    console.log("Date forward calculated:", formattedDate);
   };
 
-  const applyCalculatorValues = () => {
-    console.log("Applying calculator values to form:", calculatorData);
-    if (calculatorData.inclusionPeriod) {
-      updateTableValue("estimated", "Inclusion Period", calculatorData.inclusionPeriod);
+  const calculateBackwardDate = () => {
+    console.log("Calculating date backward:", calculatorData);
+    if (!calculatorData.date || !calculatorData.duration) return;
+    const startDate = new Date(calculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    const duration = parseFloat(calculatorData.duration);
+    if (isNaN(duration)) return;
+    const resultDate = new Date(startDate);
+    // Subtract duration based on frequency
+    if (calculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() - duration);
+    } else if (calculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() - (duration * 7));
+    } else if (calculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() - duration);
     }
-    if (calculatorData.resultDuration) {
-      updateTableValue("estimated", "Result Duration", calculatorData.resultDuration);
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
+    setCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
+    console.log("Date backward calculated:", formattedDate);
+  };
+
+  const clearCalculator = () => {
+    setCalculatorData({
+      date: "",
+      duration: "",
+      frequency: "days",
+      outputDate: ""
+    });
+  };
+
+  // Duration to Months Converter functions
+  const calculateDurationToMonths = () => {
+    console.log("Converting duration to months:", durationConverterData);
+    if (!durationConverterData.duration) return;
+    const duration = parseFloat(durationConverterData.duration);
+    if (isNaN(duration)) return;
+    let months = 0;
+    if (durationConverterData.frequency === "days") {
+      months = duration / 30;
+    } else if (durationConverterData.frequency === "weeks") {
+      months = duration / 4;
     }
-    if (calculatorData.overallDurationComplete) {
-      updateField("step5_4", "overall_duration_complete", calculatorData.overallDurationComplete);
+    setDurationConverterData(prev => ({
+      ...prev,
+      outputMonths: months.toFixed(2)
+    }));
+    console.log("Duration converted to months:", months.toFixed(2));
+  };
+
+  const clearDurationConverter = () => {
+    setDurationConverterData({
+      duration: "",
+      frequency: "days",
+      outputMonths: ""
+    });
+  };
+
+  // Enhanced Date Calculator functions
+  const calculateEnhancedForwardDate = () => {
+    console.log("Calculating enhanced date forward:", enhancedCalculatorData);
+    if (!enhancedCalculatorData.date || !enhancedCalculatorData.duration) return;
+    const startDate = new Date(enhancedCalculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    const duration = parseFloat(enhancedCalculatorData.duration);
+    if (isNaN(duration)) return;
+    const resultDate = new Date(startDate);
+    // Add duration based on frequency
+    if (enhancedCalculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() + duration);
+    } else if (enhancedCalculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() + (duration * 7));
+    } else if (enhancedCalculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() + duration);
     }
-    if (calculatorData.overallDurationPublish) {
-      updateField("step5_4", "overall_duration_publish", calculatorData.overallDurationPublish);
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
+    setEnhancedCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
+    console.log("Enhanced date forward calculated:", formattedDate);
+  };
+
+  const calculateEnhancedBackwardDate = () => {
+    console.log("Calculating enhanced date backward:", enhancedCalculatorData);
+    if (!enhancedCalculatorData.date || !enhancedCalculatorData.duration) return;
+    const startDate = new Date(enhancedCalculatorData.date);
+    if (isNaN(startDate.getTime())) return;
+    const duration = parseFloat(enhancedCalculatorData.duration);
+    if (isNaN(duration)) return;
+    const resultDate = new Date(startDate);
+    // Subtract duration based on frequency
+    if (enhancedCalculatorData.frequency === "days") {
+      resultDate.setDate(resultDate.getDate() - duration);
+    } else if (enhancedCalculatorData.frequency === "weeks") {
+      resultDate.setDate(resultDate.getDate() - (duration * 7));
+    } else if (enhancedCalculatorData.frequency === "months") {
+      resultDate.setMonth(resultDate.getMonth() - duration);
     }
-    
-    setShowCalculator(false);
-    toast({
-      title: "Success",
-      description: "Calculated values have been applied to the form",
+    // Format as MM-DD-YYYY
+    const month = String(resultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(resultDate.getDate()).padStart(2, '0');
+    const year = resultDate.getFullYear();
+    const formattedDate = `${month}-${day}-${year}`;
+    setEnhancedCalculatorData(prev => ({ 
+      ...prev, 
+      outputDate: formattedDate 
+    }));
+    console.log("Enhanced date backward calculated:", formattedDate);
+  };
+
+  const clearEnhancedCalculator = () => {
+    setEnhancedCalculatorData({
+      date: "",
+      duration: "",
+      frequency: "months",
+      outputDate: ""
     });
   };
 
@@ -292,7 +412,7 @@ export default function TimingSection() {
         </table>
       </div>
 
-      {/* Manual Calculator */}
+      {/* Date Calculator */}
       {showCalculator && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-6">
@@ -300,151 +420,96 @@ export default function TimingSection() {
               <Calculator className="h-5 w-5 text-blue-600" />
               <h4 className="text-lg font-semibold text-blue-800">Date Calculator</h4>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Input Dates */}
-              <div className="space-y-4">
-                <h5 className="font-medium text-gray-700">Input Dates</h5>
-                
-                <div className="space-y-3">
-                  <div>
-                    <Label>Start Date</Label>
-                    <CustomDateInput
-                      value={calculatorData.startDate}
-                      onChange={(value) => setCalculatorData(prev => ({ ...prev, startDate: value }))}
-                      placeholder="Select start date"
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label>Enrollment Closed Date</Label>
-                    <CustomDateInput
-                      value={calculatorData.enrollmentClosedDate}
-                      onChange={(value) => setCalculatorData(prev => ({ ...prev, enrollmentClosedDate: value }))}
-                      placeholder="Select enrollment closed date"
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Trial End Date</Label>
-                    <CustomDateInput
-                      value={calculatorData.trialEndDate}
-                      onChange={(value) => setCalculatorData(prev => ({ ...prev, trialEndDate: value }))}
-                      placeholder="Select trial end date"
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label>Result Published Date</Label>
-                    <CustomDateInput
-                      value={calculatorData.resultPublishedDate}
-                      onChange={(value) => setCalculatorData(prev => ({ ...prev, resultPublishedDate: value }))}
-                      placeholder="Select result published date"
-                      className="w-full"
-                    />
-                  </div>
+            <div className="space-y-6">
+              {/* Calculator Input Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                {/* Date Input */}
+                <div className="space-y-2">
+                  <Label>Date</Label>
+                  <CustomDateInput
+                    value={calculatorData.date}
+                    onChange={(value) => setCalculatorData(prev => ({ ...prev, date: value }))}
+                    placeholder="Select date"
+                    className="w-full"
+                  />
+                </div>
+                {/* Duration Input */}
+                <div className="space-y-2">
+                  <Label>Duration</Label>
+                  <Input
+                    type="number"
+                    value={calculatorData.duration}
+                    onChange={(e) => setCalculatorData(prev => ({ ...prev, duration: e.target.value }))}
+                    placeholder="Enter duration"
+                    className="w-full"
+                  />
+                </div>
+                {/* Frequency Select */}
+                <div className="space-y-2">
+                  <Label>Frequency</Label>
+                  <Select
+                    value={calculatorData.frequency}
+                    onValueChange={(value) => setCalculatorData(prev => ({ ...prev, frequency: value }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select frequency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="days">Days</SelectItem>
+                      <SelectItem value="weeks">Weeks</SelectItem>
+                      <SelectItem value="months">Months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Output Date */}
+                <div className="space-y-2">
+                  <Label>Output Date</Label>
+                  <Input
+                    value={calculatorData.outputDate}
+                    readOnly
+                    className="w-full bg-gray-100"
+                    placeholder="Calculated date"
+                  />
                 </div>
               </div>
-
-              {/* Calculated Durations */}
-              <div className="space-y-4">
-                <h5 className="font-medium text-gray-700">Calculated Durations (Months)</h5>
-                
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="calc-inclusion-period">Inclusion Period</Label>
-                    <Input
-                      id="calc-inclusion-period"
-                      value={calculatorData.inclusionPeriod}
-                      readOnly
-                      className="w-full bg-gray-100"
-                      placeholder="Auto-calculated"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Difference between start date and enrollment closed date</p>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="calc-result-duration">Result Duration</Label>
-                    <Input
-                      id="calc-result-duration"
-                      value={calculatorData.resultDuration}
-                      readOnly
-                      className="w-full bg-gray-100"
-                      placeholder="Auto-calculated"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Difference between trial end date and result published date</p>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="calc-overall-complete">Overall Duration to Complete</Label>
-                    <Input
-                      id="calc-overall-complete"
-                      value={calculatorData.overallDurationComplete}
-                      readOnly
-                      className="w-full bg-gray-100"
-                      placeholder="Auto-calculated"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Difference between start date and trial end date</p>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="calc-overall-publish">Overall Duration to Publish Results</Label>
-                    <Input
-                      id="calc-overall-publish"
-                      value={calculatorData.overallDurationPublish}
-                      readOnly
-                      className="w-full bg-gray-100"
-                      placeholder="Auto-calculated"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Difference between start date and result published date</p>
-                  </div>
-                </div>
+              {/* Calculation Buttons */}
+              <div className="flex gap-4 justify-center">
+                <Button
+                  type="button"
+                  onClick={calculateBackwardDate}
+                  className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+                  disabled={!calculatorData.date || !calculatorData.duration}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  BW Calculate
+                </Button>
+                <Button
+                  type="button"
+                  onClick={calculateForwardDate}
+                  className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700"
+                  disabled={!calculatorData.date || !calculatorData.duration}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  FW Calculate
+                </Button>
               </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <Button
-                type="button"
-                onClick={calculateManualValues}
-                className="flex items-center gap-2"
-              >
-                <Calculator className="h-4 w-4" />
-                Calculate Durations
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                onClick={applyCalculatorValues}
-                disabled={!calculatorData.inclusionPeriod && !calculatorData.resultDuration && !calculatorData.overallDurationComplete && !calculatorData.overallDurationPublish}
-              >
-                Apply to Form
-              </Button>
-              
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setCalculatorData({
-                  startDate: "",
-                  enrollmentClosedDate: "",
-                  trialEndDate: "",
-                  resultPublishedDate: "",
-                  inclusionPeriod: "",
-                  resultDuration: "",
-                  overallDurationComplete: "",
-                  overallDurationPublish: ""
-                })}
-              >
-                Clear All
-              </Button>
+              {/* Clear Button */}
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={clearCalculator}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Clear All
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
-
+      {/* Overall Duration Fields */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         <div className="flex items-center gap-2">
           <Label className="whitespace-nowrap">Overall duration to Complete</Label>
@@ -469,6 +534,176 @@ export default function TimingSection() {
           <span className="text-sm text-gray-500">(months)</span>
         </div>
       </div>
+      {/* Duration to Months Converter */}
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Calculator className="h-5 w-5 text-green-600" />
+            <h4 className="text-lg font-semibold text-green-800">Duration to Months Converter</h4>
+          </div>
+          <div className="space-y-4">
+            {/* Converter Input Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              {/* Duration Input */}
+              <div className="space-y-2">
+                <Label>Enter Duration</Label>
+                <Input
+                  type="number"
+                  value={durationConverterData.duration}
+                  onChange={(e) => setDurationConverterData(prev => ({ ...prev, duration: e.target.value }))}
+                  placeholder="Enter duration"
+                  className="w-full"
+                />
+              </div>
+              {/* Frequency Select */}
+              <div className="space-y-2">
+                <Label>Select Frequency</Label>
+                <Select
+                  value={durationConverterData.frequency}
+                  onValueChange={(value) => setDurationConverterData(prev => ({ ...prev, frequency: value }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">Days</SelectItem>
+                    <SelectItem value="weeks">Weeks</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Output Months */}
+              <div className="space-y-2">
+                <Label>Output (in Months)</Label>
+                <Input
+                  value={durationConverterData.outputMonths}
+                  readOnly
+                  className="w-full bg-gray-100"
+                  placeholder="Calculated months"
+                />
+              </div>
+            </div>
+            {/* Calculate Button */}
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                onClick={calculateDurationToMonths}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-2"
+                disabled={!durationConverterData.duration}
+              >
+                <ArrowRight className="h-4 w-4" />
+                Calculate
+              </Button>
+            </div>
+            {/* Clear Button */}
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={clearDurationConverter}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear All
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      {/* Enhanced Forward/Backward Date Calculator */}
+      <Card className="border-purple-200 bg-purple-50">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Calculator className="h-5 w-5 text-purple-600" />
+            <h4 className="text-lg font-semibold text-purple-800">Enhanced Forward/Backward Date Calculator</h4>
+          </div>
+          <div className="space-y-4">
+            {/* Enhanced Calculator Input Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              {/* Date Input */}
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <CustomDateInput
+                  value={enhancedCalculatorData.date}
+                  onChange={(value) => setEnhancedCalculatorData(prev => ({ ...prev, date: value }))}
+                  placeholder="Select date"
+                  className="w-full"
+                />
+              </div>
+              {/* Duration Input */}
+              <div className="space-y-2">
+                <Label>Duration (in months)</Label>
+                <Input
+                  type="number"
+                  value={enhancedCalculatorData.duration}
+                  onChange={(e) => setEnhancedCalculatorData(prev => ({ ...prev, duration: e.target.value }))}
+                  placeholder="Enter duration"
+                  className="w-full"
+                />
+              </div>
+              {/* Frequency Select */}
+              <div className="space-y-2">
+                <Label>Frequency</Label>
+                <Select
+                  value={enhancedCalculatorData.frequency}
+                  onValueChange={(value) => setEnhancedCalculatorData(prev => ({ ...prev, frequency: value }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select frequency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">Days</SelectItem>
+                    <SelectItem value="weeks">Weeks</SelectItem>
+                    <SelectItem value="months">Months</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Output Date */}
+              <div className="space-y-2">
+                <Label>Output Date</Label>
+                <Input
+                  value={enhancedCalculatorData.outputDate}
+                  readOnly
+                  className="w-full bg-gray-100"
+                  placeholder="Calculated date"
+                />
+              </div>
+            </div>
+            {/* Calculation Buttons */}
+            <div className="flex gap-4 justify-center">
+              <Button
+                type="button"
+                onClick={calculateEnhancedBackwardDate}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
+                disabled={!enhancedCalculatorData.date || !enhancedCalculatorData.duration}
+              >
+                <ArrowLeft className="h-4 w-4" />
+                BW Calculate
+              </Button>
+              <Button
+                type="button"
+                onClick={calculateEnhancedForwardDate}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
+                disabled={!enhancedCalculatorData.date || !enhancedCalculatorData.duration}
+              >
+                <ArrowRight className="h-4 w-4" />
+                FW Calculate
+              </Button>
+            </div>
+            {/* Clear Button */}
+            <div className="flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={clearEnhancedCalculator}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear All
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* References Section */}
       <div className="space-y-4 pt-6 border-t">
@@ -513,7 +748,7 @@ export default function TimingSection() {
                         <EyeOff className="h-4 w-4" />
                       )}
                     </Button>
-                    {(form.references || []).length > 1 && (
+                    {(form.references || []).length > 1 && !reference.isSaved && (
                       <Button
                         type="button"
                         variant="ghost"

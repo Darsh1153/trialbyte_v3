@@ -156,9 +156,12 @@ export function NotesSection({
               const originalIndex = notes.findIndex(n => n.id === note.id);
               const isExpanded = expandedNotes.has(originalIndex);
               
+              // Ensure we have a unique key - use note.id if available, otherwise fallback to index
+              const noteKey = note.id || `note-${originalIndex}-${index}`;
+              
               return (
                 <div
-                  key={note.id}
+                  key={noteKey}
                   className={`border rounded-lg transition-all duration-200 ${
                     note.isVisible 
                       ? "border-gray-200 bg-white shadow-sm" 
@@ -304,8 +307,11 @@ export function NotesSection({
                         <Label className="text-sm font-medium">Attachments</Label>
                         <div className="space-y-3">
                           {/* Display uploaded files */}
-                          {note.attachments?.map((attachment, attachmentIndex) => (
-                            <div key={attachmentIndex} className="border rounded-lg p-3 bg-gray-50">
+                          {note.attachments?.map((attachment, attachmentIndex) => {
+                            // Use attachment URL or name as key for better uniqueness
+                            const attachmentKey = attachment.url || attachment.name || `attachment-${attachmentIndex}`;
+                            return (
+                            <div key={`${noteKey}-attachment-${attachmentKey}`} className="border rounded-lg p-3 bg-gray-50">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
                                   {getFileIcon(attachment.type)}
@@ -353,7 +359,8 @@ export function NotesSection({
                                 </div>
                               )}
                             </div>
-                          )) || []}
+                            );
+                          })}
                           
                           {/* Upload button */}
                           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">

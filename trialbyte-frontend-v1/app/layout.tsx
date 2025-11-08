@@ -8,6 +8,7 @@ import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing/core";
 import { EdgeStoreProvider } from "@/lib/edgestore";
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
   title: "TrialByte",
@@ -31,14 +32,16 @@ html {
         `}</style>
       </head>
       <body>
-        <NextSSRPlugin
-          routerConfig={extractRouterConfig(ourFileRouter)}
-        />
-        <EdgeStoreProvider>
-        <ErrorBoundary />
-        {children}
-        <Toaster />
-        </EdgeStoreProvider>
+        <Providers>
+          <NextSSRPlugin
+            routerConfig={extractRouterConfig(ourFileRouter)}
+          />
+          <EdgeStoreProvider>
+            <ErrorBoundary />
+            {children}
+            <Toaster />
+          </EdgeStoreProvider>
+        </Providers>
       </body>
     </html>
   );

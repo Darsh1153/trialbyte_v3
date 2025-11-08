@@ -72,6 +72,28 @@ export interface EditDrugFormData {
     pipelineData: string;
     pressReleases: string;
     publications: string;
+    pressReleaseNotes?: Array<{
+      id: string;
+      date: string;
+      type: string;
+      content: string;
+      sourceLink?: string;
+      sourceType?: string;
+      sourceUrl?: string;
+      attachments?: Array<{ name: string; url: string; type: string }>;
+      isVisible: boolean;
+    }>;
+    publicationNotes?: Array<{
+      id: string;
+      date: string;
+      type: string;
+      content: string;
+      sourceLink?: string;
+      sourceType?: string;
+      sourceUrl?: string;
+      attachments?: Array<{ name: string; url: string; type: string }>;
+      isVisible: boolean;
+    }>;
   };
 
   // Licensing & Marketing
@@ -157,6 +179,8 @@ const initialFormData: EditDrugFormData = {
     pipelineData: "",
     pressReleases: "",
     publications: "",
+    pressReleaseNotes: [],
+    publicationNotes: [],
   },
   licencesMarketing: {
     agreement: "",
@@ -373,6 +397,8 @@ export function EditDrugFormProvider({ children, drugId }: { children: ReactNode
             pipelineData: data.data?.otherSources?.[0]?.pipelineData || "",
             pressReleases: data.data?.otherSources?.[0]?.pressReleases || "",
             publications: data.data?.otherSources?.[0]?.publications || "",
+            pressReleaseNotes: data.data?.otherSources?.[0]?.pressReleaseNotes || [],
+            publicationNotes: data.data?.otherSources?.[0]?.publicationNotes || [],
           },
           licencesMarketing: {
             agreement: data.data?.licencesMarketing?.[0]?.agreement || "",

@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useTherapeuticForm } from "../../context/therapeutic-form-context";
+import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 
 export default function EligibilitySection() {
   const {
@@ -25,17 +26,37 @@ export default function EligibilitySection() {
     { value: "days", label: "Days" },
   ];
 
-  const genderOptions: SearchableSelectOption[] = [
+  // Fallback options for sex
+  const fallbackSexOptions = [
     { value: "male", label: "Male" },
     { value: "female", label: "Female" },
     { value: "both", label: "Both" },
   ];
 
-  const healthyVolunteersOptions: SearchableSelectOption[] = [
+  // Fallback options for healthy volunteers
+  const fallbackHealthyVolunteersOptions = [
     { value: "yes", label: "Yes" },
     { value: "no", label: "No" },
     { value: "no_information", label: "No Information" },
   ];
+
+  // Fetch sex options dynamically from API
+  const { options: sexOptions, loading: sexLoading } = useDynamicDropdown({
+    categoryName: 'sex',
+    fallbackOptions: fallbackSexOptions
+  });
+
+  // Fetch healthy volunteers options dynamically from API
+  const { options: healthyVolunteersOptions, loading: healthyVolunteersLoading } = useDynamicDropdown({
+    categoryName: 'healthy_volunteers',
+    fallbackOptions: fallbackHealthyVolunteersOptions
+  });
+
+  // Debug logging
+  console.log('Sex Options:', sexOptions);
+  console.log('Healthy Volunteers Options:', healthyVolunteersOptions);
+  console.log('Current Form Gender:', form.gender);
+  console.log('Current Form Prior Treatments (Healthy Volunteers):', form.prior_treatments);
 
   return (
     <div className="space-y-6">
@@ -135,12 +156,15 @@ export default function EligibilitySection() {
           <div className="space-y-2">
             <Label>Sex</Label>
             <SearchableSelect
-              options={genderOptions}
+              options={sexOptions}
               value={form.gender || ""}
-              onValueChange={(v) => updateField("step5_3", "gender", v)}
+              onValueChange={(v) => {
+                console.log('Sex selected:', v);
+                updateField("step5_3", "gender", v);
+              }}
               placeholder="Select sex"
               searchPlaceholder="Search sex..."
-              emptyMessage="No option found."
+              emptyMessage={sexLoading ? "Loading options..." : "No option found."}
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
@@ -149,10 +173,13 @@ export default function EligibilitySection() {
             <SearchableSelect
               options={healthyVolunteersOptions}
               value={form.prior_treatments[0] || ""}
-              onValueChange={(v) => updateField("step5_3", "prior_treatments", [v])}
+              onValueChange={(v) => {
+                console.log('Healthy Volunteers selected:', v);
+                updateField("step5_3", "prior_treatments", [v]);
+              }}
               placeholder="Select"
               searchPlaceholder="Search..."
-              emptyMessage="No option found."
+              emptyMessage={healthyVolunteersLoading ? "Loading options..." : "No option found."}
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>

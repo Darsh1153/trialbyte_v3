@@ -5,13 +5,45 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
+import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
+import { useParams } from "next/navigation";
+import { useTherapeuticTrial } from "@/hooks/use-therapeutic-trial";
+import { useEffect } from "react";
 
 export default function EligibilitySection() {
+  const params = useParams();
+  const trialId = params.id as string;
   const {
     formData,
     updateField,
   } = useEditTherapeuticForm();
   const form = formData.step5_3;
+
+  // Use react-query to fetch trial data
+  const { data: trialData, isLoading: isTrialLoading } = useTherapeuticTrial(trialId);
+
+  // Auto-fill fields from fetched data
+  useEffect(() => {
+    if (trialData?.criteria?.[0]) {
+      const criteria = trialData.criteria[0];
+      console.log("🔄 Auto-filling eligibility fields from react-query data:", {
+        subject_type: criteria.subject_type,
+        target_no_volunteers: criteria.target_no_volunteers,
+        actual_enrolled_volunteers: criteria.actual_enrolled_volunteers,
+      });
+
+      // Auto-fill fields from creation phase data
+      if (criteria.subject_type) {
+        updateField("step5_3", "subject_type", criteria.subject_type);
+      }
+      if (criteria.target_no_volunteers !== null && criteria.target_no_volunteers !== undefined) {
+        updateField("step5_3", "target_no_volunteers", criteria.target_no_volunteers.toString());
+      }
+      if (criteria.actual_enrolled_volunteers !== null && criteria.actual_enrolled_volunteers !== undefined) {
+        updateField("step5_3", "actual_enrolled_volunteers", criteria.actual_enrolled_volunteers.toString());
+      }
+    }
+  }, [trialData, updateField]);
 
   const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
     value: i.toString(),
@@ -25,17 +57,37 @@ export default function EligibilitySection() {
     { value: "days", label: "Days" },
   ];
 
-  const genderOptions: SearchableSelectOption[] = [
+  // Fallback options for sex
+  const fallbackSexOptions = [
     { value: "male", label: "Male" },
     { value: "female", label: "Female" },
     { value: "both", label: "Both" },
   ];
 
-  const healthyVolunteersOptions: SearchableSelectOption[] = [
+  // Fallback options for healthy volunteers
+  const fallbackHealthyVolunteersOptions = [
     { value: "yes", label: "Yes" },
     { value: "no", label: "No" },
     { value: "no_information", label: "No Information" },
   ];
+
+  // Fetch sex options dynamically from API
+  const { options: sexOptions, loading: sexLoading } = useDynamicDropdown({
+    categoryName: 'sex',
+    fallbackOptions: fallbackSexOptions
+  });
+
+  // Fetch healthy volunteers options dynamically from API
+  const { options: healthyVolunteersOptions, loading: healthyVolunteersLoading } = useDynamicDropdown({
+    categoryName: 'healthy_volunteers',
+    fallbackOptions: fallbackHealthyVolunteersOptions
+  });
+
+  // Debug logging
+  console.log('Sex Options:', sexOptions);
+  console.log('Healthy Volunteers Options:', healthyVolunteersOptions);
+  console.log('Current Form Gender:', form.gender);
+  console.log('Current Form Prior Treatments (Healthy Volunteers):', form.prior_treatments);
 
   return (
     <div className="space-y-6">
@@ -95,8 +147,8 @@ export default function EligibilitySection() {
           <Label>Subject Type</Label>
           <Input
             placeholder="Enter subject type..."
-            value={form.ecog_performance_status || ""}
-            onChange={(e) => updateField("step5_3", "ecog_performance_status", e.target.value)}
+            value={form.subject_type || ""}
+            onChange={(e) => updateField("step5_3", "subject_type", e.target.value)}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -135,12 +187,15 @@ export default function EligibilitySection() {
           <div className="space-y-2">
             <Label>Sex</Label>
             <SearchableSelect
-              options={genderOptions}
+              options={sexOptions}
               value={form.gender || ""}
-              onValueChange={(v) => updateField("step5_3", "gender", v)}
+              onValueChange={(v) => {
+                console.log('Sex selected:', v);
+                updateField("step5_3", "gender", v);
+              }}
               placeholder="Select sex"
               searchPlaceholder="Search sex..."
-              emptyMessage="No option found."
+              emptyMessage={sexLoading ? "Loading options..." : "No option found."}
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
@@ -149,10 +204,13 @@ export default function EligibilitySection() {
             <SearchableSelect
               options={healthyVolunteersOptions}
               value={form.prior_treatments[0] || ""}
-              onValueChange={(v) => updateField("step5_3", "prior_treatments", [v])}
+              onValueChange={(v) => {
+                console.log('Healthy Volunteers selected:', v);
+                updateField("step5_3", "prior_treatments", [v]);
+              }}
               placeholder="Select"
               searchPlaceholder="Search..."
-              emptyMessage="No option found."
+              emptyMessage={healthyVolunteersLoading ? "Loading options..." : "No option found."}
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
@@ -165,13 +223,8 @@ export default function EligibilitySection() {
           <Input
             type="number"
             placeholder="e.g., 50"
-            value={form.biomarker_requirements[0] || ""}
-            onChange={(e) => {
-              const current = form.biomarker_requirements || [""];
-              const updated = [...current];
-              updated[0] = e.target.value;
-              updateField("step5_3", "biomarker_requirements", updated);
-            }}
+            value={form.target_no_volunteers || ""}
+            onChange={(e) => updateField("step5_3", "target_no_volunteers", e.target.value)}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -180,13 +233,8 @@ export default function EligibilitySection() {
           <Input
             type="number"
             placeholder="e.g., 40"
-            value={form.biomarker_requirements[1] || ""}
-            onChange={(e) => {
-              const current = form.biomarker_requirements || [""];
-              const updated = [...current];
-              updated[1] = e.target.value;
-              updateField("step5_3", "biomarker_requirements", updated);
-            }}
+            value={form.actual_enrolled_volunteers || ""}
+            onChange={(e) => updateField("step5_3", "actual_enrolled_volunteers", e.target.value)}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>

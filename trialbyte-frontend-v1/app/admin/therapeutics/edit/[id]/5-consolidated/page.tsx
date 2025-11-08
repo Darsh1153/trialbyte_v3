@@ -84,8 +84,8 @@ export default function EditTherapeuticsConsolidated() {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
       
-      // Clear all localStorage items for this trial after successful save
-      clearTrialLocalStorage(params.id as string);
+      // Note: localStorage is now repopulated with fresh data inside saveTrial/loadTrialData
+      // No need to clear it - keeping it ensures auto-fill works when revisiting
       
       toast({
         title: "Success",
@@ -108,8 +108,8 @@ export default function EditTherapeuticsConsolidated() {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
       
-      // Clear all localStorage items for this trial after successful save
-      clearTrialLocalStorage(params.id as string);
+      // Note: localStorage is now repopulated with fresh data inside saveTrial/loadTrialData
+      // No need to clear it - keeping it ensures auto-fill works when revisiting
       
       toast({
         title: "Success",

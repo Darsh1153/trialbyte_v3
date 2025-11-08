@@ -69,6 +69,34 @@ const formatTimestamp = (timestamp: string) => {
   }
 };
 
+// Helper function to safely format values for display
+const formatValueForDisplay = (value: any): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  
+  // If it's already a string, return it
+  if (typeof value === 'string') {
+    return value;
+  }
+  
+  // If it's an object or array, stringify it
+  if (typeof value === 'object') {
+    try {
+      // For attachment objects, show a more readable format
+      if (value.name && value.url) {
+        return `Attachment: ${value.name}`;
+      }
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  
+  // For other types, convert to string
+  return String(value);
+};
+
 export default function TrialChangesLog({ changesLog, className = "" }: TrialChangesLogProps) {
   // Sort changes by timestamp (newest first)
   const sortedChanges = [...changesLog].sort((a, b) => 
@@ -128,8 +156,8 @@ export default function TrialChangesLog({ changesLog, className = "" }: TrialCha
                         {change.oldValue && change.newValue && (
                           <div className="mt-2 text-xs">
                             <div className="flex gap-2">
-                              <span className="text-red-600">- {change.oldValue}</span>
-                              <span className="text-green-600">+ {change.newValue}</span>
+                              <span className="text-red-600">- {formatValueForDisplay(change.oldValue)}</span>
+                              <span className="text-green-600">+ {formatValueForDisplay(change.newValue)}</span>
                             </div>
                           </div>
                         )}

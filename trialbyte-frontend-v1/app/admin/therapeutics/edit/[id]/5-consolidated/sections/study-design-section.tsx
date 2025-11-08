@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Plus, X, Check, ChevronsUpDown } from "lucide-react";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
+import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 
 export default function StudyDesignSection() {
   const {
@@ -20,7 +21,8 @@ export default function StudyDesignSection() {
   } = useEditTherapeuticForm();
   const form = formData.step5_2;
 
-  const studyDesignKeywords = [
+  // Fallback options in case API fails
+  const fallbackKeywords = [
     "Placebo-control",
     "Active control",
     "Randomized",
@@ -42,15 +44,33 @@ export default function StudyDesignSection() {
     "Cohort"
   ];
 
+  // Fetch study design keywords dynamically from API
+  const { options: studyDesignKeywordOptions, loading: keywordsLoading, refetch: refetchKeywords } = useDynamicDropdown({
+    categoryName: 'study_design_keywords',
+    fallbackOptions: fallbackKeywords.map(keyword => ({ value: keyword, label: keyword }))
+  });
+
+  // Extract labels from options for display and comparison
+  const studyDesignKeywords = studyDesignKeywordOptions.map(opt => opt.label);
+
+  // Debug logging
+  console.log('Study Design Keywords Options:', studyDesignKeywordOptions);
+  console.log('Study Design Keywords Labels:', studyDesignKeywords);
+  console.log('Current Form Keywords:', form.study_design_keywords);
+
   const handleKeywordToggle = (keyword: string) => {
     const currentKeywords = form.study_design_keywords || [];
     const isSelected = currentKeywords.includes(keyword);
     
+    console.log('Toggling keyword:', keyword, 'Currently selected:', isSelected);
+    
     if (isSelected) {
       const updatedKeywords = currentKeywords.filter(k => k !== keyword);
+      console.log('Removing keyword, updated keywords:', updatedKeywords);
       updateField("step5_2", "study_design_keywords", updatedKeywords);
     } else {
       const updatedKeywords = [...currentKeywords, keyword];
+      console.log('Adding keyword, updated keywords:', updatedKeywords);
       updateField("step5_2", "study_design_keywords", updatedKeywords);
     }
   };
@@ -123,6 +143,50 @@ export default function StudyDesignSection() {
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label>Other Outcome Measures</Label>
+        <div className="space-y-2">
+          {form.otherOutcomeMeasures.length > 0 ? (
+            form.otherOutcomeMeasures.map((measure, idx) => (
+              <div key={idx} className="flex gap-2">
+                <Textarea
+                  value={measure}
+                  onChange={(e) => updateArrayItem("step5_2", "otherOutcomeMeasures", idx, e.target.value)}
+                  placeholder="e.g., Overall Survival, Progression-Free Survival"
+                  rows={2}
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+                {idx === 0 ? (
+                  <Button type="button" variant="outline" onClick={() => addArrayItem("step5_2", "otherOutcomeMeasures", "")}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button type="button" variant="outline" onClick={() => removeArrayItem("step5_2", "otherOutcomeMeasures", idx)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="flex gap-2">
+              <Textarea
+                value=""
+                onChange={(e) => {
+                  addArrayItem("step5_2", "otherOutcomeMeasures", "");
+                  updateArrayItem("step5_2", "otherOutcomeMeasures", 0, e.target.value);
+                }}
+                placeholder="e.g., Overall Survival, Progression-Free Survival"
+                rows={2}
+                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              />
+              <Button type="button" variant="outline" onClick={() => addArrayItem("step5_2", "otherOutcomeMeasures", "")}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Study Design Keywords</Label>
@@ -143,28 +207,33 @@ export default function StudyDesignSection() {
               <Command>
                 <CommandInput placeholder="Search keywords..." />
                 <CommandList>
-                  <CommandEmpty>No keywords found.</CommandEmpty>
-                  <CommandGroup>
-                    {studyDesignKeywords.map((keyword) => (
-                      <CommandItem
-                        key={keyword}
-                        value={keyword}
-                        onSelect={() => handleKeywordToggle(keyword)}
-                        className="flex items-center space-x-2"
-                      >
-                        <Checkbox
-                          checked={(form.study_design_keywords || []).includes(keyword)}
-                          className="border-gray-600 data-[state=checked]:bg-gray-800 data-[state=checked]:border-gray-800"
-                        />
-                        <span>{keyword}</span>
-                        <Check
-                          className={`ml-auto h-4 w-4 ${
-                            (form.study_design_keywords || []).includes(keyword) ? "opacity-100" : "opacity-0"
-                          }`}
-                        />
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
+                  {keywordsLoading ? (
+                    <CommandEmpty>Loading keywords...</CommandEmpty>
+                  ) : studyDesignKeywords.length === 0 ? (
+                    <CommandEmpty>No keywords found.</CommandEmpty>
+                  ) : (
+                    <CommandGroup>
+                      {studyDesignKeywords.map((keyword) => (
+                        <CommandItem
+                          key={keyword}
+                          value={keyword}
+                          onSelect={() => handleKeywordToggle(keyword)}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            checked={(form.study_design_keywords || []).includes(keyword)}
+                            className="border-gray-600 data-[state=checked]:bg-gray-800 data-[state=checked]:border-gray-800"
+                          />
+                          <span>{keyword}</span>
+                          <Check
+                            className={`ml-auto h-4 w-4 ${
+                              (form.study_design_keywords || []).includes(keyword) ? "opacity-100" : "opacity-0"
+                            }`}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
                 </CommandList>
               </Command>
             </PopoverContent>

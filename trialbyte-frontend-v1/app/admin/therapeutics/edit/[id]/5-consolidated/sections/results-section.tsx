@@ -14,9 +14,13 @@ import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useTherapeuticTrial } from "@/hooks/use-therapeutic-trial";
 
 export default function ResultsSection() {
+  const params = useParams();
+  const trialId = params.id as string;
   const {
     formData,
     updateField,
@@ -26,21 +30,137 @@ export default function ResultsSection() {
     toggleSiteNoteVisibility,
   } = useEditTherapeuticForm();
   const form = formData.step5_5;
-  
-  // Debug logging for form data
-  console.log('🔍 Results Section - Form Data:', {
-    trial_outcome: form?.trial_outcome,
-    trial_outcome_reference_date: form?.trial_outcome_reference_date,
-    trial_outcome_link: form?.trial_outcome_link,
-    trial_outcome_content: form?.trial_outcome_content,
-    adverse_event_type: form?.adverse_event_type,
-    adverse_event_reported: form?.adverse_event_reported,
-    site_notes: form?.site_notes?.map((note: any) => ({
-      noteType: note.noteType,
-      sourceType: note.sourceType,
-      viewSource: note.viewSource,
-    })),
-  });
+
+  // Use react-query to fetch trial data
+  const { data: trialData, isLoading: isTrialLoading } = useTherapeuticTrial(trialId);
+
+  // Auto-fill fields from react-query data - this runs as a backup to ensure data is populated
+  useEffect(() => {
+    // Wait for both trial data and form to be ready
+    if (!trialData || !form || isTrialLoading) {
+      return;
+    }
+
+    const results = trialData.results?.[0];
+    if (!results) {
+      console.log("⚠️ No results data found in trialData");
+      return;
+    }
+
+    console.log("🔄 React-Query Auto-fill: Checking if fields need to be populated", {
+      has_trial_outcome: !!results.trial_outcome,
+      has_reference: !!results.reference,
+      has_trial_outcome_link: !!results.trial_outcome_link,
+      has_treatment_for_adverse_events: !!results.treatment_for_adverse_events,
+      has_site_notes: !!results.site_notes,
+      current_form_trial_outcome: form.trial_outcome,
+      current_form_reference_date: form.trial_outcome_reference_date,
+      current_form_link: form.trial_outcome_link,
+      current_form_treatment: form.treatment_for_adverse_events,
+    });
+
+    // Helper function to format date for CustomDateInput
+    const formatDateForInput = (dateStr: string): string => {
+      if (!dateStr) return "";
+      try {
+        // Handle YYYY-MM-DD format (from database)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          const [year, month, day] = dateStr.split('-');
+          return `${month}-${day}-${year}`;
+        }
+        // Handle MM-DD-YYYY format (already formatted)
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+          return dateStr;
+        }
+        // Try to parse as Date object
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const year = date.getFullYear();
+          return `${month}-${day}-${year}`;
+        }
+        return dateStr;
+      } catch (e) {
+        console.warn('Error formatting date for input:', dateStr, e);
+        return "";
+      }
+    };
+
+    // Auto-fill main results fields - force update if API has data and form is empty
+    if (results.trial_outcome && (!form.trial_outcome || form.trial_outcome.trim() === "")) {
+      console.log("✅ React-Query: Auto-filling trial_outcome:", results.trial_outcome);
+      updateField("step5_5", "trial_outcome", results.trial_outcome);
+    }
+    
+    if (results.reference && (!form.trial_outcome_reference_date || form.trial_outcome_reference_date.trim() === "")) {
+      const formattedDate = formatDateForInput(results.reference);
+      if (formattedDate) {
+        console.log("✅ React-Query: Auto-filling trial_outcome_reference_date:", formattedDate);
+        updateField("step5_5", "trial_outcome_reference_date", formattedDate);
+      }
+    }
+    
+    if (results.trial_outcome_link && (!form.trial_outcome_link || form.trial_outcome_link.trim() === "")) {
+      console.log("✅ React-Query: Auto-filling trial_outcome_link:", results.trial_outcome_link);
+      updateField("step5_5", "trial_outcome_link", results.trial_outcome_link);
+    }
+    
+    if (results.treatment_for_adverse_events && (!form.treatment_for_adverse_events || form.treatment_for_adverse_events.trim() === "")) {
+      console.log("✅ React-Query: Auto-filling treatment_for_adverse_events:", results.treatment_for_adverse_events);
+      updateField("step5_5", "treatment_for_adverse_events", results.treatment_for_adverse_events);
+    }
+
+    // Auto-fill site_notes (Results Notes) including Result Type
+    if (results.site_notes) {
+      let siteNotes = results.site_notes;
+      // Parse if it's a string
+      if (typeof siteNotes === 'string') {
+        try {
+          siteNotes = JSON.parse(siteNotes);
+        } catch (e) {
+          console.warn('Failed to parse site_notes:', e);
+          siteNotes = [];
+        }
+      }
+      
+      if (Array.isArray(siteNotes) && siteNotes.length > 0) {
+        const firstNote = siteNotes[0];
+        const currentFirstNote = form.site_notes?.[0];
+        
+        // Check if Result Type needs to be filled
+        const needsNoteTypeFill = !currentFirstNote?.noteType || currentFirstNote.noteType.trim() === "";
+        const hasNoteType = firstNote.noteType || firstNote.type;
+        
+        if (needsNoteTypeFill && hasNoteType) {
+          console.log("✅ React-Query: Auto-filling Result Type (noteType):", firstNote.noteType || firstNote.type);
+          
+          // Ensure we have at least one note in the form
+          if (!form.site_notes || form.site_notes.length === 0) {
+            addSiteNote("step5_5", "site_notes");
+          }
+          
+          // Use a small delay to ensure form state is ready
+          setTimeout(() => {
+            const noteType = firstNote.noteType || firstNote.type;
+            updateSiteNote("step5_5", "site_notes", 0, { noteType });
+            
+            // Also fill other fields if they're empty
+            if (firstNote.date && (!currentFirstNote?.date || currentFirstNote.date.trim() === "")) {
+              const formattedDate = formatDateForInput(firstNote.date);
+              updateSiteNote("step5_5", "site_notes", 0, { date: formattedDate });
+            }
+            if (firstNote.content && (!currentFirstNote?.content || currentFirstNote.content.trim() === "")) {
+              updateSiteNote("step5_5", "site_notes", 0, { content: firstNote.content });
+            }
+            if ((firstNote.sourceType || firstNote.source) && (!currentFirstNote?.sourceType || currentFirstNote.sourceType.trim() === "")) {
+              updateSiteNote("step5_5", "site_notes", 0, { sourceType: firstNote.sourceType || firstNote.source });
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [trialData, form, isTrialLoading, updateField, updateSiteNote, addSiteNote]);
   
   const [openOutcome, setOpenOutcome] = useState(false);
   const [openAdverseReported, setOpenAdverseReported] = useState(false);

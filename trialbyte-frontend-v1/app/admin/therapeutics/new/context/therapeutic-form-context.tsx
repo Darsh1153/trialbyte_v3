@@ -185,6 +185,7 @@ export interface TherapeuticFormData {
       id: string;
       date: string;
       title: string;
+      description: string;
       url: string;
       attachments: any[];
       isVisible: boolean;
@@ -193,6 +194,7 @@ export interface TherapeuticFormData {
       id: string;
       type: string;
       title: string;
+      description: string;
       url: string;
       attachments: any[];
       isVisible: boolean;
@@ -201,6 +203,7 @@ export interface TherapeuticFormData {
       id: string;
       registry: string;
       identifier: string;
+      description: string;
       url: string;
       attachments: any[];
       isVisible: boolean;
@@ -209,6 +212,7 @@ export interface TherapeuticFormData {
       id: string;
       type: string;
       title: string;
+      description: string;
       url: string;
       attachments: any[];
       isVisible: boolean;
@@ -229,6 +233,11 @@ export interface TherapeuticFormData {
     }>;
     link: string;
     internalNote: string;
+    logsAttachments?: Array<{
+      name: string;
+      url: string;
+      type: string;
+    }>;
     changesLog: Array<{
       id: string;
       timestamp: string;
@@ -421,6 +430,7 @@ const initialFormState: TherapeuticFormData = {
       id: "1",
       date: "",
       title: "",
+      description: "",
       url: "",
       attachments: [],
       isVisible: true,
@@ -429,6 +439,7 @@ const initialFormState: TherapeuticFormData = {
       id: "1",
       type: "",
       title: "",
+      description: "",
       url: "",
       attachments: [],
       isVisible: true,
@@ -437,6 +448,7 @@ const initialFormState: TherapeuticFormData = {
       id: "1",
       registry: "",
       identifier: "",
+      description: "",
       url: "",
       attachments: [],
       isVisible: true,
@@ -445,6 +457,7 @@ const initialFormState: TherapeuticFormData = {
       id: "1",
       type: "",
       title: "",
+      description: "",
       url: "",
       attachments: [],
       isVisible: true,
@@ -455,6 +468,7 @@ const initialFormState: TherapeuticFormData = {
     notes: [],
     link: "",
     internalNote: "",
+    logsAttachments: [],
     changesLog: [{
       id: "1",
       timestamp: new Date().toISOString(),
@@ -1342,6 +1356,11 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
         return dateString;
       }
+      // Handle MM-DD-YYYY format (from CustomDateInput)
+      if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        const [month, day, year] = dateString.split('-');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
       // Otherwise, try to parse and format
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return "";
@@ -1419,8 +1438,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           age_from: ensureString(allFormData.step5_3.age_min),
           age_to: ensureString(allFormData.step5_3.age_max),
           sex: ensureString(allFormData.step5_3.gender),
-          healthy_volunteers: allFormData.step5_3.biomarker_requirements[0] || "",
-          subject_type: allFormData.step5_3.prior_treatments[0] || "",
+          healthy_volunteers: allFormData.step5_3.prior_treatments[0] || "",
+          subject_type: allFormData.step5_3.biomarker_requirements[0] || "",
           target_no_volunteers: ensureNumber(allFormData.step5_4.estimated_enrollment, 0),
           actual_enrolled_volunteers: ensureNumber(allFormData.step5_4.actual_enrollment, 0),
           ecog_performance_status: allFormData.step5_3.ecog_performance_status || "",
@@ -1473,27 +1492,29 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         results: {
           results_available: allFormData.step5_5.results_available ? "Yes" : "No",
           endpoints_met: allFormData.step5_5.endpoints_met ? "Yes" : "No",
-          trial_outcome: ensureString(allFormData.step5_5.study_sites[0]) || ensureString(allFormData.step5_7.primary_endpoint_results),
-          reference: formatDate(allFormData.step5_5.principal_investigators[0]) || ensureString(allFormData.step5_7.conclusion),
-          trial_outcome_content: ensureString(allFormData.step5_5.trial_outcome_content),
-          trial_outcome_link: ensureString(allFormData.step5_5.site_countries[0]),
-          trial_outcome_attachment: allFormData.step5_5.trial_outcome_attachment?.url || (allFormData.step5_5.trial_outcome_attachment ? "Yes" : "No"),
+          trial_outcome: ensureString(allFormData.step5_5.trial_outcome) || ensureString(allFormData.step5_7.primary_endpoint_results) || null,
+          reference: formatDate(allFormData.step5_5.trial_outcome_reference_date) || null,
+          trial_outcome_content: ensureString(allFormData.step5_5.trial_outcome_content) || null,
+          trial_outcome_link: ensureString(allFormData.step5_5.trial_outcome_link) || null,
+          trial_outcome_attachment: allFormData.step5_5.trial_outcome_attachment?.url || (allFormData.step5_5.trial_outcome_attachment ? "Yes" : null),
           trial_results: allFormData.step5_5.trial_results.filter(Boolean).length > 0 
             ? allFormData.step5_5.trial_results.filter(Boolean) 
-            : allFormData.step5_7.secondary_endpoint_results.filter(Boolean),
+            : (allFormData.step5_7.secondary_endpoint_results.filter(Boolean).length > 0 ? allFormData.step5_7.secondary_endpoint_results.filter(Boolean) : null),
           adverse_event_reported: allFormData.step5_5.adverse_events_reported ? "Yes" : "No",
-          adverse_event_type: allFormData.step5_5.site_contact_info[1] || allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || "",
-          treatment_for_adverse_events: allFormData.step5_5.site_contact_info[2] || ensureString(allFormData.step5_7.safety_results),
-          site_notes: allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).map(note => ({
-            date: formatDate(note.date),
-            type: note.noteType,
-            content: note.content,
-            sourceLink: note.viewSource,
-            sourceType: note.sourceType,
-            attachments: (note.attachments || []).map((att: any) => 
-              typeof att === 'string' ? att : (att.url || att.name || att)
-            )
-          }))
+          adverse_event_type: ensureString(allFormData.step5_5.adverse_event_type) || (allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || null),
+          treatment_for_adverse_events: ensureString(allFormData.step5_5.treatment_for_adverse_events) || ensureString(allFormData.step5_7.safety_results) || null,
+          site_notes: allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).length > 0
+            ? allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).map(note => ({
+                date: formatDate(note.date),
+                type: note.noteType,
+                content: note.content,
+                sourceLink: note.viewSource,
+                sourceType: note.sourceType,
+                attachments: (note.attachments || []).map((att: any) => 
+                  typeof att === 'string' ? att : (att.url || att.name || att)
+                )
+              }))
+            : null
         },
         sites: {
           total: ensureNumber(allFormData.step5_6.study_start_date, 0),

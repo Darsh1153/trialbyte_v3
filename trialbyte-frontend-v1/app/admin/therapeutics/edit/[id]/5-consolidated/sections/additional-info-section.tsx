@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
-import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon, Image, FileText } from "lucide-react";
+import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon, Image, FileText, Loader2 } from "lucide-react";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { useToast } from "@/hooks/use-toast";
-import { UploadButton } from "@/lib/uploadthing";
+import { useEdgeStore } from "@/lib/edgestore";
 
 export default function AdditionalInfoSection() {
   const { 
@@ -21,11 +21,66 @@ export default function AdditionalInfoSection() {
     toggleArrayItemVisibility,
   } = useEditTherapeuticForm();
   const { toast } = useToast();
+  const { edgestore } = useEdgeStore();
   const [activeTab, setActiveTab] = useState("pipeline_data");
+  const [uploadingFiles, setUploadingFiles] = useState<{ [key: string]: boolean }>({});
   const form = formData.step5_7;
 
   console.log("📋 AdditionalInfoSection (Edit) - Current form data:", form);
   console.log("🎯 Active tab:", activeTab, "Items:", ((form as any)[activeTab] || []).length);
+  
+  // Debug logging for description fields
+  if (form) {
+    const debugItems = (form as any)[activeTab] || [];
+    debugItems.forEach((item: any, idx: number) => {
+      console.log(`📝 ${activeTab} item ${idx}:`, {
+        id: item.id,
+        description: item.description,
+        title: item.title || item.information || item.registry || item.type,
+        hasDescription: !!item.description,
+        descriptionLength: item.description?.length || 0
+      });
+    });
+  }
+
+  // Ensure at least one item exists for each tab (matching creation phase behavior)
+  useEffect(() => {
+    if (!form) return; // Wait for form data to load
+    
+    const tabs = ["pipeline_data", "press_releases", "publications", "trial_registries", "associated_studies"];
+    tabs.forEach((tab) => {
+      const currentItems = (form as any)[tab] || [];
+      if (currentItems.length === 0) {
+        const templates = {
+          pipeline_data: { id: Date.now().toString(), date: "", information: "", url: "", file: "", isVisible: true },
+          press_releases: { id: Date.now().toString(), date: "", title: "", description: "", url: "", file: "", isVisible: true },
+          publications: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
+          trial_registries: { id: Date.now().toString(), registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
+          associated_studies: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
+        };
+        addComplexArrayItem("step5_7", tab, templates[tab as keyof typeof templates]);
+        console.log(`✅ Initialized empty ${tab} with default item`);
+      }
+    });
+  }, [form]); // Run when form data changes
+
+  // Also ensure current tab has at least one item when switching tabs
+  useEffect(() => {
+    if (!form) return; // Wait for form data to load
+    
+    const currentItems = (form as any)[activeTab] || [];
+    if (currentItems.length === 0) {
+      const templates = {
+        pipeline_data: { id: Date.now().toString(), date: "", information: "", url: "", file: "", isVisible: true },
+        press_releases: { id: Date.now().toString(), date: "", title: "", description: "", url: "", file: "", isVisible: true },
+        publications: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
+        trial_registries: { id: Date.now().toString(), registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
+        associated_studies: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
+      };
+      addComplexArrayItem("step5_7", activeTab, templates[activeTab as keyof typeof templates]);
+      console.log(`✅ Initialized empty ${activeTab} with default item when switching tabs`);
+    }
+  }, [activeTab, form]); // Run when activeTab or form changes
 
   // Dropdown options - matching old page exactly
   const publicationTypeOptions: SearchableSelectOption[] = [
@@ -69,6 +124,75 @@ export default function AdditionalInfoSection() {
   ];
 
   const currentItems = (form as any)[activeTab] || [];
+
+  // Handle file upload using Edge Store
+  const handleFileUpload = async (file: File, itemIndex: number) => {
+    if (!file) return;
+
+    const uploadKey = `${activeTab}_${itemIndex}`;
+    
+    try {
+      setUploadingFiles(prev => ({ ...prev, [uploadKey]: true }));
+      console.log(`Uploading file to Edge Store for ${activeTab} item ${itemIndex}:`, file.name);
+
+      const res = await edgestore.trialOutcomeAttachments.upload({
+        file,
+        onProgressChange: (progress) => {
+          console.log(`Upload progress for ${activeTab} item ${itemIndex}:`, progress);
+        },
+      });
+
+      console.log("File uploaded successfully:", res.url);
+      
+      // Update both file name and URL
+      updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+        file: file.name,
+        url: res.url 
+      });
+
+      toast({
+        title: "Success",
+        description: "File uploaded successfully!",
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [uploadKey]: false }));
+    }
+  };
+
+  // Handle file removal
+  const handleFileRemove = async (itemIndex: number, fileUrl: string) => {
+    if (!fileUrl) return;
+
+    try {
+      await edgestore.trialOutcomeAttachments.delete({
+        url: fileUrl,
+      });
+      
+      updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+        file: null,
+        url: null 
+      });
+
+      toast({
+        title: "Success",
+        description: "File removed successfully",
+      });
+    } catch (error) {
+      console.error("Error removing file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove file. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -163,50 +287,35 @@ export default function AdditionalInfoSection() {
                     </div>
                     <div className="w-1/2">
                       <Label className="text-sm">Upload File</Label>
-                      <div className="mt-1">
-                        <UploadButton
-                          endpoint="therapeuticFileUploader"
-                          onClientUploadComplete={(res) => {
-                            if (res && res[0]) {
-                              // Update the file field with the uploaded file name
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { file: res[0].name }
-                              );
-                              // Update the URL field with the uploaded file URL
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { url: res[0].url }
-                              );
-                              toast({
-                                title: "Success",
-                                description: "File uploaded successfully!",
-                              });
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          type="file"
+                          accept="image/*,.pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, idx);
+                              e.target.value = '';
                             }
                           }}
-                          onUploadError={(error: Error) => {
-                            console.error("UploadThing error:", error);
-                            console.error("Error details:", {
-                              name: error.name,
-                              message: error.message,
-                              stack: error.stack,
-                              cause: (error as any).cause
-                            });
-                            toast({
-                              title: "Error",
-                              description: `Upload failed: ${error.message}`,
-                              variant: "destructive",
-                            });
-                          }}
-                          appearance={{
-                            button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
-                            allowedContent: "hidden",
-                          }}
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
+                        >
+                          {uploadingFiles[`${activeTab}_${idx}`] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -219,7 +328,7 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                      {item.url && (
                         <Button
                           type="button"
                           variant="ghost"
@@ -227,11 +336,20 @@ export default function AdditionalInfoSection() {
                           onClick={() => {
                             window.open(item.url, '_blank');
                           }}
-                          className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                          className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
-                          Preview
+                          View
                         </Button>
                       )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFileRemove(idx, item.url)}
+                        className="text-red-500 hover:text-red-700 p-0 h-auto"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -313,48 +431,35 @@ export default function AdditionalInfoSection() {
                     </div>
                     <div className="w-1/2">
                       <Label className="text-sm">Upload File</Label>
-                      <div className="mt-1">
-                        <UploadButton
-                          endpoint="therapeuticFileUploader"
-                          onClientUploadComplete={(res) => {
-                            if (res && res[0]) {
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { file: res[0].name }
-                              );
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { url: res[0].url }
-                              );
-                              toast({
-                                title: "Success",
-                                description: "File uploaded successfully!",
-                              });
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          type="file"
+                          accept="image/*,.pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, idx);
+                              e.target.value = '';
                             }
                           }}
-                          onUploadError={(error: Error) => {
-                            console.error("UploadThing error:", error);
-                            console.error("Error details:", {
-                              name: error.name,
-                              message: error.message,
-                              stack: error.stack,
-                              cause: (error as any).cause
-                            });
-                            toast({
-                              title: "Error",
-                              description: `Upload failed: ${error.message}`,
-                              variant: "destructive",
-                            });
-                          }}
-                          appearance={{
-                            button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
-                            allowedContent: "hidden",
-                          }}
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
+                        >
+                          {uploadingFiles[`${activeTab}_${idx}`] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -464,48 +569,35 @@ export default function AdditionalInfoSection() {
                     </div>
                     <div className="w-1/2">
                       <Label className="text-sm">Upload File</Label>
-                      <div className="mt-1">
-                        <UploadButton
-                          endpoint="therapeuticFileUploader"
-                          onClientUploadComplete={(res) => {
-                            if (res && res[0]) {
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { file: res[0].name }
-                              );
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { url: res[0].url }
-                              );
-                              toast({
-                                title: "Success",
-                                description: "File uploaded successfully!",
-                              });
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          type="file"
+                          accept="image/*,.pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, idx);
+                              e.target.value = '';
                             }
                           }}
-                          onUploadError={(error: Error) => {
-                            console.error("UploadThing error:", error);
-                            console.error("Error details:", {
-                              name: error.name,
-                              message: error.message,
-                              stack: error.stack,
-                              cause: (error as any).cause
-                            });
-                            toast({
-                              title: "Error",
-                              description: `Upload failed: ${error.message}`,
-                              variant: "destructive",
-                            });
-                          }}
-                          appearance={{
-                            button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
-                            allowedContent: "hidden",
-                          }}
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
+                        >
+                          {uploadingFiles[`${activeTab}_${idx}`] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -615,48 +707,35 @@ export default function AdditionalInfoSection() {
                     </div>
                     <div className="w-1/2">
                       <Label className="text-sm">Upload File</Label>
-                      <div className="mt-1">
-                        <UploadButton
-                          endpoint="therapeuticFileUploader"
-                          onClientUploadComplete={(res) => {
-                            if (res && res[0]) {
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { file: res[0].name }
-                              );
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { url: res[0].url }
-                              );
-                              toast({
-                                title: "Success",
-                                description: "File uploaded successfully!",
-                              });
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          type="file"
+                          accept="image/*,.pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, idx);
+                              e.target.value = '';
                             }
                           }}
-                          onUploadError={(error: Error) => {
-                            console.error("UploadThing error:", error);
-                            console.error("Error details:", {
-                              name: error.name,
-                              message: error.message,
-                              stack: error.stack,
-                              cause: (error as any).cause
-                            });
-                            toast({
-                              title: "Error",
-                              description: `Upload failed: ${error.message}`,
-                              variant: "destructive",
-                            });
-                          }}
-                          appearance={{
-                            button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
-                            allowedContent: "hidden",
-                          }}
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
+                        >
+                          {uploadingFiles[`${activeTab}_${idx}`] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -766,48 +845,35 @@ export default function AdditionalInfoSection() {
                     </div>
                     <div className="w-1/2">
                       <Label className="text-sm">Upload File</Label>
-                      <div className="mt-1">
-                        <UploadButton
-                          endpoint="therapeuticFileUploader"
-                          onClientUploadComplete={(res) => {
-                            if (res && res[0]) {
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { file: res[0].name }
-                              );
-                              updateComplexArrayItem(
-                                "step5_7",
-                                activeTab,
-                                idx,
-                                { url: res[0].url }
-                              );
-                              toast({
-                                title: "Success",
-                                description: "File uploaded successfully!",
-                              });
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          type="file"
+                          accept="image/*,.pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(file, idx);
+                              e.target.value = '';
                             }
                           }}
-                          onUploadError={(error: Error) => {
-                            console.error("UploadThing error:", error);
-                            console.error("Error details:", {
-                              name: error.name,
-                              message: error.message,
-                              stack: error.stack,
-                              cause: (error as any).cause
-                            });
-                            toast({
-                              title: "Error",
-                              description: `Upload failed: ${error.message}`,
-                              variant: "destructive",
-                            });
-                          }}
-                          appearance={{
-                            button: "ut-ready:bg-[#204B73] ut-uploading:cursor-not-allowed rounded-md bg-[#204B73] px-4 py-2 text-sm font-medium text-white hover:bg-[#204B73]/90",
-                            allowedContent: "hidden",
-                          }}
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
+                        <Button 
+                          type="button" 
+                          size="sm"
+                          disabled={uploadingFiles[`${activeTab}_${idx}`]}
+                          className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
+                        >
+                          {uploadingFiles[`${activeTab}_${idx}`] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4 mr-1" />
+                              Upload
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </div>
                   </div>
