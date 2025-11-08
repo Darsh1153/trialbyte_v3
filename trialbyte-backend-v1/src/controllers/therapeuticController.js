@@ -496,6 +496,7 @@ const createWithAllData = async (req, res) => {
               type: 'press_releases',
               date: item.date,
               title: item.title,
+              description: item.description,
               url: item.url,
               file: item.file
             };
@@ -514,6 +515,7 @@ const createWithAllData = async (req, res) => {
               type: 'publications',
               publicationType: item.type,
               title: item.title,
+              description: item.description,
               url: item.url,
               file: item.file
             };
@@ -532,6 +534,7 @@ const createWithAllData = async (req, res) => {
               type: 'trial_registries',
               registry: item.registry,
               identifier: item.identifier,
+              description: item.description,
               url: item.url,
               file: item.file
             };
@@ -550,6 +553,7 @@ const createWithAllData = async (req, res) => {
               type: 'associated_studies',
               studyType: item.type,
               title: item.title,
+              description: item.description,
               url: item.url,
               file: item.file
             };
