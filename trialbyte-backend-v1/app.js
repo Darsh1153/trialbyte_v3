@@ -4,6 +4,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const serverless = require("serverless-http");
+const { registerEdgeStoreRoutes } = require("./src/utils/edgeStore");
 
 //connectDB
 const { connect_PgSQL_DB } = require("./src/infrastructure/PgDB/connect");
@@ -31,12 +32,40 @@ const corsOptions = {
       "http://127.0.0.1:5173", // Alternative localhost format
       process.env.FRONTEND_URL, // Production frontend URL from env
     ].filter(Boolean);
-    
-    // Allow requests with no origin (like mobile apps, Postman, or server-to-server)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+
+    const vercelRegex = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
+
+    const isAllowedOrigin = (candidate) => {
+      console.log("[cors] evaluating origin", candidate);
+      if (!candidate) {
+        console.log("[cors] allowing request without origin header");
+        return true;
+      }
+      if (allowedOrigins.includes(candidate)) {
+        console.log("[cors] matched explicit allowlist", candidate);
+        return true;
+      }
+      if (vercelRegex.test(candidate)) {
+        console.log("[cors] allowing Vercel preview/production origin", candidate);
+        return true;
+      }
+      if (process.env.ADDITIONAL_ALLOWED_ORIGINS) {
+        const extra = process.env.ADDITIONAL_ALLOWED_ORIGINS.split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+        if (extra.includes(candidate)) {
+          console.log("[cors] matched ADDITIONAL_ALLOWED_ORIGINS", candidate);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.error("[cors] blocked origin", origin);
+      callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
@@ -64,6 +93,8 @@ app.options('*', cors(corsOptions));
 
 // Apply CORS middleware
 app.use(cors(corsOptions));
+
+registerEdgeStoreRoutes(app);
 
 //routes
 app.use("/api/v1/users", userRouter);
