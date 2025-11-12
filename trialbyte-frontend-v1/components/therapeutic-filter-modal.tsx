@@ -1044,6 +1044,18 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
           }
         })
       }
+      // Handle newline-separated values (for fields that might contain multiple values)
+      else if (stringValue.includes('\n')) {
+        const splitValues = stringValue
+          .split(/\n+/)
+          .map((v: string) => v.trim())
+          .filter(Boolean)
+        splitValues.forEach((splitValue: string) => {
+          if (splitValue) {
+            values.add(splitValue)
+          }
+        })
+      }
       // Handle comma-separated values (for fields that might contain multiple values)
       else if (stringValue.includes(',')) {
         const splitValues = stringValue.split(',').map((v: string) => v.trim()).filter(Boolean)

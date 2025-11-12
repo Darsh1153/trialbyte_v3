@@ -3,6 +3,111 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+const parseVolunteerNumber = (value: unknown): number | null => {
+  console.log("[ClinicalTrialsEditFormContext] parseVolunteerNumber input:", value);
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized =
+    typeof value === "string" ? value.replace(/,/g, "").trim() : value;
+
+  if (normalized === "") {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+
+  return null;
+};
+
+const joinArrayToString = (
+  values: unknown,
+  separator: string,
+  fallback = ""
+): string => {
+  const list = Array.isArray(values)
+    ? values
+    : typeof values === "string"
+      ? [values]
+      : [];
+  const joined = list
+    .map((item) => (typeof item === "string" ? item.trim() : String(item || "")))
+    .filter(Boolean)
+    .join(separator);
+
+  return joined || fallback;
+};
+
+const toNullableString = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  const stringValue = typeof value === "string" ? value.trim() : String(value);
+  return stringValue === "" ? null : stringValue;
+};
+
+const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
+  console.log("[ClinicalTrialsEditFormContext] buildCriteriaPayload source:", {
+    step5_3: formData.step5_3,
+    step5_4: formData.step5_4,
+  });
+
+  const criteria = formData.step5_3;
+
+  const payload = {
+    inclusion_criteria: toNullableString(joinArrayToString(criteria.inclusion_criteria, "; ")),
+    exclusion_criteria: toNullableString(joinArrayToString(criteria.exclusion_criteria, "; ")),
+    age_from: toNullableString(criteria.age_min),
+    age_to: toNullableString(criteria.age_max),
+    sex: toNullableString(criteria.gender),
+    healthy_volunteers: toNullableString(criteria.prior_treatments?.[0]),
+    subject_type: toNullableString(criteria.subject_type),
+    target_no_volunteers: parseVolunteerNumber(
+      criteria.target_no_volunteers ?? formData.step5_4.estimated_enrollment
+    ),
+    actual_enrolled_volunteers: parseVolunteerNumber(
+      criteria.actual_enrolled_volunteers ?? formData.step5_4.actual_enrollment
+    ),
+    ecog_performance_status: toNullableString(criteria.ecog_performance_status),
+    prior_treatments: toNullableString(joinArrayToString(criteria.prior_treatments, ", ")),
+    biomarker_requirements: toNullableString(joinArrayToString(criteria.biomarker_requirements, ", ")),
+  };
+
+  console.log("[ClinicalTrialsEditFormContext] buildCriteriaPayload output:", payload);
+
+  return payload;
+};
+
+const parseOutcomeMeasureField = (rawValue: unknown): string[] => {
+  console.log("[ClinicalTrialsEditFormContext] parseOutcomeMeasureField: raw value", rawValue);
+
+  if (Array.isArray(rawValue)) {
+    return rawValue.filter(Boolean).map((value) => (typeof value === "string" ? value.trim() : String(value)));
+  }
+
+  if (typeof rawValue !== "string") {
+    return [];
+  }
+
+  const trimmedValue = rawValue.trim();
+
+  if (!trimmedValue) {
+    return [];
+  }
+
+  if (trimmedValue.includes("\n")) {
+    return trimmedValue.split(/\n+/).map((value) => value.trim()).filter(Boolean);
+  }
+
+  if (!/[.!?]/.test(trimmedValue) && trimmedValue.includes(",")) {
+    return trimmedValue.split(",").map((value) => value.trim()).filter(Boolean);
+  }
+
+  return [trimmedValue];
+};
+
 // Define the complete form structure for editing
 export interface EditTherapeuticFormData {
   // Step 5-1: Trial Overview
@@ -49,6 +154,9 @@ export interface EditTherapeuticFormData {
     ecog_performance_status: string;
     prior_treatments: string[];
     biomarker_requirements: string[];
+    subject_type: string;
+    target_no_volunteers: string;
+    actual_enrolled_volunteers: string;
   };
 
   // Step 5-4: Patient Population
@@ -269,6 +377,9 @@ const initialFormData: EditTherapeuticFormData = {
     ecog_performance_status: "",
     prior_treatments: [],
     biomarker_requirements: [],
+    subject_type: "",
+    target_no_volunteers: "",
+    actual_enrolled_volunteers: "",
   },
   step5_4: {
     estimated_enrollment: "",
@@ -787,6 +898,11 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           };
           
           // Map trial data to form structure
+          const toStringOrEmpty = (value: unknown): string => {
+            if (value === null || value === undefined) return "";
+            return typeof value === "string" ? value : String(value);
+          };
+
           const mappedData: EditTherapeuticFormData = {
             step5_1: {
               therapeutic_area: foundTrial.overview?.therapeutic_area || "",
@@ -811,20 +927,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             step5_2: {
               purpose_of_trial: foundTrial.outcomes?.[0]?.purpose_of_trial || "",
               summary: foundTrial.outcomes?.[0]?.summary || "",
-              primaryOutcomeMeasures: foundTrial.outcomes?.[0]?.primary_outcome_measure 
-                ? Array.isArray(foundTrial.outcomes[0].primary_outcome_measure)
-                  ? foundTrial.outcomes[0].primary_outcome_measure.filter(Boolean)
-                  : typeof foundTrial.outcomes[0].primary_outcome_measure === 'string'
-                    ? foundTrial.outcomes[0].primary_outcome_measure.split(", ").filter(Boolean)
-                    : [foundTrial.outcomes[0].primary_outcome_measure].filter(Boolean)
-                : [],
-              otherOutcomeMeasures: foundTrial.outcomes?.[0]?.other_outcome_measure 
-                ? Array.isArray(foundTrial.outcomes[0].other_outcome_measure)
-                  ? foundTrial.outcomes[0].other_outcome_measure.filter(Boolean)
-                  : typeof foundTrial.outcomes[0].other_outcome_measure === 'string'
-                    ? foundTrial.outcomes[0].other_outcome_measure.split(", ").filter(Boolean)
-                    : [foundTrial.outcomes[0].other_outcome_measure].filter(Boolean)
-                : [],
+              primaryOutcomeMeasures: parseOutcomeMeasureField(foundTrial.outcomes?.[0]?.primary_outcome_measure),
+              otherOutcomeMeasures: parseOutcomeMeasureField(foundTrial.outcomes?.[0]?.other_outcome_measure),
               study_design_keywords: foundTrial.outcomes?.[0]?.study_design_keywords 
                 ? Array.isArray(foundTrial.outcomes[0].study_design_keywords)
                   ? foundTrial.outcomes[0].study_design_keywords.filter(Boolean)
@@ -851,12 +955,17 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     ? foundTrial.criteria[0].exclusion_criteria.split("; ").filter(Boolean)
                     : [foundTrial.criteria[0].exclusion_criteria].filter(Boolean)
                 : [],
-              age_min: foundTrial.criteria?.[0]?.age_from || "",
-              age_max: foundTrial.criteria?.[0]?.age_to || "",
-              gender: foundTrial.criteria?.[0]?.sex || "",
-              ecog_performance_status: "",
-              prior_treatments: [],
+              age_min: toStringOrEmpty(foundTrial.criteria?.[0]?.age_from),
+              age_max: toStringOrEmpty(foundTrial.criteria?.[0]?.age_to),
+              gender: toStringOrEmpty(foundTrial.criteria?.[0]?.sex),
+              ecog_performance_status: toStringOrEmpty(foundTrial.criteria?.[0]?.ecog_performance_status),
+              prior_treatments: foundTrial.criteria?.[0]?.healthy_volunteers
+                ? [toStringOrEmpty(foundTrial.criteria[0].healthy_volunteers)]
+                : [],
               biomarker_requirements: [],
+              subject_type: toStringOrEmpty(foundTrial.criteria?.[0]?.subject_type),
+              target_no_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.target_no_volunteers),
+              actual_enrolled_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.actual_enrolled_volunteers),
             },
             step5_4: (() => {
               console.log('=== LOADING TIMING DATA ===');
@@ -1625,6 +1734,34 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           clearTimeout(timeoutId);
 
           if (response && response.ok) {
+            // Update participation criteria via API
+            try {
+              console.log("=== SAVING PARTICIPATION CRITERIA DATA ===");
+              const criteriaPayload = buildCriteriaPayload(formData);
+              console.log("Participation criteria payload:", criteriaPayload);
+
+              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${trialId}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(criteriaPayload),
+                credentials: "include",
+              }).catch(() => null);
+
+              if (criteriaResponse && criteriaResponse.ok) {
+                console.log("Participation criteria updated successfully");
+              } else {
+                console.warn("Participation criteria update failed");
+                if (criteriaResponse) {
+                  const errorText = await criteriaResponse.text().catch(() => "Unknown error");
+                  console.error("Criteria update error:", criteriaResponse.status, errorText);
+                }
+              }
+            } catch (criteriaError) {
+              console.warn("Participation criteria update threw error:", criteriaError);
+            }
+
             // Also update the sites data if we have a trial_id
             const filteredReferences = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
             const sitesData = {

@@ -3,6 +3,111 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+const parseVolunteerNumber = (value: unknown): number | null => {
+  console.log("[EditTherapeuticFormContext] parseVolunteerNumber input:", value);
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const normalized =
+    typeof value === "string" ? value.replace(/,/g, "").trim() : value;
+
+  if (normalized === "") {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+
+  return null;
+};
+
+const joinArrayToString = (
+  values: unknown,
+  separator: string,
+  fallback = ""
+): string => {
+  const list = Array.isArray(values)
+    ? values
+    : typeof values === "string"
+      ? [values]
+      : [];
+  const joined = list
+    .map((item) => (typeof item === "string" ? item.trim() : String(item || "")))
+    .filter(Boolean)
+    .join(separator);
+
+  return joined || fallback;
+};
+
+const toNullableString = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null;
+  const stringValue = typeof value === "string" ? value.trim() : String(value);
+  return stringValue === "" ? null : stringValue;
+};
+
+const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
+  console.log("[EditTherapeuticFormContext] buildCriteriaPayload source:", {
+    step5_3: formData.step5_3,
+    step5_4: formData.step5_4,
+  });
+
+  const criteria = formData.step5_3;
+
+  const payload = {
+    inclusion_criteria: toNullableString(joinArrayToString(criteria.inclusion_criteria, "; ")),
+    exclusion_criteria: toNullableString(joinArrayToString(criteria.exclusion_criteria, "; ")),
+    age_from: toNullableString(criteria.age_min),
+    age_to: toNullableString(criteria.age_max),
+    sex: toNullableString(criteria.gender),
+    healthy_volunteers: toNullableString(criteria.prior_treatments?.[0]),
+    subject_type: toNullableString(criteria.subject_type),
+    target_no_volunteers: parseVolunteerNumber(
+      criteria.target_no_volunteers ?? formData.step5_4.estimated_enrollment
+    ),
+    actual_enrolled_volunteers: parseVolunteerNumber(
+      criteria.actual_enrolled_volunteers ?? formData.step5_4.actual_enrollment
+    ),
+    ecog_performance_status: toNullableString(criteria.ecog_performance_status),
+    prior_treatments: toNullableString(joinArrayToString(criteria.prior_treatments, ", ")),
+    biomarker_requirements: toNullableString(joinArrayToString(criteria.biomarker_requirements, ", ")),
+  };
+
+  console.log("[EditTherapeuticFormContext] buildCriteriaPayload output:", payload);
+
+  return payload;
+};
+
+const parseOutcomeMeasureField = (rawValue: unknown): string[] => {
+  console.log("[EditTherapeuticFormContext] parseOutcomeMeasureField: raw value", rawValue);
+
+  if (Array.isArray(rawValue)) {
+    return rawValue.filter(Boolean).map((value) => (typeof value === "string" ? value.trim() : String(value)));
+  }
+
+  if (typeof rawValue !== "string") {
+    return [];
+  }
+
+  const trimmedValue = rawValue.trim();
+
+  if (!trimmedValue) {
+    return [];
+  }
+
+  if (trimmedValue.includes("\n")) {
+    return trimmedValue.split(/\n+/).map((value) => value.trim()).filter(Boolean);
+  }
+
+  if (!/[.!?]/.test(trimmedValue) && trimmedValue.includes(",")) {
+    return trimmedValue.split(",").map((value) => value.trim()).filter(Boolean);
+  }
+
+  return [trimmedValue];
+};
+
 // Define the complete form structure for editing
 export interface EditTherapeuticFormData {
   // Step 5-1: Trial Overview
@@ -660,6 +765,10 @@ interface EditTherapeuticFormContextType {
   updateNote: (step: keyof EditTherapeuticFormData, field: string, index: number, updates: Partial<any>) => void;
   removeNote: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
   toggleNoteVisibility: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
+  addSiteNote: (step: keyof EditTherapeuticFormData, field: string) => void;
+  updateSiteNote: (step: keyof EditTherapeuticFormData, field: string, index: number, updates: Partial<any>) => void;
+  removeSiteNote: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
+  toggleSiteNoteVisibility: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
   addComplexArrayItem: (step: keyof EditTherapeuticFormData, field: string, template: any) => void;
   updateComplexArrayItem: (step: keyof EditTherapeuticFormData, field: string, index: number, updates: any) => void;
   toggleArrayItemVisibility: (step: keyof EditTherapeuticFormData, field: string, index: number) => void;
@@ -837,6 +946,11 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           };
           
           // Map trial data to form structure
+          const toStringOrEmpty = (value: unknown): string => {
+            if (value === null || value === undefined) return "";
+            return typeof value === "string" ? value : String(value);
+          };
+
           const mappedData: EditTherapeuticFormData = {
             step5_1: {
               therapeutic_area: foundTrial.overview?.therapeutic_area || "",
@@ -861,20 +975,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             step5_2: {
               purpose_of_trial: foundTrial.outcomes?.[0]?.purpose_of_trial || "",
               summary: foundTrial.outcomes?.[0]?.summary || "",
-              primaryOutcomeMeasures: foundTrial.outcomes?.[0]?.primary_outcome_measure 
-                ? Array.isArray(foundTrial.outcomes[0].primary_outcome_measure)
-                  ? foundTrial.outcomes[0].primary_outcome_measure.filter(Boolean)
-                  : typeof foundTrial.outcomes[0].primary_outcome_measure === 'string'
-                    ? foundTrial.outcomes[0].primary_outcome_measure.split(", ").filter(Boolean)
-                    : [foundTrial.outcomes[0].primary_outcome_measure].filter(Boolean)
-                : [],
-              otherOutcomeMeasures: foundTrial.outcomes?.[0]?.other_outcome_measure 
-                ? Array.isArray(foundTrial.outcomes[0].other_outcome_measure)
-                  ? foundTrial.outcomes[0].other_outcome_measure.filter(Boolean)
-                  : typeof foundTrial.outcomes[0].other_outcome_measure === 'string'
-                    ? foundTrial.outcomes[0].other_outcome_measure.split(", ").filter(Boolean)
-                    : [foundTrial.outcomes[0].other_outcome_measure].filter(Boolean)
-                : [],
+              primaryOutcomeMeasures: parseOutcomeMeasureField(foundTrial.outcomes?.[0]?.primary_outcome_measure),
+              otherOutcomeMeasures: parseOutcomeMeasureField(foundTrial.outcomes?.[0]?.other_outcome_measure),
               study_design_keywords: foundTrial.outcomes?.[0]?.study_design_keywords 
                 ? Array.isArray(foundTrial.outcomes[0].study_design_keywords)
                   ? foundTrial.outcomes[0].study_design_keywords.filter(Boolean)
@@ -901,15 +1003,17 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     ? foundTrial.criteria[0].exclusion_criteria.split("; ").filter(Boolean)
                     : [foundTrial.criteria[0].exclusion_criteria].filter(Boolean)
                 : [],
-              age_min: foundTrial.criteria?.[0]?.age_from || "",
-              age_max: foundTrial.criteria?.[0]?.age_to || "",
-              gender: foundTrial.criteria?.[0]?.sex || "",
-              ecog_performance_status: foundTrial.criteria?.[0]?.ecog_performance_status || "",
-              prior_treatments: foundTrial.criteria?.[0]?.healthy_volunteers ? [foundTrial.criteria[0].healthy_volunteers] : [],
+              age_min: toStringOrEmpty(foundTrial.criteria?.[0]?.age_from),
+              age_max: toStringOrEmpty(foundTrial.criteria?.[0]?.age_to),
+              gender: toStringOrEmpty(foundTrial.criteria?.[0]?.sex),
+              ecog_performance_status: toStringOrEmpty(foundTrial.criteria?.[0]?.ecog_performance_status),
+              prior_treatments: foundTrial.criteria?.[0]?.healthy_volunteers
+                ? [toStringOrEmpty(foundTrial.criteria[0].healthy_volunteers)]
+                : [],
               biomarker_requirements: [],
-              subject_type: foundTrial.criteria?.[0]?.subject_type || "",
-              target_no_volunteers: foundTrial.criteria?.[0]?.target_no_volunteers?.toString() || "",
-              actual_enrolled_volunteers: foundTrial.criteria?.[0]?.actual_enrolled_volunteers?.toString() || "",
+              subject_type: toStringOrEmpty(foundTrial.criteria?.[0]?.subject_type),
+              target_no_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.target_no_volunteers),
+              actual_enrolled_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.actual_enrolled_volunteers),
             },
             step5_4: (() => {
               console.log('=== LOADING TIMING DATA ===');
@@ -1812,6 +1916,34 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           clearTimeout(timeoutId);
 
           if (response && response.ok) {
+            // Update participation criteria via API
+            try {
+              console.log("=== SAVING PARTICIPATION CRITERIA DATA ===");
+              const criteriaPayload = buildCriteriaPayload(formData);
+              console.log("Participation criteria payload:", criteriaPayload);
+
+              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${trialId}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(criteriaPayload),
+                credentials: "include",
+              }).catch(() => null);
+
+              if (criteriaResponse && criteriaResponse.ok) {
+                console.log("Participation criteria updated successfully");
+              } else {
+                console.warn("Participation criteria update failed");
+                if (criteriaResponse) {
+                  const errorText = await criteriaResponse.text().catch(() => "Unknown error");
+                  console.error("Criteria update error:", criteriaResponse.status, errorText);
+                }
+              }
+            } catch (criteriaError) {
+              console.warn("Participation criteria update threw error:", criteriaError);
+            }
+
             // Also update the sites data if we have a trial_id
             const filteredReferences = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
             const sitesData = {
@@ -2757,6 +2889,87 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value: updatedReference });
   };
 
+  const addSiteNote = (step: keyof EditTherapeuticFormData, field: string) => {
+    console.log(`[EditTherapeuticFormContext] addSiteNote called for ${String(step)}.${field}`);
+    const currentArray = ((formData[step] as any)[field] as any[]) || [];
+    const newSiteNote = {
+      id: Date.now().toString(),
+      date: "",
+      noteType: "",
+      content: "",
+      sourceType: "",
+      viewSource: "",
+      attachments: [],
+      isVisible: true,
+    };
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: [...currentArray, newSiteNote],
+    });
+  };
+
+  const updateSiteNote = (
+    step: keyof EditTherapeuticFormData,
+    field: string,
+    index: number,
+    updates: Partial<any>
+  ) => {
+    console.log(
+      `[EditTherapeuticFormContext] updateSiteNote called for ${String(step)}.${field} index ${index}`,
+      updates
+    );
+    const currentArray = ((formData[step] as any)[field] as any[]) || [];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, ...updates } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const removeSiteNote = (
+    step: keyof EditTherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    console.log(
+      `[EditTherapeuticFormContext] removeSiteNote called for ${String(step)}.${field} index ${index}`
+    );
+    const currentArray = ((formData[step] as any)[field] as any[]) || [];
+    const updatedArray = currentArray.filter((_, idx) => idx !== index);
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
+  const toggleSiteNoteVisibility = (
+    step: keyof EditTherapeuticFormData,
+    field: string,
+    index: number
+  ) => {
+    console.log(
+      `[EditTherapeuticFormContext] toggleSiteNoteVisibility called for ${String(step)}.${field} index ${index}`
+    );
+    const currentArray = ((formData[step] as any)[field] as any[]) || [];
+    const updatedArray = currentArray.map((item, idx) =>
+      idx === index ? { ...item, isVisible: !item.isVisible } : item
+    );
+    dispatch({
+      type: "UPDATE_FIELD",
+      step,
+      field,
+      value: updatedArray,
+    });
+  };
+
   // Note management functions
   const addNote = (step: keyof EditTherapeuticFormData, field: string) => {
     const currentArray = (formData[step] as any)[field] as any[];
@@ -2890,6 +3103,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     addReference,
     removeReference,
     updateReference,
+    addSiteNote,
+    updateSiteNote,
+    removeSiteNote,
+    toggleSiteNoteVisibility,
     addNote,
     updateNote,
     removeNote,

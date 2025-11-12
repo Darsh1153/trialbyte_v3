@@ -1,17 +1,58 @@
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5002';
+const DEFAULT_DEV_API_BASE = "http://localhost:5002";
+let cachedBaseUrl: string | null = null;
 
-function ensureBaseUrl(): void {
-  if (!API_BASE_URL) {
-    console.warn('NEXT_PUBLIC_API_BASE_URL is not set. Requests will fail.');
+const debugApiLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[api] debugApiLog payload ->", ...args);
   }
+};
+
+function resolveBaseUrl(): string {
+  if (cachedBaseUrl !== null) {
+    debugApiLog("resolveBaseUrl using cached value", cachedBaseUrl);
+    return cachedBaseUrl;
+  }
+
+  const envBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
+  if (envBase) {
+    cachedBaseUrl = envBase.replace(/\/$/, "");
+    debugApiLog("resolveBaseUrl using env base", cachedBaseUrl);
+    return cachedBaseUrl;
+  }
+
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin.replace(/\/$/, "");
+    cachedBaseUrl = origin;
+    debugApiLog("resolveBaseUrl using window origin", cachedBaseUrl);
+    return cachedBaseUrl;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    cachedBaseUrl = DEFAULT_DEV_API_BASE;
+    debugApiLog("resolveBaseUrl using development fallback", cachedBaseUrl);
+    return cachedBaseUrl;
+  }
+
+  cachedBaseUrl = "";
+  debugApiLog("resolveBaseUrl defaulting to relative paths", cachedBaseUrl);
+  return cachedBaseUrl;
+}
+
+function buildRequestUrl(path: string): string {
+  const baseUrl = resolveBaseUrl();
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const fullUrl = baseUrl ? `${baseUrl}${normalizedPath}` : normalizedPath;
+  debugApiLog("buildRequestUrl computed url", { baseUrl, normalizedPath, fullUrl });
+  return fullUrl;
 }
 
 async function request<T>(path: string, options: { method?: HttpMethod; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
-  ensureBaseUrl();
   const { method = 'GET', body, headers = {} } = options;
-  const res = await fetch(`${API_BASE_URL}${path}`.replace(/\/$/, ''), {
+  const targetUrl = buildRequestUrl(path).replace(/\/$/, '');
+  debugApiLog("request executing fetch", { method, targetUrl });
+  const res = await fetch(targetUrl, {
     method,
     headers: { 'Content-Type': 'application/json', ...headers },
     body: body !== undefined ? JSON.stringify(body) : undefined,

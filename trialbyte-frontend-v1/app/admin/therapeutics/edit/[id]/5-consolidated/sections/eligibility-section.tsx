@@ -24,26 +24,66 @@ export default function EligibilitySection() {
 
   // Auto-fill fields from fetched data
   useEffect(() => {
-    if (trialData?.criteria?.[0]) {
-      const criteria = trialData.criteria[0];
-      console.log("🔄 Auto-filling eligibility fields from react-query data:", {
-        subject_type: criteria.subject_type,
-        target_no_volunteers: criteria.target_no_volunteers,
-        actual_enrolled_volunteers: criteria.actual_enrolled_volunteers,
-      });
-
-      // Auto-fill fields from creation phase data
-      if (criteria.subject_type) {
-        updateField("step5_3", "subject_type", criteria.subject_type);
-      }
-      if (criteria.target_no_volunteers !== null && criteria.target_no_volunteers !== undefined) {
-        updateField("step5_3", "target_no_volunteers", criteria.target_no_volunteers.toString());
-      }
-      if (criteria.actual_enrolled_volunteers !== null && criteria.actual_enrolled_volunteers !== undefined) {
-        updateField("step5_3", "actual_enrolled_volunteers", criteria.actual_enrolled_volunteers.toString());
-      }
+    if (!trialData) {
+      return;
     }
-  }, [trialData, updateField]);
+
+    const criteria = Array.isArray(trialData.criteria) ? trialData.criteria[0] : trialData.criteria;
+    if (!criteria) {
+      return;
+    }
+
+    const asString = (value: unknown): string => {
+      if (value === null || value === undefined) return "";
+      return typeof value === "string" ? value : String(value);
+    };
+
+    const setIfChanged = (field: keyof typeof form, rawValue: unknown) => {
+      const nextValue = asString(rawValue);
+      if (nextValue !== "" && form[field] !== nextValue) {
+        updateField("step5_3", field as string, nextValue);
+      }
+    };
+
+    const targetVolunteers = resolveVolunteerValue(trialData, "target");
+    const actualVolunteers = resolveVolunteerValue(trialData, "actual");
+
+    console.log("🔄 Auto-filling eligibility fields from react-query data:", {
+      subject_type: criteria.subject_type,
+      age_from: criteria.age_from,
+      age_to: criteria.age_to,
+      sex: criteria.sex,
+      healthy_volunteers: criteria.healthy_volunteers,
+      target_no_volunteers: targetVolunteers,
+      actual_enrolled_volunteers: actualVolunteers,
+    });
+
+    setIfChanged("subject_type", criteria.subject_type);
+    if (targetVolunteers !== "" && form.target_no_volunteers !== targetVolunteers) {
+      updateField("step5_3", "target_no_volunteers", targetVolunteers);
+    }
+    if (actualVolunteers !== "" && form.actual_enrolled_volunteers !== actualVolunteers) {
+      updateField("step5_3", "actual_enrolled_volunteers", actualVolunteers);
+    }
+    setIfChanged("age_min", criteria.age_from);
+    setIfChanged("age_max", criteria.age_to);
+    setIfChanged("gender", criteria.sex);
+
+    const healthyVolunteers = asString(criteria.healthy_volunteers);
+    if (healthyVolunteers !== "" && form.prior_treatments[0] !== healthyVolunteers) {
+      updateField("step5_3", "prior_treatments", [healthyVolunteers]);
+    }
+  }, [
+    trialData,
+    updateField,
+    form.subject_type,
+    form.target_no_volunteers,
+    form.actual_enrolled_volunteers,
+    form.age_min,
+    form.age_max,
+    form.gender,
+    form.prior_treatments,
+  ]);
 
   const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
     value: i.toString(),
