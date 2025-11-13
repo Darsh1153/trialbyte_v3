@@ -6,31 +6,49 @@ class TherapeuticNotesRepository {
   }
 
   async create(data) {
+    console.log('[TherapeuticNotesRepository] Creating note with data:', { trial_id: data.trial_id, notes: typeof data.notes });
     const r = await this.pool.query(
-      'INSERT INTO "therapeutic_notes" (trial_id, date_type, notes, link, attachments) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      'INSERT INTO "therapeutic_notes" (trial_id, notes) VALUES ($1, $2::jsonb) RETURNING *',
       [
         data.trial_id,
-        data.date_type || null,
-        data.notes || null,
-        data.link || null,
-        data.attachments || null,
+        this.#coerceJson(data.notes),
       ]
     );
+    console.log('[TherapeuticNotesRepository] Created note:', r.rows[0]?.id);
     return r.rows[0];
   }
 
   async createWithClient(client, data) {
+    console.log('[TherapeuticNotesRepository] Creating note with client:', { trial_id: data.trial_id, notes: typeof data.notes });
     const r = await client.query(
-      'INSERT INTO "therapeutic_notes" (trial_id, date_type, notes, link, attachments) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      'INSERT INTO "therapeutic_notes" (trial_id, notes) VALUES ($1, $2::jsonb) RETURNING *',
       [
         data.trial_id,
-        data.date_type || null,
-        data.notes || null,
-        data.link || null,
-        data.attachments || null,
+        this.#coerceJson(data.notes),
       ]
     );
+    console.log('[TherapeuticNotesRepository] Created note with client:', r.rows[0]?.id);
     return r.rows[0];
+  }
+
+  #coerceJson(value) {
+    if (value === undefined || value === null) {
+      return JSON.stringify([]);
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        return JSON.stringify([]);
+      }
+      // already JSON array/object string
+      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        return trimmed;
+      }
+      // treat as plain value, wrap in array
+      return JSON.stringify([trimmed]);
+    }
+    // If it's already an object/array, stringify it
+    return JSON.stringify(value);
   }
 
   async findAll({ trial_id } = {}) {

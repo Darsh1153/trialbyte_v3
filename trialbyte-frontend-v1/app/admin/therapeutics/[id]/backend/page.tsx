@@ -66,7 +66,7 @@ interface TherapeuticTrial {
     target_no_volunteers: number;
     actual_enrolled_volunteers: number | null;
     ecog_performance_status: string | null;
-    prior_treatments: string | null;
+    healthy_volunteers: string | null;
     biomarker_requirements: string | null;
   }>;
   timing: Array<{
@@ -145,6 +145,7 @@ interface TherapeuticTrial {
     last_modified_user: string | null;
     full_review_user: string | null;
     next_review_date: string | null;
+    attachment: string | null;
   }>;
   notes: Array<{
     id: string;
@@ -395,6 +396,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
               last_modified_user: log.last_modified_user || "",
               full_review_user: log.full_review_user || "",
               next_review_date: log.next_review_date || "",
+              attachment: log.attachment || null,
             })),
             notes: data.data.notes.map((note: any) => ({
               id: note.id,
@@ -1237,7 +1239,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         </div>
                         <div className="space-y-2">
                         <Label>Prior Treatments</Label>
-                        <ReadOnlyTextarea value={trial.criteria[0]?.prior_treatments || ""} rows={3} placeholder="No treatments specified" />
+                        <ReadOnlyTextarea value={trial.criteria[0]?.healthy_volunteers || ""} rows={3} placeholder="No treatments specified" />
                       </div>
                     </div>
 

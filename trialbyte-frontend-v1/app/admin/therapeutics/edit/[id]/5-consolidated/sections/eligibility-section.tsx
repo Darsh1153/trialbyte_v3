@@ -8,7 +8,96 @@ import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 import { useParams } from "next/navigation";
 import { useTherapeuticTrial } from "@/hooks/use-therapeutic-trial";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+
+const volunteerFieldCandidates: Record<"target" | "actual", string[]> = {
+  target: [
+    "target_no_volunteers",
+    "targetNoVolunteers",
+    "target_no_of_volunteers",
+    "target_number_of_volunteers",
+    "target_volunteers",
+    "targetVolunteers",
+    "estimated_enrollment",
+    "enrollment_target",
+  ],
+  actual: [
+    "actual_enrolled_volunteers",
+    "actualEnrolledVolunteers",
+    "actual_no_of_volunteers",
+    "actual_number_of_volunteers",
+    "enrolled_volunteers",
+    "enrolledVolunteers",
+    "actual_enrollment",
+  ],
+};
+
+const normalizeVolunteerValue = (value: unknown): string | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value.toString() : null;
+  }
+
+  const stringValue = String(value).trim();
+  return stringValue ? stringValue : null;
+};
+
+const resolveVolunteerValue = (trial: any, type: "target" | "actual"): string => {
+  const sources: any[] = [];
+
+  if (trial?.criteria) {
+    if (Array.isArray(trial.criteria)) {
+      sources.push(...trial.criteria);
+    } else {
+      sources.push(trial.criteria);
+    }
+  }
+
+  if (trial?.participationCriteria) {
+    if (Array.isArray(trial.participationCriteria)) {
+      sources.push(...trial.participationCriteria);
+    } else {
+      sources.push(trial.participationCriteria);
+    }
+  }
+
+  if (trial?.participation) {
+    sources.push(trial.participation);
+  }
+
+  if (trial?.timing) {
+    if (Array.isArray(trial.timing)) {
+      sources.push(...trial.timing);
+    } else {
+      sources.push(trial.timing);
+    }
+  }
+
+  if (trial?.overview) {
+    sources.push(trial.overview);
+  }
+
+  if (trial?.population) {
+    sources.push(trial.population);
+  }
+
+  for (const source of sources) {
+    if (!source) continue;
+    for (const key of volunteerFieldCandidates[type]) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        const resolved = normalizeVolunteerValue(source[key]);
+        if (resolved !== null) {
+          return resolved;
+        }
+      }
+    }
+  }
+
+  return "";
+};
 
 export default function EligibilitySection() {
   const params = useParams();
@@ -18,13 +107,14 @@ export default function EligibilitySection() {
     updateField,
   } = useEditTherapeuticForm();
   const form = formData.step5_3;
+  const hasAutoFilledRef = useRef(false);
 
   // Use react-query to fetch trial data
   const { data: trialData, isLoading: isTrialLoading } = useTherapeuticTrial(trialId);
 
   // Auto-fill fields from fetched data
   useEffect(() => {
-    if (!trialData) {
+    if (!trialData || hasAutoFilledRef.current) {
       return;
     }
 
@@ -70,19 +160,17 @@ export default function EligibilitySection() {
     setIfChanged("gender", criteria.sex);
 
     const healthyVolunteers = asString(criteria.healthy_volunteers);
-    if (healthyVolunteers !== "" && form.prior_treatments[0] !== healthyVolunteers) {
-      updateField("step5_3", "prior_treatments", [healthyVolunteers]);
+    if (healthyVolunteers !== "" && form.healthy_volunteers[0] !== healthyVolunteers) {
+      updateField("step5_3", "healthy_volunteers", [healthyVolunteers]);
     }
+
+    hasAutoFilledRef.current = true;
   }, [
     trialData,
     updateField,
-    form.subject_type,
     form.target_no_volunteers,
     form.actual_enrolled_volunteers,
-    form.age_min,
-    form.age_max,
-    form.gender,
-    form.prior_treatments,
+    form.healthy_volunteers,
   ]);
 
   const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
@@ -127,7 +215,7 @@ export default function EligibilitySection() {
   console.log('Sex Options:', sexOptions);
   console.log('Healthy Volunteers Options:', healthyVolunteersOptions);
   console.log('Current Form Gender:', form.gender);
-  console.log('Current Form Prior Treatments (Healthy Volunteers):', form.prior_treatments);
+  console.log('Current Form Prior Treatments (Healthy Volunteers):', form.healthy_volunteers);
 
   return (
     <div className="space-y-6">
@@ -169,12 +257,12 @@ export default function EligibilitySection() {
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.biomarker_requirements[0] || ""}
+              value={form.age_min[0] || ""}
               onValueChange={(value) => {
-                const current = form.biomarker_requirements || [""];
+                const current = form.age_min || [""];
                 const updated = [...current];
                 updated[0] = value;
-                updateField("step5_3", "biomarker_requirements", updated);
+                updateField("step5_3", "age_min", updated);
               }}
               placeholder="Years"
               searchPlaceholder="Search unit..."
@@ -209,12 +297,12 @@ export default function EligibilitySection() {
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.biomarker_requirements[1] || ""}
+              value={form.age_max[1] || ""}
               onValueChange={(value) => {
-                const current = form.biomarker_requirements || [""];
+                const current = form.age_max || [""];
                 const updated = [...current];
                 updated[1] = value;
-                updateField("step5_3", "biomarker_requirements", updated);
+                updateField("step5_3", "age_max", updated);
               }}
               placeholder="Years"
               searchPlaceholder="Search unit..."
@@ -243,10 +331,10 @@ export default function EligibilitySection() {
             <Label>Healthy Volunteers</Label>
             <SearchableSelect
               options={healthyVolunteersOptions}
-              value={form.prior_treatments[0] || ""}
+              value={form.healthy_volunteers[0] || ""}
               onValueChange={(v) => {
                 console.log('Healthy Volunteers selected:', v);
-                updateField("step5_3", "prior_treatments", [v]);
+                updateField("step5_3", "healthy_volunteers", [v]);
               }}
               placeholder="Select"
               searchPlaceholder="Search..."

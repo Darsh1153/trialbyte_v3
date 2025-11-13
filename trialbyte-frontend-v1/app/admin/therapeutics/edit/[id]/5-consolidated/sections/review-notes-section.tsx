@@ -20,9 +20,9 @@ export default function ReviewNotesSection() {
   const {
     formData,
     updateField,
-    addArrayItem,
-    removeArrayItem,
-    updateArrayItem,
+    addNote,
+    updateNote,
+    removeNote,
   } = useEditTherapeuticForm();
   const { toast } = useToast();
   const { edgestore } = useEdgeStore();
@@ -326,25 +326,14 @@ export default function ReviewNotesSection() {
                 isVisible: note.isVisible !== false
               };
             })}
-            onAddNote={() => {
-              const newNote = {
-                id: Date.now().toString(),
-                date: new Date().toISOString().split("T")[0],
-                type: "General",
-                content: "",
-                sourceLink: "",
-                attachments: [],
-                isVisible: true
-              };
-              addArrayItem("step5_8", "notes", newNote);
-            }}
+            onAddNote={() => addNote("step5_8", "notes")}
             onUpdateNote={(index, updatedNote) => {
-              updateArrayItem("step5_8", "notes", index, updatedNote);
+              updateNote("step5_8", "notes", index, updatedNote);
             }}
-            onRemoveNote={(index) => removeArrayItem("step5_8", "notes", index)}
+            onRemoveNote={(index) => removeNote("step5_8", "notes", index)}
             onToggleVisibility={(index) => {
               const currentNote = form.notes[index];
-              updateArrayItem("step5_8", "notes", index, { ...currentNote, isVisible: !currentNote.isVisible });
+              updateNote("step5_8", "notes", index, { isVisible: !currentNote.isVisible });
             }}
             noteTypes={[
               "General",

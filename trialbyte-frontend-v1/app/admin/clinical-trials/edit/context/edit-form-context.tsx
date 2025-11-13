@@ -62,7 +62,7 @@ const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
     age_from: toNullableString(criteria.age_min),
     age_to: toNullableString(criteria.age_max),
     sex: toNullableString(criteria.gender),
-    healthy_volunteers: toNullableString(criteria.prior_treatments?.[0]),
+    healthy_volunteers: toNullableString(criteria.healthy_volunteers?.[0]),
     subject_type: toNullableString(criteria.subject_type),
     target_no_volunteers: parseVolunteerNumber(
       criteria.target_no_volunteers ?? formData.step5_4.estimated_enrollment
@@ -71,7 +71,7 @@ const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
       criteria.actual_enrolled_volunteers ?? formData.step5_4.actual_enrollment
     ),
     ecog_performance_status: toNullableString(criteria.ecog_performance_status),
-    prior_treatments: toNullableString(joinArrayToString(criteria.prior_treatments, ", ")),
+    healthy_volunteers: toNullableString(joinArrayToString(criteria.healthy_volunteers, ", ")),
     biomarker_requirements: toNullableString(joinArrayToString(criteria.biomarker_requirements, ", ")),
   };
 
@@ -152,7 +152,7 @@ export interface EditTherapeuticFormData {
     age_max: string;
     gender: string;
     ecog_performance_status: string;
-    prior_treatments: string[];
+    healthy_volunteers: string[];
     biomarker_requirements: string[];
     subject_type: string;
     target_no_volunteers: string;
@@ -375,7 +375,7 @@ const initialFormData: EditTherapeuticFormData = {
     age_max: "",
     gender: "",
     ecog_performance_status: "",
-    prior_treatments: [],
+    healthy_volunteers: [],
     biomarker_requirements: [],
     subject_type: "",
     target_no_volunteers: "",
@@ -959,7 +959,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               age_max: toStringOrEmpty(foundTrial.criteria?.[0]?.age_to),
               gender: toStringOrEmpty(foundTrial.criteria?.[0]?.sex),
               ecog_performance_status: toStringOrEmpty(foundTrial.criteria?.[0]?.ecog_performance_status),
-              prior_treatments: foundTrial.criteria?.[0]?.healthy_volunteers
+              healthy_volunteers: foundTrial.criteria?.[0]?.healthy_volunteers
                 ? [toStringOrEmpty(foundTrial.criteria[0].healthy_volunteers)]
                 : [],
               biomarker_requirements: [],

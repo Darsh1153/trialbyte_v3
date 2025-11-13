@@ -56,7 +56,7 @@ export default function EligibilitySection() {
   console.log('Sex Options:', sexOptions);
   console.log('Healthy Volunteers Options:', healthyVolunteersOptions);
   console.log('Current Form Gender:', form.gender);
-  console.log('Current Form Prior Treatments (Healthy Volunteers):', form.prior_treatments);
+  console.log('Current Form Prior Treatments (Healthy Volunteers):', form.healthy_volunteers);
 
   return (
     <div className="space-y-6">
@@ -98,12 +98,12 @@ export default function EligibilitySection() {
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.biomarker_requirements[0] || ""}
+              value={form.age_min[0] || ""}
               onValueChange={(value) => {
-                const current = form.biomarker_requirements || [""];
+                const current = form.age_min || [""];
                 const updated = [...current];
                 updated[0] = value;
-                updateField("step5_3", "biomarker_requirements", updated);
+                updateField("step5_3", "age_min", updated);
               }}
               placeholder="Years"
               searchPlaceholder="Search unit..."
@@ -116,8 +116,8 @@ export default function EligibilitySection() {
           <Label>Subject Type</Label>
           <Input
             placeholder="Enter subject type..."
-            value={form.ecog_performance_status || ""}
-            onChange={(e) => updateField("step5_3", "ecog_performance_status", e.target.value)}
+            value={form.subject_type || ""}
+            onChange={(e) => updateField("step5_3", "subject_type", e.target.value)}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -138,12 +138,12 @@ export default function EligibilitySection() {
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.biomarker_requirements[1] || ""}
+              value={form.age_max[1] || ""}
               onValueChange={(value) => {
-                const current = form.biomarker_requirements || [""];
+                const current = form.age_max || [""];
                 const updated = [...current];
                 updated[1] = value;
-                updateField("step5_3", "biomarker_requirements", updated);
+                updateField("step5_3", "age_max", updated);
               }}
               placeholder="Years"
               searchPlaceholder="Search unit..."
@@ -172,10 +172,10 @@ export default function EligibilitySection() {
             <Label>Healthy Volunteers</Label>
             <SearchableSelect
               options={healthyVolunteersOptions}
-              value={form.prior_treatments[0] || ""}
+              value={form.healthy_volunteers[0] || ""}
               onValueChange={(v) => {
                 console.log('Healthy Volunteers selected:', v);
-                updateField("step5_3", "prior_treatments", [v]);
+                updateField("step5_3", "healthy_volunteers", [v]);
               }}
               placeholder="Select"
               searchPlaceholder="Search..."
@@ -192,13 +192,8 @@ export default function EligibilitySection() {
           <Input
             type="number"
             placeholder="e.g., 50"
-            value={form.biomarker_requirements[0] || ""}
-            onChange={(e) => {
-              const current = form.biomarker_requirements || [""];
-              const updated = [...current];
-              updated[0] = e.target.value;
-              updateField("step5_3", "biomarker_requirements", updated);
-            }}
+            value={form.target_no_volunteers || ""}
+            onChange={(e) => updateField("step5_3", "target_no_volunteers", e.target.value)}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -207,13 +202,8 @@ export default function EligibilitySection() {
           <Input
             type="number"
             placeholder="e.g., 40"
-            value={form.biomarker_requirements[1] || ""}
-            onChange={(e) => {
-              const current = form.biomarker_requirements || [""];
-              const updated = [...current];
-              updated[1] = e.target.value;
-              updateField("step5_3", "biomarker_requirements", updated);
-            }}
+            value={form.actual_enrolled_volunteers || ""}
+            onChange={(e) => updateField("step5_3", "actual_enrolled_volunteers", e.target.value)}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>

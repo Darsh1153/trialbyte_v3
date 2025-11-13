@@ -49,8 +49,8 @@ export interface TherapeuticParticipationCriteria {
   age_to: string | null;
   sex: string | null;
   healthy_volunteers: string | null;
-  target_no_volunteers: number | null;
-  actual_enrolled_volunteers: number | null;
+  target_no_volunteers: string | null;
+  actual_enrolled_volunteers: string | null;
 }
 
 export type CreateTherapeuticParticipationCriteriaDto = Omit<TherapeuticParticipationCriteria, "id">;
@@ -127,6 +127,8 @@ export interface TherapeuticLogs {
   last_modified_user: string | null;
   full_review_user: string | null;
   next_review_date: string | null;
+  internal_note: string | null;
+  attachment: string | null;
 }
 
 export type CreateTherapeuticLogsDto = Omit<TherapeuticLogs, "id">;
@@ -135,10 +137,7 @@ export type UpdateTherapeuticLogsDto = Partial<CreateTherapeuticLogsDto>;
 export interface TherapeuticNotes {
   id: string;
   trial_id: string;
-  date_type: string | null;
-  notes: string | null;
-  link: string | null;
-  attachments: string | null;
+  notes: any; // JSONB field - can be array or object containing note data
 }
 
 export type CreateTherapeuticNotesDto = Omit<TherapeuticNotes, "id">;

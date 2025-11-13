@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -27,7 +27,8 @@ import {
 } from "@/components/ui/select";
 import { Search, ChevronLeft, ChevronRight, Plus, MoreHorizontal } from "lucide-react";
 import { AddUserModal } from "@/components/add-user-modal";
-import { usersApi } from "@/app/_lib/api";
+import { usersApi, rolesApi } from "@/app/_lib/api";
+import { useToast } from "@/hooks/use-toast";
 import {
   BarChart,
   Bar,
@@ -78,17 +79,17 @@ export default function UsersPage() {
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+  const [isRemoving, setIsRemoving] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
+  const loadUsers = async () => {
       setLoading(true);
       try {
         const data = await usersApi.list();
-        if (mounted) setUsers(data as ApiUser[]);
+      setUsers(data as ApiUser[]);
       } catch {
         // Use mock data when API fails
-        if (mounted) {
           setUsers([
             {
               id: "CT123",
@@ -166,15 +167,34 @@ export default function UsersPage() {
               updated_at: "2024-02-15T11:30:00Z",
             },
           ]);
-        }
       } finally {
-        if (mounted) setLoading(false);
-      }
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      await loadUsers();
     })();
     return () => {
       mounted = false;
     };
   }, []);
+
+  // Refresh user list when modal closes (after adding a user)
+  const prevModalOpen = useRef(false);
+  useEffect(() => {
+    // Only refresh if modal was open and is now closed (user was likely added)
+    if (prevModalOpen.current && !isAddUserModalOpen) {
+      // Small delay to ensure the user was added before refreshing
+      const timeoutId = setTimeout(() => {
+        loadUsers();
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+    prevModalOpen.current = isAddUserModalOpen;
+  }, [isAddUserModalOpen]);
 
   const filteredUsers = useMemo(() => {
     const q = searchTerm.toLowerCase();
@@ -195,6 +215,116 @@ export default function UsersPage() {
     startIndex + itemsPerPage
   );
 
+  // Checkbox handlers
+  const handleSelectUser = (userId: string) => {
+    const newSelected = new Set(selectedUsers);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUsers(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedUsers.size === paginatedUsers.length) {
+      setSelectedUsers(new Set());
+    } else {
+      setSelectedUsers(new Set(paginatedUsers.map((u) => u.id)));
+    }
+  };
+
+  const isAllSelected = paginatedUsers.length > 0 && selectedUsers.size === paginatedUsers.length;
+  const isSomeSelected = selectedUsers.size > 0 && selectedUsers.size < paginatedUsers.length;
+
+  // Remove users handler
+  const handleRemoveUsers = async () => {
+    if (selectedUsers.size === 0) {
+      toast({
+        title: "No users selected",
+        description: "Please select at least one user to remove.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRemoving(true);
+    console.log("handleRemoveUsers: Starting removal process", { selectedUsers: Array.from(selectedUsers) });
+
+    try {
+      const selectedUserIds = Array.from(selectedUsers);
+      const adminUsers: string[] = [];
+      const usersToDelete: string[] = [];
+
+      // Check each selected user for admin role
+      for (const userId of selectedUserIds) {
+        try {
+          const roles = await rolesApi.getUserRoles(userId);
+          console.log(`handleRemoveUsers: User ${userId} roles:`, roles);
+          const isAdmin = roles.some((role) => role.role_name === "Admin");
+          
+          if (isAdmin) {
+            const user = users.find((u) => u.id === userId);
+            adminUsers.push(user?.username || userId);
+          } else {
+            usersToDelete.push(userId);
+          }
+        } catch (error) {
+          console.error(`handleRemoveUsers: Error checking roles for user ${userId}:`, error);
+          // If we can't check roles, skip this user to be safe
+          const user = users.find((u) => u.id === userId);
+          adminUsers.push(user?.username || userId);
+        }
+      }
+
+      // Prevent deletion if any admin users are selected
+      if (adminUsers.length > 0) {
+        toast({
+          title: "Cannot delete admin users",
+          description: `The following users are admins and cannot be deleted: ${adminUsers.join(", ")}`,
+          variant: "destructive",
+        });
+        setIsRemoving(false);
+        return;
+      }
+
+      // Delete non-admin users
+      if (usersToDelete.length === 0) {
+        toast({
+          title: "No users to delete",
+          description: "All selected users are admins and cannot be deleted.",
+          variant: "destructive",
+        });
+        setIsRemoving(false);
+        return;
+      }
+
+      // Delete users one by one
+      const deletePromises = usersToDelete.map((userId) => usersApi.delete(userId));
+      await Promise.all(deletePromises);
+
+      console.log(`handleRemoveUsers: Successfully deleted ${usersToDelete.length} user(s)`);
+
+      // Refresh the user list
+      await loadUsers();
+      setSelectedUsers(new Set());
+
+      toast({
+        title: "Users removed successfully",
+        description: `Successfully removed ${usersToDelete.length} user(s).`,
+      });
+    } catch (error) {
+      console.error("handleRemoveUsers: Error removing users:", error);
+      toast({
+        title: "Error removing users",
+        description: error instanceof Error ? error.message : "Failed to remove users. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EAF8FF] to-white p-6 space-y-6">
       {/* Header */}
@@ -211,8 +341,10 @@ export default function UsersPage() {
           <Button
             variant="outline"
             className="border-[#204B73] text-[#204B73] hover:bg-[#204B73] hover:text-white"
+            onClick={handleRemoveUsers}
+            disabled={isRemoving || selectedUsers.size === 0}
           >
-            Remove users
+            {isRemoving ? "Removing..." : "Remove users"}
           </Button>
         </div>
       </div>
@@ -225,7 +357,15 @@ export default function UsersPage() {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="w-[50px]">
-                    <input type="checkbox" className="rounded" />
+                    <input
+                      type="checkbox"
+                      className="rounded"
+                      checked={isAllSelected}
+                      ref={(input) => {
+                        if (input) input.indeterminate = isSomeSelected;
+                      }}
+                      onChange={handleSelectAll}
+                    />
                   </TableHead>
                   <TableHead className="font-semibold">User Name</TableHead>
                   <TableHead className="font-semibold">Designation</TableHead>
@@ -254,7 +394,12 @@ export default function UsersPage() {
                   paginatedUsers.map((user) => (
                     <TableRow key={user.id} className="hover:bg-gray-50">
                       <TableCell>
-                        <input type="checkbox" className="rounded" />
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={selectedUsers.has(user.id)}
+                          onChange={() => handleSelectUser(user.id)}
+                        />
                       </TableCell>
                       <TableCell className="font-medium">{user.username}</TableCell>
                       <TableCell>{user.designation || "N/A"}</TableCell>

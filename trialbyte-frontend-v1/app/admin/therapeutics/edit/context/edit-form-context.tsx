@@ -3,25 +3,21 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-const parseVolunteerNumber = (value: unknown): number | null => {
+const parseVolunteerNumber = (value: unknown): string | null => {
   console.log("[EditTherapeuticFormContext] parseVolunteerNumber input:", value);
   if (value === null || value === undefined) {
     return null;
   }
 
   const normalized =
-    typeof value === "string" ? value.replace(/,/g, "").trim() : value;
+    typeof value === "string" ? value.replace(/,/g, "").trim() : String(value).trim();
 
   if (normalized === "") {
     return null;
   }
 
-  const parsed = Number(normalized);
-  if (Number.isFinite(parsed)) {
-    return parsed;
-  }
-
-  return null;
+  // Return as string to match database TEXT type
+  return normalized;
 };
 
 const joinArrayToString = (
@@ -48,6 +44,24 @@ const toNullableString = (value: unknown): string | null => {
   return stringValue === "" ? null : stringValue;
 };
 
+const toNullableNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const parsed =
+    typeof value === "number"
+      ? value
+      : parseInt(String(value).trim(), 10);
+
+  if (!Number.isFinite(parsed)) {
+    console.log("[EditTherapeuticFormContext] toNullableNumber: Non-numeric input", { value, parsed });
+    return null;
+  }
+
+  return parsed;
+};
+
 const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
   console.log("[EditTherapeuticFormContext] buildCriteriaPayload source:", {
     step5_3: formData.step5_3,
@@ -62,7 +76,7 @@ const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
     age_from: toNullableString(criteria.age_min),
     age_to: toNullableString(criteria.age_max),
     sex: toNullableString(criteria.gender),
-    healthy_volunteers: toNullableString(criteria.prior_treatments?.[0]),
+    healthy_volunteers: toNullableString(criteria.healthy_volunteers?.[0]),
     subject_type: toNullableString(criteria.subject_type),
     target_no_volunteers: parseVolunteerNumber(
       criteria.target_no_volunteers ?? formData.step5_4.estimated_enrollment
@@ -70,9 +84,6 @@ const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
     actual_enrolled_volunteers: parseVolunteerNumber(
       criteria.actual_enrolled_volunteers ?? formData.step5_4.actual_enrollment
     ),
-    ecog_performance_status: toNullableString(criteria.ecog_performance_status),
-    prior_treatments: toNullableString(joinArrayToString(criteria.prior_treatments, ", ")),
-    biomarker_requirements: toNullableString(joinArrayToString(criteria.biomarker_requirements, ", ")),
   };
 
   console.log("[EditTherapeuticFormContext] buildCriteriaPayload output:", payload);
@@ -106,6 +117,53 @@ const parseOutcomeMeasureField = (rawValue: unknown): string[] => {
   }
 
   return [trimmedValue];
+};
+
+const buildOutcomePayload = (formData: EditTherapeuticFormData) => {
+  console.log("[EditTherapeuticFormContext] buildOutcomePayload source:", formData.step5_2);
+
+  const outcome = formData.step5_2;
+  const payload = {
+    purpose_of_trial: toNullableString(outcome.purpose_of_trial),
+    summary: toNullableString(outcome.summary),
+    primary_outcome_measure: toNullableString(joinArrayToString(outcome.primaryOutcomeMeasures, "\n")),
+    other_outcome_measure: toNullableString(joinArrayToString(outcome.otherOutcomeMeasures, "\n")),
+    study_design_keywords: toNullableString(joinArrayToString(outcome.study_design_keywords, ", ")),
+    study_design: toNullableString(outcome.study_design),
+    treatment_regimen: toNullableString(outcome.treatment_regimen),
+    number_of_arms: toNullableNumber(outcome.number_of_arms),
+  };
+
+  console.log("[EditTherapeuticFormContext] buildOutcomePayload output:", payload);
+
+  return payload;
+};
+
+const clearTrialDrafts = (trialId: string) => {
+  if (!trialId) return;
+  try {
+    console.log("[EditTherapeuticFormContext] Clearing localStorage drafts for trial:", trialId);
+    localStorage.removeItem(`trial_timing_${trialId}`);
+    localStorage.removeItem(`trial_results_${trialId}`);
+    localStorage.removeItem(`trial_other_sources_${trialId}`);
+    localStorage.removeItem(`trial_db_saved_${trialId}`);
+    localStorage.removeItem(`trial_updated_${trialId}`);
+
+    const existingTrials = JSON.parse(localStorage.getItem("therapeuticTrials") || "[]");
+    if (Array.isArray(existingTrials) && existingTrials.length > 0) {
+      const filtered = existingTrials.filter(
+        (trial: any) =>
+          trial.trial_id !== trialId &&
+          trial.overview?.id !== trialId &&
+          trial.id !== trialId
+      );
+      if (filtered.length !== existingTrials.length) {
+        localStorage.setItem("therapeuticTrials", JSON.stringify(filtered));
+      }
+    }
+  } catch (error) {
+    console.warn("[EditTherapeuticFormContext] Failed to clear drafts:", error);
+  }
 };
 
 // Define the complete form structure for editing
@@ -151,9 +209,7 @@ export interface EditTherapeuticFormData {
     age_min: string;
     age_max: string;
     gender: string;
-    ecog_performance_status: string;
-    prior_treatments: string[];
-    biomarker_requirements: string[];
+    healthy_volunteers: string[]; // Used for healthy_volunteers (healthy_volunteers[0])
     subject_type: string;
     target_no_volunteers: string;
     actual_enrolled_volunteers: string;
@@ -304,7 +360,13 @@ export interface EditTherapeuticFormData {
       type: string;
       content: string;
       sourceLink?: string;
-      attachments?: string[];
+      sourceType?: string;
+      sourceUrl?: string;
+      attachments?: Array<{
+        name: string;
+        url: string;
+        type: string;
+      }>;
       isVisible: boolean;
     }>;
     attachments: string[];
@@ -384,9 +446,7 @@ const initialFormData: EditTherapeuticFormData = {
     age_min: "",
     age_max: "",
     gender: "",
-    ecog_performance_status: "",
-    prior_treatments: [],
-    biomarker_requirements: [],
+    healthy_volunteers: [],
     subject_type: "",
     target_no_volunteers: "",
     actual_enrolled_volunteers: "",
@@ -822,13 +882,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       // If skipLocalStorage is true (after save), clear localStorage to ensure fresh DB data is used
       if (skipLocalStorage) {
         console.log('🗑️ Clearing localStorage before loading fresh DB data');
-        try {
-          localStorage.removeItem(`trial_timing_${trialId}`);
-          localStorage.removeItem(`trial_results_${trialId}`);
-          localStorage.removeItem(`trial_other_sources_${trialId}`);
-        } catch (e) {
-          console.warn('Failed to clear localStorage:', e);
-        }
+        clearTrialDrafts(trialId);
       }
       
       setIsLoading(true);
@@ -913,6 +967,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         if (foundTrial) {
           // Store original trial data for reference
           setOriginalTrial(foundTrial);
+          console.log("[EditTherapeuticFormContext] Raw outcome payload from API:", foundTrial.outcomes?.[0]);
           
           // Helper function to format date from database (YYYY-MM-DD) to UI (MM-DD-YYYY)
           const formatDateForUI = (dateStr: string): string => {
@@ -954,7 +1009,53 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           const mappedData: EditTherapeuticFormData = {
             step5_1: {
               therapeutic_area: foundTrial.overview?.therapeutic_area || "",
-              trial_identifier: foundTrial.overview?.trial_identifier || [],
+              trial_identifier: (() => {
+                const normalizeId = (value: any) =>
+                  typeof value === "string" ? value.trim() : "";
+                const isAutoGeneratedId = (value: string) =>
+                  /^TB-\d{6}$/.test(value);
+
+                const rawIdentifiers = Array.isArray(foundTrial.overview?.trial_identifier)
+                  ? foundTrial.overview.trial_identifier
+                      .map(normalizeId)
+                      .filter(Boolean)
+                  : [];
+
+                const candidateIds = [
+                  normalizeId(foundTrial.trial_id),
+                  normalizeId(foundTrial.overview?.trial_id),
+                  ...rawIdentifiers,
+                ].filter(Boolean);
+
+                let autoGeneratedId =
+                  candidateIds.find((id: string) => isAutoGeneratedId(id)) || "";
+
+                if (!autoGeneratedId) {
+                  const sourceForHash =
+                    normalizeId(foundTrial.overview?.id) ||
+                    normalizeId(foundTrial.trial_id) ||
+                    normalizeId(trialId);
+
+                  if (sourceForHash) {
+                    let hash = 0;
+                    for (let i = 0; i < sourceForHash.length; i++) {
+                      hash = (hash * 31 + sourceForHash.charCodeAt(i)) >>> 0;
+                    }
+                    const numeric = (hash % 1_000_000)
+                      .toString()
+                      .padStart(6, "0");
+                    autoGeneratedId = `TB-${numeric}`;
+                  } else {
+                    autoGeneratedId = "TB-000000";
+                  }
+                }
+
+                const otherIdentifiers = rawIdentifiers.filter(
+                  (id: string) => id !== autoGeneratedId
+                );
+
+                return [autoGeneratedId, ...otherIdentifiers];
+              })(),
               trial_phase: foundTrial.overview?.trial_phase || "",
               status: foundTrial.overview?.status || "",
               primary_drugs: foundTrial.overview?.primary_drugs || "",
@@ -1006,11 +1107,9 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               age_min: toStringOrEmpty(foundTrial.criteria?.[0]?.age_from),
               age_max: toStringOrEmpty(foundTrial.criteria?.[0]?.age_to),
               gender: toStringOrEmpty(foundTrial.criteria?.[0]?.sex),
-              ecog_performance_status: toStringOrEmpty(foundTrial.criteria?.[0]?.ecog_performance_status),
-              prior_treatments: foundTrial.criteria?.[0]?.healthy_volunteers
+              healthy_volunteers: foundTrial.criteria?.[0]?.healthy_volunteers
                 ? [toStringOrEmpty(foundTrial.criteria[0].healthy_volunteers)]
                 : [],
-              biomarker_requirements: [],
               subject_type: toStringOrEmpty(foundTrial.criteria?.[0]?.subject_type),
               target_no_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.target_no_volunteers),
               actual_enrolled_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.actual_enrolled_volunteers),
@@ -1351,6 +1450,131 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               final_analysis_date: "",
               regulatory_submission_date: "",
               references: (() => {
+                const normalizeSiteAttachments = (attachments: any): Array<Record<string, any>> => {
+                  console.log("🔧 Normalizing site attachments:", attachments);
+
+                  const toArray = (value: any): any[] => {
+                    if (!value) {
+                      return [];
+                    }
+
+                    if (Array.isArray(value)) {
+                      console.log("📦 Attachments already array:", value.length);
+                      return value;
+                    }
+
+                    if (typeof value === "string") {
+                      const trimmed = value.trim();
+                      if (!trimmed) {
+                        return [];
+                      }
+
+                      if (trimmed.startsWith("[")) {
+                        try {
+                          const parsed = JSON.parse(trimmed);
+                          console.log("✅ Parsed attachments JSON string:", parsed);
+                          return Array.isArray(parsed) ? parsed : [];
+                        } catch (error) {
+                          console.warn("⚠️ Failed to parse attachments JSON string:", trimmed, error);
+                          return [];
+                        }
+                      }
+
+                      if (trimmed.startsWith("{")) {
+                        try {
+                          const parsedObject = JSON.parse(trimmed);
+                          console.log("✅ Parsed single attachment JSON:", parsedObject);
+                          return [parsedObject];
+                        } catch (error) {
+                          console.warn("⚠️ Failed to parse attachment JSON object:", trimmed, error);
+                        }
+                      }
+
+                      return [trimmed];
+                    }
+
+                    if (typeof value === "object") {
+                      return [value];
+                    }
+
+                    return [];
+                  };
+
+                  const attachmentsArray = toArray(attachments);
+
+                  return attachmentsArray
+                    .map((item: any, index: number) => {
+                      console.log(`🧩 Normalizing attachment #${index}:`, item);
+
+                      if (!item) {
+                        return null;
+                      }
+
+                      if (typeof item === "string") {
+                        const trimmed = item.trim();
+                        if (!trimmed) {
+                          return null;
+                        }
+
+                        const isUrl = /^https?:\/\//i.test(trimmed);
+                        const derivedName = (() => {
+                          if (isUrl) {
+                            try {
+                              const url = new URL(trimmed);
+                              return decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() || "Attachment");
+                            } catch {
+                              const segments = trimmed.split("/");
+                              return segments[segments.length - 1] || "Attachment";
+                            }
+                          }
+                          return trimmed;
+                        })();
+
+                        return {
+                          name: derivedName,
+                          url: isUrl ? trimmed : "",
+                          type: "application/octet-stream",
+                        };
+                      }
+
+                      if (typeof item === "object") {
+                        const possibleUrl =
+                          typeof item.url === "string"
+                            ? item.url
+                            : typeof item.href === "string"
+                            ? item.href
+                            : typeof item.link === "string"
+                            ? item.link
+                            : "";
+                        const derivedName =
+                          typeof item.name === "string" && item.name
+                            ? item.name
+                            : possibleUrl
+                            ? (() => {
+                                try {
+                                  const url = new URL(possibleUrl);
+                                  return decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() || "Attachment");
+                                } catch {
+                                  const segments = possibleUrl.split("/");
+                                  return segments[segments.length - 1] || "Attachment";
+                                }
+                              })()
+                            : "Attachment";
+
+                        return {
+                          name: derivedName,
+                          url: possibleUrl,
+                          type: typeof item.type === "string" && item.type ? item.type : "application/octet-stream",
+                          size: typeof item.size === "number" ? item.size : undefined,
+                          lastModified: typeof item.lastModified === "number" ? item.lastModified : undefined,
+                        };
+                      }
+
+                      return null;
+                    })
+                    .filter(Boolean) as Array<Record<string, any>>;
+                };
+
                 // Parse site_notes if it's a string, or use it directly if it's an array
                 let siteNotes = foundTrial.sites?.[0]?.site_notes;
                 
@@ -1379,7 +1603,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     registryType: note.registryType || note.sourceType || "",
                     content: note.content || "",
                     viewSource: note.viewSource || note.sourceLink || "",
-                    attachments: note.attachments || [],
+                    attachments: normalizeSiteAttachments(note.attachments),
                     isVisible: note.isVisible !== false,
                   }));
                   console.log('Mapped references:', mappedReferences);
@@ -1466,6 +1690,184 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               console.log('otherSources count:', otherSources.length);
               console.log('First item sample:', otherSources[0]);
               
+              const deriveOtherSourceFileName = (rawUrl: string) => {
+                if (!rawUrl) {
+                  return "Attachment";
+                }
+
+                try {
+                  const parsedUrl = new URL(rawUrl);
+                  const segments = parsedUrl.pathname.split("/").filter(Boolean);
+                  const lastSegment = segments.pop();
+                  if (lastSegment) {
+                    return decodeURIComponent(lastSegment);
+                  }
+                } catch (error) {
+                  console.warn("Failed to parse URL for filename:", rawUrl, error);
+                  const fallbackSegments = rawUrl.split("/").filter(Boolean);
+                  const fallback = fallbackSegments.pop();
+                  if (fallback) {
+                    return decodeURIComponent(fallback);
+                  }
+                }
+
+                return "Attachment";
+              };
+
+              const collectOtherSourceAttachments = (value: any): any[] => {
+                if (!value) {
+                  return [];
+                }
+
+                if (Array.isArray(value)) {
+                  return value;
+                }
+
+                if (typeof value === "string") {
+                  const trimmed = value.trim();
+                  if (!trimmed) {
+                    return [];
+                  }
+
+                  if (
+                    (trimmed.startsWith("[") && trimmed.endsWith("]")) ||
+                    (trimmed.startsWith("{") && trimmed.endsWith("}"))
+                  ) {
+                    try {
+                      const parsed = JSON.parse(trimmed);
+                      if (Array.isArray(parsed)) {
+                        return parsed;
+                      }
+                      if (parsed) {
+                        return [parsed];
+                      }
+                    } catch (error) {
+                      console.warn("⚠️ Failed to parse other source attachments JSON:", trimmed, error);
+                    }
+                    return [];
+                  }
+
+                  return [trimmed];
+                }
+
+                if (typeof value === "object") {
+                  return [value];
+                }
+
+                return [];
+              };
+
+              const normalizeOtherSourceFileFields = (
+                fileValue: any,
+                urlValue: any,
+                attachmentsValue: any
+              ): { fileName: string; fileUrl: string } => {
+                console.log("🔗 Normalizing Other Sources file fields:", {
+                  fileValue,
+                  urlValue,
+                  attachmentsValue,
+                });
+
+                let fileName = "";
+                let fileUrl = "";
+
+                const considerUrl = (candidateUrl: string | undefined | null) => {
+                  if (typeof candidateUrl === "string" && candidateUrl.trim()) {
+                    const trimmed = candidateUrl.trim();
+                    if (!fileUrl) {
+                      fileUrl = trimmed;
+                    }
+                    if (!fileName) {
+                      fileName = deriveOtherSourceFileName(trimmed);
+                    }
+                  }
+                };
+
+                const considerString = (value: string) => {
+                  const trimmed = value.trim();
+                  if (!trimmed) {
+                    return;
+                  }
+
+                  if (
+                    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+                    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+                  ) {
+                    try {
+                      const parsed = JSON.parse(trimmed);
+                      const candidates = Array.isArray(parsed) ? parsed : [parsed];
+                      candidates.forEach(considerUnknown);
+                      return;
+                    } catch (error) {
+                      console.warn("⚠️ Failed to parse JSON string when normalizing file:", trimmed, error);
+                    }
+                  }
+
+                  if (/^https?:\/\//i.test(trimmed)) {
+                    considerUrl(trimmed);
+                  } else if (!fileName) {
+                    fileName = trimmed;
+                  }
+                };
+
+                const considerObject = (obj: Record<string, any>) => {
+                  if (!obj) {
+                    return;
+                  }
+
+                  const possibleUrl =
+                    typeof obj.url === "string"
+                      ? obj.url
+                      : typeof obj.href === "string"
+                      ? obj.href
+                      : typeof obj.link === "string"
+                      ? obj.link
+                      : "";
+                  const possibleName =
+                    typeof obj.name === "string" && obj.name.trim() ? obj.name.trim() : "";
+
+                  if (possibleUrl) {
+                    considerUrl(possibleUrl);
+                  }
+
+                  if (possibleName && !fileName) {
+                    fileName = possibleName;
+                  }
+                };
+
+                const considerUnknown = (value: any) => {
+                  if (!value) {
+                    return;
+                  }
+
+                  if (typeof value === "string") {
+                    considerString(value);
+                  } else if (typeof value === "object") {
+                    considerObject(value as Record<string, any>);
+                  }
+                };
+
+                considerUnknown(urlValue);
+                considerUnknown(fileValue);
+
+                const attachmentCandidates = collectOtherSourceAttachments(attachmentsValue);
+                attachmentCandidates.forEach(considerUnknown);
+
+                if (!fileName && fileUrl) {
+                  fileName = deriveOtherSourceFileName(fileUrl);
+                }
+
+                console.log("✅ Normalized Other Sources file metadata:", {
+                  fileName,
+                  fileUrl,
+                });
+
+                return {
+                  fileName,
+                  fileUrl,
+                };
+              };
+
               const pipeline_data: any[] = [];
               const press_releases: any[] = [];
               const publications: any[] = [];
@@ -1527,60 +1929,65 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   
                   // Group by type
                   if (itemType === 'pipeline_data') {
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     pipeline_data.push({
                       id: item.id || parsedData.id || Date.now().toString(),
                       date: parsedData.date || "",
                       information: parsedData.information || "",
-                      url: parsedData.url || "",
-                      file: parsedData.file || "",
+                      url: normalizedFile.fileUrl || "",
+                      file: normalizedFile.fileName || "",
                       isVisible: parsedData.isVisible !== false
                     });
                   } else if (itemType === 'press_releases') {
                     console.log(`📄 Loading press release ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     press_releases.push({
                       id: item.id || parsedData.id || Date.now().toString(),
                       date: parsedData.date || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
-                      url: parsedData.url || "",
-                      file: parsedData.file || "",
+                      url: normalizedFile.fileUrl || "",
+                      file: normalizedFile.fileName || "",
                       isVisible: parsedData.isVisible !== false
                     });
                   } else if (itemType === 'publications') {
                     console.log(`📄 Loading publication ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     publications.push({
                       id: item.id || parsedData.id || Date.now().toString(),
                       type: parsedData.publicationType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
-                      url: parsedData.url || "",
-                      file: parsedData.file || "",
+                      url: normalizedFile.fileUrl || "",
+                      file: normalizedFile.fileName || "",
                       isVisible: parsedData.isVisible !== false
                     });
                   } else if (itemType === 'trial_registries') {
                     console.log(`📄 Loading trial registry ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     trial_registries.push({
                       id: item.id || parsedData.id || Date.now().toString(),
                       registry: parsedData.registry || "",
                       identifier: parsedData.identifier || "",
                       description: parsedData.description || parsedData.content || "",
-                      url: parsedData.url || "",
-                      file: parsedData.file || "",
+                      url: normalizedFile.fileUrl || "",
+                      file: normalizedFile.fileName || "",
                       isVisible: parsedData.isVisible !== false
                     });
                   } else if (itemType === 'associated_studies') {
                     console.log(`📄 Loading associated study ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     associated_studies.push({
                       id: item.id || parsedData.id || Date.now().toString(),
                       type: parsedData.studyType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
-                      url: parsedData.url || "",
-                      file: parsedData.file || "",
+                      url: normalizedFile.fileUrl || "",
+                      file: normalizedFile.fileName || "",
                       isVisible: parsedData.isVisible !== false
                     });
                   }
@@ -1613,106 +2020,247 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               };
             })(),
             step5_8: (() => {
-              // Parse notes - backend stores it as a single record with concatenated string
+              // Parse notes - new schema: notes stored as JSONB in notes field
               const notesData = foundTrial.notes?.[0];
-              console.log('Loading notes data:', {
+              console.log('[EditFormContext] Loading notes data (new schema):', {
                 rawNotes: notesData,
-                notesField: notesData?.notes
+                notesField: notesData?.notes,
+                notesType: typeof notesData?.notes
               });
               
               let parsedNotes: any[] = [];
               
+              // New schema: notes field is JSONB containing all note data
               if (notesData && notesData.notes) {
-                // Handle both string (from database) and array (from localStorage or already parsed) formats
-                if (typeof notesData.notes === 'string') {
-                  // Parse the concatenated string back into individual notes
-                  // Format: "2024-01-01 (General): Note content - Source: http://...; 2024-01-02 (Update): ..."
-                  const notesString = notesData.notes;
+                const ensureAttachmentsArray = (attachments: any) => {
+                  if (!attachments) return [];
+                  if (typeof attachments === "string") {
+                    try {
+                      const parsed = JSON.parse(attachments);
+                      if (Array.isArray(parsed)) {
+                        return parsed.map((attachment: any) => ({
+                          name: String(attachment?.name || ""),
+                          url: String(attachment?.url || ""),
+                          type: String(attachment?.type || "application/octet-stream"),
+                        }));
+                      }
+                    } catch {
+                      return [];
+                    }
+                  }
+                  if (Array.isArray(attachments)) {
+                    return attachments.map((attachment: any) => ({
+                      name: String(attachment?.name || ""),
+                      url: String(attachment?.url || ""),
+                      type: String(attachment?.type || "application/octet-stream"),
+                    }));
+                  }
+                  return [];
+                };
+
+                // Helper function to format date from database (YYYY-MM-DD) to UI (MM-DD-YYYY)
+                const formatDateForUI = (dateStr: string): string => {
+                  if (!dateStr) return "";
                   
-                  if (notesString !== "No notes available") {
-                    const noteParts = notesString.split('; ');
-                    parsedNotes = noteParts.map((notePart: string, index: number) => {
-                      // Improved parsing: split by " - Source: " first to separate content from source
+                  try {
+                    // Handle YYYY-MM-DD format (from database)
+                    if (dateStr.includes('-') && dateStr.length === 10) {
+                      const parts = dateStr.split('-');
+                      if (parts.length === 3 && parts[0].length === 4) {
+                        // Convert YYYY-MM-DD to MM-DD-YYYY
+                        const [year, month, day] = parts;
+                        return `${month}-${day}-${year}`;
+                      }
+                    }
+                    
+                    // Try to parse as Date object
+                    const date = new Date(dateStr);
+                    if (!isNaN(date.getTime())) {
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const year = date.getFullYear();
+                      return `${month}-${day}-${year}`;
+                    }
+                    
+                    return dateStr; // Return as-is if can't parse
+                  } catch (e) {
+                    console.warn('Error formatting date for UI:', dateStr, e);
+                    return dateStr;
+                  }
+                };
+
+                const parseNoteDateForUI = (value: string) => {
+                  if (!value) return "";
+                  return formatDateForUI(value);
+                };
+
+                const buildParsedNote = (note: any, index: number) => ({
+                  id: String(note?.id || `${index + 1}`),
+                  date: parseNoteDateForUI(String(note?.date || "")),
+                  type: String(note?.type || "General"),
+                  content:
+                    typeof note?.content === "string"
+                      ? note.content
+                      : note?.content && typeof note.content === "object"
+                      ? note.content.text || note.content.content || JSON.stringify(note.content)
+                      : "",
+                  sourceLink: String(note?.sourceLink || note?.sourceUrl || ""),
+                  sourceType: String(note?.sourceType || ""),
+                  sourceUrl: String(note?.sourceUrl || ""),
+                  attachments: ensureAttachmentsArray(note?.attachments),
+                  isVisible: note?.isVisible !== false,
+                });
+
+                // New schema: All note data is in the JSONB notes field
+                // Parse notes - can be string (JSON) or already parsed object/array
+                let notesArray: any[] = [];
+                
+                if (typeof notesData.notes === "string") {
+                  const notesString = notesData.notes.trim();
+                  if (!notesString || notesString === "No notes available") {
+                    notesArray = [];
+                  } else if (notesString.startsWith("[") || notesString.startsWith("{")) {
+                    try {
+                      const parsed = JSON.parse(notesString);
+                      if (Array.isArray(parsed)) {
+                        notesArray = parsed;
+                      } else if (parsed && typeof parsed === 'object') {
+                        // If it's an object, wrap it in an array
+                        notesArray = [parsed];
+                      }
+                    } catch {
+                      // Fallback parsing for old format
+                      const noteParts = notesString.split("; ");
+                      notesArray = noteParts.map((notePart: string, index: number) => {
+                        const sourceMatch = notePart.match(/\s+-\s+Source:\s+(.+)$/);
+                        let sourceLink = "";
+                        let contentPart = notePart;
+                        if (sourceMatch) {
+                          sourceLink = String(sourceMatch[1] || "").trim();
+                          contentPart = notePart.substring(0, notePart.lastIndexOf(" - Source:"));
+                        }
+                        const match = contentPart.match(/^(.+?)\s+\((.+?)\):\s+(.+)$/);
+                        if (match && match.length >= 4) {
+                          const date = String(match[1] || "").trim();
+                          const type = String(match[2] || "General").trim();
+                          const content = String(match[3] || "").trim();
+                          return {
+                            id: `${index + 1}`,
+                            date: parseNoteDateForUI(date),
+                            type,
+                            content,
+                            sourceLink,
+                            sourceType: "",
+                            sourceUrl: "",
+                            attachments: [],
+                            isVisible: true,
+                          };
+                        }
+                        const colonIndex = contentPart.indexOf(":");
+                        if (colonIndex > 0) {
+                          const beforeColon = contentPart.substring(0, colonIndex).trim();
+                          const afterColon = contentPart.substring(colonIndex + 1).trim();
+                          const parenMatch = beforeColon.match(/^(.+?)\s+\((.+?)\)$/);
+                          if (parenMatch) {
+                            return {
+                              id: `${index + 1}`,
+                              date: parseNoteDateForUI(String(parenMatch[1] || "").trim()),
+                              type: String(parenMatch[2] || "General").trim(),
+                              content: String(afterColon || "").trim(),
+                              sourceLink,
+                              sourceType: "",
+                              sourceUrl: "",
+                              attachments: [],
+                              isVisible: true,
+                            };
+                          }
+                        }
+                        return {
+                          id: `${index + 1}`,
+                          date: new Date().toISOString().split("T")[0],
+                          type: "General",
+                          content: String(notePart || "").trim(),
+                          sourceLink: "",
+                          sourceType: "",
+                          sourceUrl: "",
+                          attachments: [],
+                          isVisible: true,
+                        };
+                      });
+                    }
+                  } else {
+                    // Fallback: treat as plain text, split by semicolon
+                    const noteParts = notesString.split("; ");
+                    notesArray = noteParts.map((notePart: string, index: number) => {
                       const sourceMatch = notePart.match(/\s+-\s+Source:\s+(.+)$/);
                       let sourceLink = "";
                       let contentPart = notePart;
-                      
                       if (sourceMatch) {
                         sourceLink = String(sourceMatch[1] || "").trim();
-                        // Remove the source part from the notePart
-                        contentPart = notePart.substring(0, notePart.lastIndexOf(' - Source:'));
+                        contentPart = notePart.substring(0, notePart.lastIndexOf(" - Source:"));
                       }
-                      
-                      // Now extract date, type, and content
-                      // Format: "DATE (TYPE): CONTENT"
-                      // Use greedy match for content since we've already removed the source part
                       const match = contentPart.match(/^(.+?)\s+\((.+?)\):\s+(.+)$/);
-                      
                       if (match && match.length >= 4) {
-                        // Ensure all fields are strings
                         const date = String(match[1] || "").trim();
                         const type = String(match[2] || "General").trim();
                         const content = String(match[3] || "").trim();
-                        
                         return {
                           id: `${index + 1}`,
-                          date: date,
-                          type: type,
-                          content: content, // Content is already a string from match
-                          sourceLink: sourceLink,
+                          date: parseNoteDateForUI(date),
+                          type,
+                          content,
+                          sourceLink,
+                          sourceType: "",
+                          sourceUrl: "",
                           attachments: [],
-                          isVisible: true
+                          isVisible: true,
                         };
                       }
-                      
-                      // Fallback if regex doesn't match - try to parse manually
-                      // Look for pattern: "DATE (TYPE): CONTENT"
-                      const colonIndex = contentPart.indexOf(':');
+                      const colonIndex = contentPart.indexOf(":");
                       if (colonIndex > 0) {
                         const beforeColon = contentPart.substring(0, colonIndex).trim();
                         const afterColon = contentPart.substring(colonIndex + 1).trim();
-                        
                         const parenMatch = beforeColon.match(/^(.+?)\s+\((.+?)\)$/);
                         if (parenMatch) {
                           return {
                             id: `${index + 1}`,
-                            date: String(parenMatch[1] || "").trim(),
+                            date: parseNoteDateForUI(String(parenMatch[1] || "").trim()),
                             type: String(parenMatch[2] || "General").trim(),
                             content: String(afterColon || "").trim(),
-                            sourceLink: sourceLink,
+                            sourceLink,
+                            sourceType: "",
+                            sourceUrl: "",
                             attachments: [],
-                            isVisible: true
+                            isVisible: true,
                           };
                         }
                       }
-                      
-                      // Final fallback - treat entire notePart as content
                       return {
                         id: `${index + 1}`,
                         date: new Date().toISOString().split("T")[0],
                         type: "General",
                         content: String(notePart || "").trim(),
                         sourceLink: "",
+                        sourceType: "",
+                        sourceUrl: "",
                         attachments: [],
-                        isVisible: true
+                        isVisible: true,
                       };
                     });
                   }
                 } else if (Array.isArray(notesData.notes)) {
-                  // Notes are already in array format
-                  parsedNotes = notesData.notes.map((note: any, index: number) => ({
-                    id: note.id || `${index + 1}`,
-                    date: String(note.date || new Date().toISOString().split("T")[0]),
-                    type: String(note.type || "General"),
-                    content: typeof note.content === 'string' ? note.content : (typeof note.content === 'object' ? JSON.stringify(note.content) : String(note.content || "")),
-                    sourceLink: String(note.sourceLink || note.sourceUrl || ""),
-                    attachments: Array.isArray(note.attachments) ? note.attachments : [],
-                    isVisible: note.isVisible !== false
-                  }));
+                  // Already an array, use directly
+                  notesArray = notesData.notes;
+                } else if (notesData.notes && typeof notesData.notes === 'object') {
+                  // Single object, wrap in array
+                  notesArray = [notesData.notes];
                 }
+                
+                // Convert notesArray to parsedNotes format
+                parsedNotes = notesArray.map((note: any, index: number) => buildParsedNote(note, index));
               }
               
-              console.log('Parsed notes:', parsedNotes);
+              console.log('[EditFormContext] Parsed notes (new schema):', parsedNotes);
               
               // Load Full Review data from logs
               const logsData = foundTrial.logs?.[0];
@@ -1720,60 +2268,47 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               const nextReviewDate = logsData?.next_review_date || "";
               const fullReview = !!(fullReviewUser || nextReviewDate);
               
-              // Helper function to format date from database (YYYY-MM-DD) to UI (MM-DD-YYYY)
-              const formatDateForUI = (dateStr: string): string => {
-                if (!dateStr) return "";
-                
+              // Parse logs attachments
+              let logsAttachments: Array<{ name: string; url: string; type: string }> = [];
+              if (logsData?.attachment) {
                 try {
-                  // Handle YYYY-MM-DD format (from database)
-                  if (dateStr.includes('-') && dateStr.length === 10) {
-                    const parts = dateStr.split('-');
-                    if (parts.length === 3 && parts[0].length === 4) {
-                      // Convert YYYY-MM-DD to MM-DD-YYYY
-                      const [year, month, day] = parts;
-                      return `${month}-${day}-${year}`;
-                    }
-                  }
-                  
-                  // Try to parse as Date object
-                  const date = new Date(dateStr);
-                  if (!isNaN(date.getTime())) {
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const year = date.getFullYear();
-                    return `${month}-${day}-${year}`;
-                  }
-                  
-                  return dateStr; // Return as-is if can't parse
+                  const parsed = typeof logsData.attachment === 'string' 
+                    ? JSON.parse(logsData.attachment) 
+                    : logsData.attachment;
+                  logsAttachments = Array.isArray(parsed) ? parsed : [];
                 } catch (e) {
-                  console.warn('Error formatting date for UI:', dateStr, e);
-                  return dateStr;
+                  console.warn('Failed to parse logs attachments:', e);
+                  logsAttachments = [];
                 }
-              };
+              }
               
+              const formattedDateType = formatDateForUI(notesData?.date_type || "");
+
               return {
                 notes: parsedNotes,
-              attachments: [],
-              regulatory_links: [],
-              publication_links: [],
-              additional_resources: [],
-                date_type: notesData?.date_type || "",
+                attachments: [],
+                regulatory_links: [],
+                publication_links: [],
+                additional_resources: [],
+                date_type: formattedDateType,
                 link: notesData?.link || "",
                 fullReview: fullReview,
                 fullReviewUser: fullReviewUser,
                 nextReviewDate: formatDateForUI(nextReviewDate),
-              changesLog: [{
-                id: Date.now().toString(),
-                timestamp: new Date().toISOString(),
-                user: "admin",
-                action: "loaded",
-                details: "Trial loaded for editing",
-                field: "trial",
-                oldValue: "",
-                newValue: "edit_mode",
-                step: "step5_1",
-                changeType: "creation"
-              }],
+                internalNote: logsData?.internal_note ? String(logsData.internal_note) : "",
+                logsAttachments: logsAttachments,
+                changesLog: [{
+                  id: Date.now().toString(),
+                  timestamp: new Date().toISOString(),
+                  user: "admin",
+                  action: "loaded",
+                  details: "Trial loaded for editing",
+                  field: "trial",
+                  oldValue: "",
+                  newValue: "edit_mode",
+                  step: "step5_1",
+                  changeType: "creation"
+                }],
               creationInfo: {
                 createdDate: foundTrial.created_at || new Date().toISOString(),
                 createdUser: foundTrial.created_by || "admin",
@@ -1782,11 +2317,19 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 lastModifiedDate: foundTrial.updated_at || new Date().toISOString(),
                 lastModifiedUser: foundTrial.updated_by || "admin",
                 modificationCount: 0,
-            },
+              },
               };
+          
             })(),
           };
           
+          console.log("[EditTherapeuticFormContext] Parsed outcome measures:", {
+            primary_raw: foundTrial.outcomes?.[0]?.primary_outcome_measure,
+            primary_parsed: mappedData.step5_2.primaryOutcomeMeasures,
+            other_raw: foundTrial.outcomes?.[0]?.other_outcome_measure,
+            other_parsed: mappedData.step5_2.otherOutcomeMeasures,
+          });
+
           dispatch({ type: "SET_TRIAL_DATA", payload: mappedData });
           
           // Save all form sections to localStorage after loading from DB for auto-fill
@@ -1810,11 +2353,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             console.warn('Failed to save form sections to localStorage:', e);
           }
         } else {
-          toast({
-            title: "Trial Not Found",
-            description: "The requested clinical trial could not be found.",
-            variant: "destructive",
-          });
+          console.warn("[EditTherapeuticFormContext] Trial not found for ID:", trialId);
         }
       } else {
         toast({
@@ -1855,7 +2394,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       const updateData = {
         user_id: currentUserId,
         ...formData.step5_1,
-        updated_at: new Date().toISOString(),
       };
 
       console.log('Saving trial with data:', updateData);
@@ -1885,6 +2423,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         clearTimeout(timeoutId);
         
         if (healthCheck && healthCheck.ok) {
+          console.log("[EditTherapeuticFormContext] Backend health check succeeded");
           backendAvailable = true;
         } else {
           console.warn('Backend health check failed, using localStorage only');
@@ -1902,8 +2441,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
           
           // Wrap fetch in a promise that never rejects
-          const fetchPromise = fetch(`${baseUrl}/api/v1/therapeutic/overview/${overviewId}`, {
-            method: 'PATCH',
+          const fetchPromise = fetch(`${baseUrl}/api/v1/therapeutic/overview/${overviewId}/update`, {
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
@@ -1916,14 +2455,47 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           clearTimeout(timeoutId);
 
           if (response && response.ok) {
+            console.log("[EditTherapeuticFormContext] Overview update response:", response.status);
+            try {
+              console.log("=== SAVING OUTCOME DATA ===");
+              const outcomePayload = {
+                user_id: currentUserId,
+                trial_id: trialId,
+                ...buildOutcomePayload(formData),
+              };
+              console.log("Outcome payload to be saved:", outcomePayload);
+
+              const outcomeResponse = await fetch(`${baseUrl}/api/v1/therapeutic/outcome/trial/${trialId}/update`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(outcomePayload),
+                credentials: "include",
+              }).catch(() => null);
+
+              if (outcomeResponse && outcomeResponse.ok) {
+                const outcomeData = await outcomeResponse.json().catch(() => null);
+                console.log("Outcome updated successfully. Response:", outcomeData);
+              } else {
+                console.warn("Outcome update failed");
+                if (outcomeResponse) {
+                  const errorText = await outcomeResponse.text().catch(() => "Unknown error");
+                  console.error("Outcome update error:", outcomeResponse.status, errorText);
+                }
+              }
+            } catch (outcomeError) {
+              console.warn("Outcome update failed:", outcomeError);
+            }
+
             // Update participation criteria via API
             try {
               console.log("=== SAVING PARTICIPATION CRITERIA DATA ===");
               const criteriaPayload = buildCriteriaPayload(formData);
               console.log("Participation criteria payload:", criteriaPayload);
 
-              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${trialId}`, {
-                method: "PATCH",
+              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${trialId}/update`, {
+                method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
@@ -1955,8 +2527,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
             // Update sites section via API
             try {
-              const sitesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/sites/trial/${trialId}`, {
-                method: 'PATCH',
+              const sitesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/sites/trial/${trialId}/update`, {
+                method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
@@ -2064,8 +2636,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 overall_duration_publish: timingData.overall_duration_publish,
               });
 
-              const timingResponse = await fetch(`${baseUrl}/api/v1/therapeutic/timing/trial/${trialId}`, {
-                method: 'PATCH',
+              const timingResponse = await fetch(`${baseUrl}/api/v1/therapeutic/timing/trial/${trialId}/update`, {
+                method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
@@ -2161,8 +2733,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               console.log('Results data to be saved to API:', resultsData);
 
-              const resultsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/results/trial/${trialId}`, {
-                method: 'PATCH',
+              const resultsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/results/trial/${trialId}/update`, {
+                method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
@@ -2198,6 +2770,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             // Force reload trial data to show updated results
             // Pass skipLocalStorage=true to ensure fresh DB data is used
             await loadTrialData(trialId, true);
+            console.log("[EditTherapeuticFormContext] Reloaded trial data from DB after save");
 
             // Update other_sources section via API
             try {
@@ -2477,17 +3050,22 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               const currentUserId = localStorage.getItem("userId") || "admin";
               
               // Prepare logs data
+              const internalNoteValue = formData.step5_8.internalNote;
               const logsData = {
                 last_modified_date: new Date().toISOString(),
                 last_modified_user: currentUserId,
                 full_review_user: formData.step5_8.fullReviewUser || null,
                 next_review_date: formatDateForDB(formData.step5_8.nextReviewDate),
+                internal_note: internalNoteValue === undefined ? null : internalNoteValue,
+                attachment: formData.step5_8.logsAttachments && formData.step5_8.logsAttachments.length > 0
+                  ? JSON.stringify(formData.step5_8.logsAttachments)
+                  : null,
               };
               
               console.log('Updating logs with data:', logsData);
               
-              const logsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/logs/trial/${trialId}`, {
-                method: 'PATCH',
+              const logsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/logs/trial/${trialId}/update`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(logsData),
                 credentials: 'include',
@@ -2518,39 +3096,104 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               // Then create new notes if there are any visible notes
               const visibleNotes = formData.step5_8.notes.filter((note: any) => {
-                // Ensure content is a string and not empty
-                const content = typeof note.content === 'string' ? note.content : 
-                  (note.content && typeof note.content === 'object' ? JSON.stringify(note.content) : String(note.content || ""));
-                return note.isVisible && content && content.trim().length > 0;
+                const rawContent =
+                  typeof note.content === "string"
+                    ? note.content
+                    : note.content && typeof note.content === "object"
+                    ? note.content.text || note.content.content
+                    : "";
+                const hasContent = Boolean(rawContent && String(rawContent).trim());
+                const hasSource =
+                  Boolean(note.sourceLink && String(note.sourceLink).trim()) ||
+                  Boolean(note.sourceType && String(note.sourceType).trim()) ||
+                  Boolean(note.sourceUrl && String(note.sourceUrl).trim());
+                const hasAttachments = Array.isArray(note.attachments) && note.attachments.length > 0;
+                return note.isVisible && (hasContent || hasSource || hasAttachments);
               });
               
               if (visibleNotes.length > 0) {
-                // Convert notes array into a single concatenated string (like in create form)
-                const notesString = visibleNotes
-                  .map(note => {
-                    // Ensure content is always a string
-                    const content = typeof note.content === 'string' ? note.content : 
-                      (note.content && typeof note.content === 'object' ? JSON.stringify(note.content) : String(note.content || ""));
-                    const date = String(note.date || "");
-                    const type = String(note.type || "General");
-                    const sourceLink = String(note.sourceLink || "");
-                    return `${date} (${type}): ${content}${sourceLink ? ` - Source: ${sourceLink}` : ""}`;
-                  })
-                  .join("; ");
+                const convertDateForDB = (dateStr: string): string | null => {
+                  if (!dateStr) return null;
+                  try {
+                    if (dateStr.includes("-") && dateStr.length === 10) {
+                      const parts = dateStr.split("-");
+                      if (parts.length === 3) {
+                        if (parts[0].length === 4) {
+                          return dateStr;
+                        }
+                        const [month, day, year] = parts;
+                        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+                      }
+                    }
+                    const date = new Date(dateStr);
+                    if (!isNaN(date.getTime())) {
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, "0");
+                      const day = String(date.getDate()).padStart(2, "0");
+                      return `${year}-${month}-${day}`;
+                    }
+                    return null;
+                  } catch {
+                    return null;
+                  }
+                };
+
+                const formattedNotes = visibleNotes.map((note: any) => {
+                  const rawContent =
+                    typeof note.content === "string"
+                      ? note.content
+                      : note.content && typeof note.content === "object"
+                      ? note.content.text || note.content.content
+                      : "";
+                  const attachments = Array.isArray(note.attachments)
+                    ? note.attachments.map((attachment: any) => ({
+                        name: String(attachment?.name || ""),
+                        url: String(attachment?.url || ""),
+                        type: String(attachment?.type || "application/octet-stream"),
+                      }))
+                    : [];
+                  return {
+                    id: note.id,
+                    date: convertDateForDB(String(note.date || "")),
+                    type: String(note.type || "General"),
+                    content: String(rawContent || ""),
+                    sourceLink: String(note.sourceLink || ""),
+                    sourceType: String(note.sourceType || ""),
+                    sourceUrl: String(note.sourceUrl || ""),
+                    attachments,
+                    isVisible: true,
+                  };
+                });
+
+                const attachmentsArray = formattedNotes
+                  .flatMap((note: any) => note.attachments)
+                  .filter((attachment: any) => attachment && (attachment.name || attachment.url));
+
+                const sourceArray = formattedNotes
+                  .map((note: any) => ({
+                    id: note.id,
+                    sourceLink: note.sourceLink,
+                    sourceType: note.sourceType,
+                    sourceUrl: note.sourceUrl,
+                  }))
+                  .filter(
+                    (source: any) =>
+                      (source.sourceLink && source.sourceLink.trim() !== "") ||
+                      (source.sourceType && source.sourceType.trim() !== "") ||
+                      (source.sourceUrl && source.sourceUrl.trim() !== "")
+                  );
                 
-                const attachmentsArray = visibleNotes
-                  .filter((note: any) => note.attachments && note.attachments.length > 0)
-                  .flatMap((note: any) => note.attachments);
-                
+                // New schema: Store all note data in the JSONB notes field
                 const notesPayload = {
                   trial_id: trialId,
-                  date_type: formData.step5_8.date_type || null,
-                  notes: notesString,
-                  link: formData.step5_8.link || null,
-                  attachments: attachmentsArray.length > 0 ? JSON.stringify(attachmentsArray) : null
+                  notes: formattedNotes.length > 0 ? formattedNotes : [], // Store all note data in JSONB field
                 };
                 
-                console.log('Creating new notes:', notesPayload);
+                console.log('[EditFormContext] Creating new notes with simplified schema:', { 
+                  trial_id: notesPayload.trial_id,
+                  notesCount: Array.isArray(notesPayload.notes) ? notesPayload.notes.length : 0,
+                  notes: typeof notesPayload.notes 
+                });
                 
                 await fetch(`${baseUrl}/api/v1/therapeutic/notes`, {
                   method: 'POST',
@@ -2743,6 +3386,21 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     }
   }, [trialId]);
 
+  // Helper function to get tab name from step
+  const getTabName = (step: keyof EditTherapeuticFormData): string => {
+    const stepToTabMap: Record<string, string> = {
+      step5_1: "Trial Overview",
+      step5_2: "Outcome Measured",
+      step5_3: "Participation Criteria",
+      step5_4: "Timing",
+      step5_5: "Results",
+      step5_6: "Sites",
+      step5_7: "Other Sources",
+      step5_8: "Logs",
+    };
+    return stepToTabMap[step] || "Trial Overview";
+  };
+
   const updateField = (step: keyof EditTherapeuticFormData, field: string, value: any) => {
     const oldValue = (formData[step] as any)[field];
     
@@ -2750,12 +3408,13 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     
     // Log the field update
     setTimeout(() => {
+      const tabName = getTabName(step);
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         user: "admin",
         action: "changed",
-        details: `Updated ${field}`,
+        details: `${tabName} updated`,
         field,
         oldValue: typeof oldValue === 'string' ? oldValue : JSON.stringify(oldValue),
         newValue: typeof value === 'string' ? value : JSON.stringify(value),
@@ -2779,12 +3438,13 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     // Log the array addition
     setTimeout(() => {
       const currentArray = (formData[step] as any)[field] as any[];
+      const tabName = getTabName(step);
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         user: "admin",
         action: "added",
-        details: `Added item to ${field}`,
+        details: `${tabName} updated`,
         field,
         oldValue: "",
         newValue: typeof value === 'string' ? value : JSON.stringify(value),
@@ -2810,12 +3470,13 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     
     // Log the array removal
     setTimeout(() => {
+      const tabName = getTabName(step);
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         user: "admin",
         action: "removed",
-        details: `Removed item from ${field}`,
+        details: `${tabName} updated`,
         field,
         oldValue: typeof removedItem === 'string' ? removedItem : JSON.stringify(removedItem),
         newValue: "",
@@ -2841,12 +3502,13 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     
     // Log the array update
     setTimeout(() => {
+      const tabName = getTabName(step);
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         user: "admin",
         action: "changed",
-        details: `Updated item in ${field}`,
+        details: `${tabName} updated`,
         field,
         oldValue: typeof oldValue === 'string' ? oldValue : JSON.stringify(oldValue),
         newValue: typeof value === 'string' ? value : JSON.stringify(value),
@@ -2979,6 +3641,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       type: "General",
       content: "",
       sourceLink: "",
+      sourceType: "",
+      sourceUrl: "",
       attachments: [],
       isVisible: true,
     };

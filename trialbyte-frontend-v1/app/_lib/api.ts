@@ -86,6 +86,8 @@ export const usersApi = {
     const res = await request<{ users: any[] }>(`/api/v1/users/getAllUsers`)
     return res?.users ?? []
   },
+  delete: (userId: string) =>
+    request(`/api/v1/users/deleteUser/${userId}`, { method: 'DELETE' }),
 };
 
 // Activity Logs
@@ -202,6 +204,12 @@ export const rolesApi = {
   }, // shape: [{ user, roles: [] }]
   assignRole: (userId: string, roleId: string) => request(`/user-roles`, { method: 'POST', body: { user_id: userId, role_id: roleId } }),
   removeRole: (userRoleId: string) => request(`/user-roles/${userRoleId}`, { method: 'DELETE' }),
+  getUserRoles: async (userId: string) => {
+    const res = await request<{ roles: Array<{ id: string; user_id: string; role_id: string; role_name: string }> }>(
+      `/api/v1/user-roles/getUserRoles/${userId}`
+    );
+    return res?.roles ?? [];
+  },
 };
 
 // Approvals (Pending Changes)

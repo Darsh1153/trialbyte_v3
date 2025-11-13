@@ -102,43 +102,55 @@ export default function StudyDesignSection() {
       <div className="space-y-2">
         <Label>Primary Outcome Measures</Label>
         <div className="space-y-2">
-          {form.primaryOutcomeMeasures.length > 0 ? (
-            form.primaryOutcomeMeasures.map((measure, idx) => (
-              <div key={idx} className="flex gap-2">
-                <Textarea
-                  value={measure}
-                  onChange={(e) => updateArrayItem("step5_2", "primaryOutcomeMeasures", idx, e.target.value)}
-                  placeholder="e.g., Overall Survival, Progression-Free Survival"
-                  rows={2}
-                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                />
-                {idx === 0 ? (
-                  <Button type="button" variant="outline" onClick={() => addArrayItem("step5_2", "primaryOutcomeMeasures", "")}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button type="button" variant="outline" onClick={() => removeArrayItem("step5_2", "primaryOutcomeMeasures", idx)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="flex gap-2">
+          {form.primaryOutcomeMeasures.map((measure, idx) => (
+            <div key={idx} className="flex gap-2">
               <Textarea
-                value=""
-                onChange={(e) => {
-                  addArrayItem("step5_2", "primaryOutcomeMeasures", "");
-                  updateArrayItem("step5_2", "primaryOutcomeMeasures", 0, e.target.value);
-                }}
+                value={measure}
+                onChange={(e) =>
+                  updateArrayItem(
+                    "step5_2",
+                    "primaryOutcomeMeasures",
+                    idx,
+                    e.target.value
+                  )
+                }
                 placeholder="e.g., Overall Survival, Progression-Free Survival"
                 rows={2}
                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
-              <Button type="button" variant="outline" onClick={() => addArrayItem("step5_2", "primaryOutcomeMeasures", "")}>
-                <Plus className="h-4 w-4" />
-              </Button>
+              {idx === 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    addArrayItem("step5_2", "primaryOutcomeMeasures", "")
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    removeArrayItem("step5_2", "primaryOutcomeMeasures", idx)
+                  }
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
+          ))}
+          {form.primaryOutcomeMeasures.length === 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                addArrayItem("step5_2", "primaryOutcomeMeasures", "")
+              }
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </div>
@@ -146,43 +158,55 @@ export default function StudyDesignSection() {
       <div className="space-y-2">
         <Label>Other Outcome Measures</Label>
         <div className="space-y-2">
-          {form.otherOutcomeMeasures.length > 0 ? (
-            form.otherOutcomeMeasures.map((measure, idx) => (
-              <div key={idx} className="flex gap-2">
-                <Textarea
-                  value={measure}
-                  onChange={(e) => updateArrayItem("step5_2", "otherOutcomeMeasures", idx, e.target.value)}
-                  placeholder="e.g., Overall Survival, Progression-Free Survival"
-                  rows={2}
-                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                />
-                {idx === 0 ? (
-                  <Button type="button" variant="outline" onClick={() => addArrayItem("step5_2", "otherOutcomeMeasures", "")}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button type="button" variant="outline" onClick={() => removeArrayItem("step5_2", "otherOutcomeMeasures", idx)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="flex gap-2">
+          {form.otherOutcomeMeasures.map((measure, idx) => (
+            <div key={idx} className="flex gap-2">
               <Textarea
-                value=""
-                onChange={(e) => {
-                  addArrayItem("step5_2", "otherOutcomeMeasures", "");
-                  updateArrayItem("step5_2", "otherOutcomeMeasures", 0, e.target.value);
-                }}
-                placeholder="e.g., Overall Survival, Progression-Free Survival"
+                value={measure}
+                onChange={(e) =>
+                  updateArrayItem(
+                    "step5_2",
+                    "otherOutcomeMeasures",
+                    idx,
+                    e.target.value
+                  )
+                }
+                placeholder="e.g., Quality of Life, Time to Treatment Failure"
                 rows={2}
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                className="border-gray-600 focus-border-gray-800 focus:ring-gray-800"
               />
-              <Button type="button" variant="outline" onClick={() => addArrayItem("step5_2", "otherOutcomeMeasures", "")}>
-                <Plus className="h-4 w-4" />
-              </Button>
+              {idx === 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    addArrayItem("step5_2", "otherOutcomeMeasures", "")
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    removeArrayItem("step5_2", "otherOutcomeMeasures", idx)
+                  }
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
             </div>
+          ))}
+          {form.otherOutcomeMeasures.length === 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                addArrayItem("step5_2", "otherOutcomeMeasures", "")
+              }
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </div>

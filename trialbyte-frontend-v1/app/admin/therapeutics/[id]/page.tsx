@@ -141,6 +141,7 @@ interface TherapeuticTrial {
     last_modified_user: string | null;
     full_review_user: string | null;
     next_review_date: string | null;
+    attachment: string | null;
   }>;
   notes: Array<{
     id: string;
@@ -297,6 +298,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               last_modified_user: log.last_modified_user || "N/A",
               full_review_user: log.full_review_user || "N/A",
               next_review_date: log.next_review_date || "N/A",
+              attachment: log.attachment || null,
             })),
             notes: data.data.notes.map((note: any) => ({
               id: note.id,

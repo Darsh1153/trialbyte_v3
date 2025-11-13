@@ -7,7 +7,12 @@
     "plop": "plop",
     "start": "nodemon app.js",
     "test": "cross-env NODE_ENV=test jest --runInBand",
-    "build": "echo 'no build step required'"
+    "build": "echo 'no build step required'",
+    "migrate:logs-notes": "node migrate_therapeutic_logs_notes.js",
+    "migrate": "node migrate_schema.js",
+    "create-admin": "node create_admin_user.js",
+    "setup-admin-role": "node setup_admin_role.js",
+    "setup": "npm run migrate && npm run create-admin && npm run setup-admin-role"
   },
   "keywords": [],
   "author": "",

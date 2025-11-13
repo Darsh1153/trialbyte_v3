@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, Eye, EyeOff, Upload, FileText, Image } from "lucide-react";
+import { Plus, X, Eye, EyeOff, Upload, FileText, Image, Link as LinkIcon } from "lucide-react";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +71,78 @@ export default function SitesSection() {
   const handleUpdateReference = (index: number, field: string, value: any) => {
     console.log(`Updating reference ${index}, field: ${field}`, value);
     updateReference("step5_6", "references", index, { [field]: value });
+  };
+
+  const getAttachmentDisplayMeta = (attachment: any) => {
+    console.log("🧾 Building attachment display meta:", attachment);
+
+    const defaultMeta = {
+      name: "Attachment",
+      url: "",
+      isImage: false,
+    };
+
+    if (!attachment) {
+      return defaultMeta;
+    }
+
+    const extractNameFromUrl = (rawUrl: string) => {
+      try {
+        const parsedUrl = new URL(rawUrl);
+        const segments = parsedUrl.pathname.split("/").filter(Boolean);
+        return decodeURIComponent(segments.pop() || "Attachment");
+      } catch {
+        const segments = rawUrl.split("/").filter(Boolean);
+        return decodeURIComponent(segments.pop() || "Attachment");
+      }
+    };
+
+    if (typeof attachment === "string") {
+      const trimmed = attachment.trim();
+      if (!trimmed) {
+        return defaultMeta;
+      }
+
+      const isUrl = /^https?:\/\//i.test(trimmed);
+      const name = isUrl ? extractNameFromUrl(trimmed) : trimmed;
+      const url = isUrl ? trimmed : "";
+      const isImage = /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name) || /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(url);
+
+      return {
+        name,
+        url,
+        isImage,
+      };
+    }
+
+    if (typeof attachment === "object") {
+      const possibleUrl =
+        typeof attachment.url === "string"
+          ? attachment.url
+          : typeof attachment.href === "string"
+          ? attachment.href
+          : typeof attachment.link === "string"
+          ? attachment.link
+          : "";
+      const name =
+        typeof attachment.name === "string" && attachment.name
+          ? attachment.name
+          : possibleUrl
+          ? extractNameFromUrl(possibleUrl)
+          : "Attachment";
+
+      const isImage =
+        /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name) ||
+        (possibleUrl ? /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(possibleUrl) : false);
+
+      return {
+        name,
+        url: possibleUrl,
+        isImage,
+      };
+    }
+
+    return defaultMeta;
   };
 
   // Handle file upload for attachments
@@ -245,30 +317,28 @@ export default function SitesSection() {
                   {reference.attachments && reference.attachments.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {reference.attachments.map((attachment: any, attIndex: number) => {
-                        const fileName = typeof attachment === 'string' ? attachment : attachment.name;
-                        const fileUrl = typeof attachment === 'object' ? attachment.url : null;
-                        const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                        const meta = getAttachmentDisplayMeta(attachment);
                         
                         return (
                           <div key={attIndex} className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                            {isImage ? (
+                            {meta.isImage ? (
                               <Image className="h-4 w-4 text-blue-600" />
                             ) : (
                               <FileText className="h-4 w-4 text-gray-600" />
                             )}
-                            <span className="flex-1">{fileName}</span>
-                            {fileUrl && isImage && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  window.open(fileUrl, '_blank');
-                                }}
-                                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                            <span className="flex-1 truncate">{meta.name}</span>
+                            {meta.url ? (
+                              <a
+                                href={meta.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
                               >
-                                Preview
-                              </Button>
+                                <LinkIcon className="h-3 w-3" />
+                                View
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-400">No preview</span>
                             )}
                             <Button
                               type="button"

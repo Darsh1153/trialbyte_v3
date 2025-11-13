@@ -136,11 +136,6 @@ export default function TrialChangesLog({ changesLog, className = "" }: TrialCha
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium capitalize">{change.action}</span>
-                          {change.field && (
-                            <span className="text-sm text-gray-600">
-                              • {change.field}
-                            </span>
-                          )}
                         </div>
                         <p className="text-sm mb-2">{change.details}</p>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -153,14 +148,6 @@ export default function TrialChangesLog({ changesLog, className = "" }: TrialCha
                             <span>by {change.user}</span>
                           </div>
                         </div>
-                        {change.oldValue && change.newValue && (
-                          <div className="mt-2 text-xs">
-                            <div className="flex gap-2">
-                              <span className="text-red-600">- {formatValueForDisplay(change.oldValue)}</span>
-                              <span className="text-green-600">+ {formatValueForDisplay(change.newValue)}</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   </div>

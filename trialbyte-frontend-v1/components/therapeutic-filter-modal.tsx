@@ -862,8 +862,8 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'ecog_performance_status':
         value = trial.criteria?.[0]?.ecog_performance_status || ''
         break
-      case 'prior_treatments':
-        value = trial.criteria?.[0]?.prior_treatments || ''
+      case 'healthy_volunteers':
+        value = trial.criteria?.[0]?.healthy_volunteers || ''
         break
       case 'biomarker_requirements':
         value = trial.criteria?.[0]?.biomarker_requirements || ''
@@ -1206,7 +1206,7 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
         ageMax: mergeWithFallback(getUniqueValues(trials, 'age_to'), 'ageMax'),
         subjectType: mergeWithFallback(getUniqueValues(trials, 'subject_type'), 'subjectType'),
         ecogPerformanceStatus: mergeWithFallback(getUniqueValues(trials, 'ecog_performance_status'), 'ecogPerformanceStatus'),
-        priorTreatments: mergeWithFallback(getUniqueValues(trials, 'prior_treatments'), 'priorTreatments'),
+        priorTreatments: mergeWithFallback(getUniqueValues(trials, 'healthy_volunteers'), 'priorTreatments'),
         biomarkerRequirements: mergeWithFallback(getUniqueValues(trials, 'biomarker_requirements'), 'biomarkerRequirements'),
         estimatedEnrollment: mergeWithFallback(getUniqueValues(trials, 'estimated_enrollment'), 'estimatedEnrollment'),
         actualEnrollment: mergeWithFallback(getUniqueValues(trials, 'actual_enrollment'), 'actualEnrollment'),

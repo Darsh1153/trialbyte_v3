@@ -10,6 +10,8 @@ beforeAll(async () => {
 
   // Ensure required extension and tables exist for tests
   const ddl = `
+    DROP TABLE IF EXISTS dropdown_options CASCADE;
+    DROP TABLE IF EXISTS dropdown_categories CASCADE;
     DROP TABLE IF EXISTS saved_queries CASCADE;
     DROP TABLE IF EXISTS therapeutic_notes CASCADE;
     DROP TABLE IF EXISTS therapeutic_logs CASCADE;
@@ -171,6 +173,7 @@ beforeAll(async () => {
     CREATE TABLE IF NOT EXISTS therapeutic_trial_overview (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
       therapeutic_area TEXT,
+      trial_id TEXT,
       trial_identifier TEXT[],
       trial_phase TEXT,
       status TEXT,
@@ -215,8 +218,8 @@ beforeAll(async () => {
       age_to TEXT,
       sex TEXT,
       healthy_volunteers TEXT,
-      target_no_volunteers INT,
-      actual_enrolled_volunteers INT
+      target_no_volunteers TEXT,
+      actual_enrolled_volunteers TEXT
     );
 
     CREATE TABLE IF NOT EXISTS therapeutic_timing (
@@ -253,7 +256,13 @@ beforeAll(async () => {
       trial_results TEXT[],
       adverse_event_reported TEXT,
       adverse_event_type TEXT,
-      treatment_for_adverse_events TEXT
+      treatment_for_adverse_events TEXT,
+      results_available TEXT,
+      endpoints_met TEXT,
+      trial_outcome_content TEXT,
+      trial_outcome_link TEXT,
+      trial_outcome_attachment TEXT,
+      site_notes JSONB
     );
 
     CREATE TABLE IF NOT EXISTS therapeutic_sites (
@@ -284,16 +293,15 @@ beforeAll(async () => {
       last_modified_date DATE,
       last_modified_user TEXT,
       full_review_user TEXT,
-      next_review_date DATE
+      next_review_date DATE,
+      internal_note TEXT,
+      attachment TEXT
     );
 
     CREATE TABLE IF NOT EXISTS therapeutic_notes (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
       trial_id UUID REFERENCES therapeutic_trial_overview(id) ON DELETE CASCADE,
-      date_type DATE,
-      notes TEXT,
-      link TEXT,
-      attachments TEXT
+      notes JSONB
     );
 
     CREATE TABLE IF NOT EXISTS saved_queries (
@@ -308,13 +316,39 @@ beforeAll(async () => {
       created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS dropdown_categories (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL UNIQUE,
+      description TEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS dropdown_options (
+      id SERIAL PRIMARY KEY,
+      category_id INTEGER NOT NULL REFERENCES dropdown_categories(id) ON DELETE CASCADE,
+      value VARCHAR(255) NOT NULL,
+      label VARCHAR(255) NOT NULL,
+      description TEXT,
+      sort_order INTEGER DEFAULT 0,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(category_id, value)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_dropdown_options_category_id ON dropdown_options(category_id);
+    CREATE INDEX IF NOT EXISTS idx_dropdown_options_active ON dropdown_options(is_active);
+    CREATE INDEX IF NOT EXISTS idx_dropdown_categories_active ON dropdown_categories(is_active);
   `;
 
   await pool.query(ddl);
 
   // Clean tables before tests
   await pool.query(`
-    TRUNCATE TABLE saved_queries, therapeutic_notes, therapeutic_logs, therapeutic_other_sources, therapeutic_sites, therapeutic_results, therapeutic_timing, therapeutic_participation_criteria, therapeutic_outcome_measured, therapeutic_trial_overview, drug_logs, drug_licences_marketing, drug_other_sources, drug_development, drug_activity, drug_dev_status, drug_overview, user_roles, pending_changes, user_activity, roles, users RESTART IDENTITY CASCADE;
+    TRUNCATE TABLE dropdown_options, dropdown_categories, saved_queries, therapeutic_notes, therapeutic_logs, therapeutic_other_sources, therapeutic_sites, therapeutic_results, therapeutic_timing, therapeutic_participation_criteria, therapeutic_outcome_measured, therapeutic_trial_overview, drug_logs, drug_licences_marketing, drug_other_sources, drug_development, drug_activity, drug_dev_status, drug_overview, user_roles, pending_changes, user_activity, roles, users RESTART IDENTITY CASCADE;
   `);
 });
 

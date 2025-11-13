@@ -9,9 +9,8 @@ class TherapeuticParticipationCriteriaRepository {
     const query = `
       INSERT INTO "therapeutic_participation_criteria" (
         trial_id, inclusion_criteria, exclusion_criteria, age_from, subject_type, age_to, sex,
-        healthy_volunteers, target_no_volunteers, actual_enrolled_volunteers, ecog_performance_status,
-        prior_treatments, biomarker_requirements
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *
+        healthy_volunteers, target_no_volunteers, actual_enrolled_volunteers
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
     `;
     const values = [
       data.trial_id,
@@ -24,9 +23,6 @@ class TherapeuticParticipationCriteriaRepository {
       data.healthy_volunteers || null,
       data.target_no_volunteers || null,
       data.actual_enrolled_volunteers || null,
-      data.ecog_performance_status || null,
-      data.prior_treatments || null,
-      data.biomarker_requirements || null,
     ];
     const r = await this.pool.query(query, values);
     return r.rows[0];
@@ -36,9 +32,8 @@ class TherapeuticParticipationCriteriaRepository {
     const query = `
       INSERT INTO "therapeutic_participation_criteria" (
         trial_id, inclusion_criteria, exclusion_criteria, age_from, subject_type, age_to, sex,
-        healthy_volunteers, target_no_volunteers, actual_enrolled_volunteers, ecog_performance_status,
-        prior_treatments, biomarker_requirements
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *
+        healthy_volunteers, target_no_volunteers, actual_enrolled_volunteers
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *
     `;
     const values = [
       data.trial_id,
@@ -51,9 +46,6 @@ class TherapeuticParticipationCriteriaRepository {
       data.healthy_volunteers || null,
       data.target_no_volunteers || null,
       data.actual_enrolled_volunteers || null,
-      data.ecog_performance_status || null,
-      data.prior_treatments || null,
-      data.biomarker_requirements || null,
     ];
     const r = await client.query(query, values);
     return r.rows[0];

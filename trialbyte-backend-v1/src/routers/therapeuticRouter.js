@@ -6,6 +6,7 @@ const {
   fetchAllTherapeuticData, // NEW endpoint
   fetchAllTherapeuticTrials, // NEW endpoint
   deleteAllTherapeuticDataByTrial, // NEW endpoint
+  deleteAllTherapeuticTrialsDevOnly,
   createOverview,
   listOverview,
   getOverview,
@@ -92,11 +93,15 @@ router.delete(
   deleteAllTherapeuticDataByTrial
 );
 
+// NEW: Delete all trials (dev only)
+router.delete("/all-trials/dev", deleteAllTherapeuticTrialsDevOnly);
+
 // Overview
 router.post("/overview", createOverview);
 router.get("/overview", listOverview);
 router.get("/overview/:id", getOverview);
 router.patch("/overview/:id", updateOverview);
+router.post("/overview/:id/update", updateOverview);
 router.delete("/overview/:id", deleteOverview);
 
 // Outcome measured
@@ -106,6 +111,7 @@ router.get("/outcome/trial/:trial_id", listOutcomesByTrial);
 router.get("/outcome/:id", getOutcome);
 router.patch("/outcome/:id", updateOutcome);
 router.patch("/outcome/trial/:trial_id", updateOutcomeByTrial);
+router.post("/outcome/trial/:trial_id/update", updateOutcomeByTrial);
 router.delete("/outcome/:id", deleteOutcome);
 router.delete("/outcome/trial/:trial_id", deleteOutcomeByTrial);
 
@@ -116,6 +122,7 @@ router.get("/criteria/trial/:trial_id", listCriteriaByTrial);
 router.get("/criteria/:id", getCriteria);
 router.patch("/criteria/:id", updateCriteria);
 router.patch("/criteria/trial/:trial_id", updateCriteriaByTrial);
+router.post("/criteria/trial/:trial_id/update", updateCriteriaByTrial);
 router.delete("/criteria/:id", deleteCriteria);
 router.delete("/criteria/trial/:trial_id", deleteCriteriaByTrial);
 
@@ -126,6 +133,7 @@ router.get("/timing/trial/:trial_id", listTimingByTrial);
 router.get("/timing/:id", getTiming);
 router.patch("/timing/:id", updateTiming);
 router.patch("/timing/trial/:trial_id", updateTimingByTrial);
+router.post("/timing/trial/:trial_id/update", updateTimingByTrial);
 router.delete("/timing/:id", deleteTiming);
 router.delete("/timing/trial/:trial_id", deleteTimingByTrial);
 
@@ -136,6 +144,7 @@ router.get("/results/trial/:trial_id", listResultsByTrial);
 router.get("/results/:id", getResults);
 router.patch("/results/:id", updateResults);
 router.patch("/results/trial/:trial_id", updateResultsByTrial);
+router.post("/results/trial/:trial_id/update", updateResultsByTrial);
 router.delete("/results/:id", deleteResults);
 router.delete("/results/trial/:trial_id", deleteResultsByTrial);
 
@@ -146,6 +155,7 @@ router.get("/sites/trial/:trial_id", listSitesByTrial);
 router.get("/sites/:id", getSites);
 router.patch("/sites/:id", updateSites);
 router.patch("/sites/trial/:trial_id", updateSitesByTrial);
+router.post("/sites/trial/:trial_id/update", updateSitesByTrial);
 router.delete("/sites/:id", deleteSites);
 router.delete("/sites/trial/:trial_id", deleteSitesByTrial);
 
@@ -166,6 +176,7 @@ router.get("/logs/trial/:trial_id", listLogsByTrial);
 router.get("/logs/:id", getLog);
 router.patch("/logs/:id", updateLog);
 router.patch("/logs/trial/:trial_id", updateLogsByTrial);
+router.post("/logs/trial/:trial_id/update", updateLogsByTrial);
 router.delete("/logs/:id", deleteLog);
 router.delete("/logs/trial/:trial_id", deleteLogsByTrial);
 

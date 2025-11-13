@@ -43,6 +43,52 @@ export default function AdditionalInfoSection() {
     });
   }
 
+  const getAttachmentMeta = (fileValue: any, urlValue: any) => {
+    console.log("🧾 Building Other Sources attachment meta:", { fileValue, urlValue });
+
+    const deriveNameFromUrl = (rawUrl: string) => {
+      if (!rawUrl) return "Attachment";
+      try {
+        const parsedUrl = new URL(rawUrl);
+        const segments = parsedUrl.pathname.split("/").filter(Boolean);
+        const last = segments.pop();
+        if (last) {
+          return decodeURIComponent(last);
+        }
+      } catch (error) {
+        console.warn("Failed to parse URL for attachment meta:", rawUrl, error);
+        const segments = rawUrl.split("/").filter(Boolean);
+        const last = segments.pop();
+        if (last) {
+          return decodeURIComponent(last);
+        }
+      }
+      return "Attachment";
+    };
+
+    let name = typeof fileValue === "string" ? fileValue.trim() : "";
+    let url = typeof urlValue === "string" ? urlValue.trim() : "";
+
+    if (!name && url) {
+      name = deriveNameFromUrl(url);
+    }
+
+    if (name && !url && /^https?:\/\//i.test(name)) {
+      url = name;
+      name = deriveNameFromUrl(url);
+    }
+
+    const isImage =
+      /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(name) ||
+      (url ? /\.(png|jpe?g|gif|bmp|webp|svg)$/i.test(url) : false);
+
+    return {
+      name,
+      url,
+      isImage,
+    };
+  };
+
   // Ensure at least one item exists for each tab (matching creation phase behavior)
   useEffect(() => {
     if (!form) return; // Wait for form data to load
@@ -319,39 +365,41 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {/* Display uploaded file with preview */}
-                  {item.file && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                      {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
-                        <Image className="h-4 w-4 text-blue-600" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-gray-600" />
-                      )}
-                      <span className="flex-1">{item.file}</span>
-                      {item.url && (
+                  {(item.file || item.url) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.url);
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                        {meta.isImage ? (
+                          <Image className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        {meta.url ? (
+                          <a
+                            href={meta.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">No preview</span>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            window.open(item.url, '_blank');
-                          }}
-                          className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
+                          onClick={() => handleFileRemove(idx, meta.url)}
+                          className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
-                          View
+                          <X className="h-3 w-3" />
                         </Button>
-                      )}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleFileRemove(idx, item.url)}
-                        className="text-red-500 hover:text-red-700 p-0 h-auto"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -463,30 +511,41 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {/* Display uploaded file with preview */}
-                  {item.file && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                      {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
-                        <Image className="h-4 w-4 text-blue-600" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-gray-600" />
-                      )}
-                      <span className="flex-1">{item.file}</span>
-                      {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                  {(item.file || item.url) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.url);
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                        {meta.isImage ? (
+                          <Image className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        {meta.url ? (
+                          <a
+                            href={meta.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">No preview</span>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            window.open(item.url, '_blank');
-                          }}
-                          className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                          onClick={() => handleFileRemove(idx, meta.url)}
+                          className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
-                          Preview
+                          <X className="h-3 w-3" />
                         </Button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -601,30 +660,41 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {/* Display uploaded file with preview */}
-                  {item.file && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                      {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
-                        <Image className="h-4 w-4 text-blue-600" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-gray-600" />
-                      )}
-                      <span className="flex-1">{item.file}</span>
-                      {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                  {(item.file || item.url) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.url);
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                        {meta.isImage ? (
+                          <Image className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        {meta.url ? (
+                          <a
+                            href={meta.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">No preview</span>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            window.open(item.url, '_blank');
-                          }}
-                          className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                          onClick={() => handleFileRemove(idx, meta.url)}
+                          className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
-                          Preview
+                          <X className="h-3 w-3" />
                         </Button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -739,30 +809,41 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {/* Display uploaded file with preview */}
-                  {item.file && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                      {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
-                        <Image className="h-4 w-4 text-blue-600" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-gray-600" />
-                      )}
-                      <span className="flex-1">{item.file}</span>
-                      {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                  {(item.file || item.url) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.url);
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                        {meta.isImage ? (
+                          <Image className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        {meta.url ? (
+                          <a
+                            href={meta.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">No preview</span>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            window.open(item.url, '_blank');
-                          }}
-                          className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                          onClick={() => handleFileRemove(idx, meta.url)}
+                          className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
-                          Preview
+                          <X className="h-3 w-3" />
                         </Button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -877,30 +958,41 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {/* Display uploaded file with preview */}
-                  {item.file && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                      {item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) ? (
-                        <Image className="h-4 w-4 text-blue-600" />
-                      ) : (
-                        <FileText className="h-4 w-4 text-gray-600" />
-                      )}
-                      <span className="flex-1">{item.file}</span>
-                      {item.url && item.file.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i) && (
+                  {(item.file || item.url) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.url);
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
+                        {meta.isImage ? (
+                          <Image className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        {meta.url ? (
+                          <a
+                            href={meta.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-400">No preview</span>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            window.open(item.url, '_blank');
-                          }}
-                          className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                          onClick={() => handleFileRemove(idx, meta.url)}
+                          className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
-                          Preview
+                          <X className="h-3 w-3" />
                         </Button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 

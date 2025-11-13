@@ -9,12 +9,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Plus, X, Check, ChevronsUpDown, Eye, EyeOff } from "lucide-react";
+import { Plus, X, Check, ChevronsUpDown, Eye, EyeOff, Link as LinkIcon } from "lucide-react";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useTherapeuticTrial } from "@/hooks/use-therapeutic-trial";
 
@@ -249,6 +249,50 @@ export default function ResultsSection() {
     "Conferences"
   ];
 
+  const attachmentDisplayInfo = useMemo(() => {
+    console.log("🔍 Calculating attachment display info:", form.trial_outcome_attachment);
+    const attachment = form.trial_outcome_attachment as any;
+
+    if (!attachment) {
+      return null;
+    }
+
+    if (typeof attachment === "string") {
+      const trimmed = attachment.trim();
+      if (!trimmed) {
+        return null;
+      }
+
+      const isLikelyUrl = /^https?:\/\//i.test(trimmed);
+      if (isLikelyUrl) {
+        const segments = trimmed.split("/");
+        const name = segments[segments.length - 1] || "Attachment";
+        return { url: trimmed, name };
+      }
+
+      return { url: null, name: trimmed };
+    }
+
+    if (typeof attachment === "object") {
+      if (attachment instanceof File) {
+        return { url: null, name: attachment.name };
+      }
+
+      // Handle legacy objects that might store url/name
+      const possibleUrl = (attachment as Record<string, unknown>).url;
+      const possibleName = (attachment as Record<string, unknown>).name;
+
+      if (typeof possibleUrl === "string" && possibleUrl) {
+        return {
+          url: possibleUrl,
+          name: typeof possibleName === "string" && possibleName ? possibleName : "Attachment",
+        };
+      }
+    }
+
+    return null;
+  }, [form.trial_outcome_attachment]);
+
   // Helper functions for site notes
   const handleAddSiteNote = () => addSiteNote("step5_5", "site_notes");
   const handleRemoveSiteNote = (index: number) => removeSiteNote("step5_5", "site_notes", index);
@@ -348,30 +392,56 @@ export default function ResultsSection() {
             />
           </div>
           
-          <div className="flex gap-2 mt-2">
-            <div className="flex items-center gap-2 flex-1">
+          <div className="flex flex-col gap-3 mt-2 md:flex-row">
+            <div className="flex flex-1 flex-col gap-2">
               <Label className="whitespace-nowrap">Link</Label>
-              <Input
-                type="url"
-                placeholder="Enter link"
-                value={form.trial_outcome_link || ""}
-                onChange={(e) => updateField("step5_5", "trial_outcome_link", e.target.value)}
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-              />
-              <Button type="button" variant="outline" size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="url"
+                  placeholder="Enter link"
+                  value={form.trial_outcome_link || ""}
+                  onChange={(e) => updateField("step5_5", "trial_outcome_link", e.target.value)}
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+                <Button type="button" variant="outline" size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex flex-1 flex-col gap-2">
               <Label className="whitespace-nowrap">Attachments</Label>
-              <Input
-                type="file"
-                onChange={(e) => updateField("step5_5", "trial_outcome_attachment", e.target.files?.[0])}
-                className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-              />
-              <Button type="button" variant="outline" size="icon">
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  onChange={(e) => updateField("step5_5", "trial_outcome_attachment", e.target.files?.[0])}
+                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                />
+                <Button type="button" variant="outline" size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {attachmentDisplayInfo && (
+                <div className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-md">
+                  <span className="text-sm text-gray-700 flex-1 truncate">
+                    {attachmentDisplayInfo.name}
+                  </span>
+                  {attachmentDisplayInfo.url ? (
+                    <a
+                      href={attachmentDisplayInfo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm whitespace-nowrap"
+                    >
+                      <LinkIcon className="h-3 w-3" />
+                      View
+                    </a>
+                  ) : (
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                      Preview unavailable
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -515,12 +585,21 @@ export default function ResultsSection() {
                   {note.attachments && note.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {note.attachments.map((attachment: string, attachIndex: number) => (
-                        <span
+                        <div
                           key={attachIndex}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
+                          className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
                         >
-                          {attachment}
-                        </span>
+                          <span className="truncate max-w-[200px]">{attachment}</span>
+                          <a
+                            href={attachment}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            View
+                          </a>
+                        </div>
                       ))}
                     </div>
                   )}

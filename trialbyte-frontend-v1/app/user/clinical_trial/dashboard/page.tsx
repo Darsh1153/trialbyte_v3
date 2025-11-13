@@ -136,6 +136,7 @@ interface TherapeuticTrial {
     last_modified_user: string | null;
     full_review_user: string | null;
     next_review_date: string | null;
+    attachment: string | null;
   }>;
   notes: Array<{
     id: string;

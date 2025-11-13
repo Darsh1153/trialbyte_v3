@@ -138,6 +138,7 @@ interface TherapeuticTrial {
     last_modified_user: string | null;
     full_review_user: string | null;
     next_review_date: string | null;
+    attachment: string | null;
   }>;
   notes: Array<{
     id: string;
@@ -167,6 +168,7 @@ export default function AdminTherapeuticsPage() {
   const [deletingTrials, setDeletingTrials] = useState<Record<string, boolean>>(
     {}
   );
+  const [isDeletingAllTrials, setIsDeletingAllTrials] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [advancedSearchCriteria, setAdvancedSearchCriteria] = useState<TherapeuticSearchCriteria[]>([]);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -263,6 +265,7 @@ export default function AdminTherapeuticsPage() {
   // Column customization state
   const [customizeColumnModalOpen, setCustomizeColumnModalOpen] = useState(false);
   const [columnSettings, setColumnSettings] = useState<ColumnSettings>(DEFAULT_COLUMN_SETTINGS);
+  const isDevMode = process.env.NODE_ENV === "development";
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -480,9 +483,111 @@ export default function AdminTherapeuticsPage() {
 
   // Clear cache function
   const clearCache = () => {
-    localStorage.removeItem('therapeuticTrials');
+    try {
+      console.log("[AdminTherapeuticsPage] Clearing therapeutic trial cache keys");
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (
+          key === "therapeuticTrials" ||
+          key.startsWith("trial_")
+        ) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => {
+        console.log("[AdminTherapeuticsPage] Removing localStorage key:", key);
+        localStorage.removeItem(key);
+      });
+    } catch (error) {
+      console.warn("[AdminTherapeuticsPage] Failed to clear trial cache:", error);
+    }
   };
 
+
+  const deleteAllTrials = async () => {
+    if (!isDevMode) {
+      toast({
+        title: "Restricted",
+        description: "Bulk delete is only available in development mode.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      !confirm(
+        "This will permanently delete ALL trials from the development database. Are you sure you want to continue?"
+      )
+    ) {
+      return;
+    }
+
+    const currentUserId = localStorage.getItem("userId");
+    if (!currentUserId) {
+      toast({
+        title: "Error",
+        description: "User ID not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeletingAllTrials(true);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials/dev`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ user_id: currentUserId }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json().catch(() => null);
+        console.log("[AdminTherapeuticsPage] Delete all trials response:", data);
+        clearCache();
+        setTrials([]);
+        setSelectedTrials(new Set());
+        setIsSelectAllChecked(false);
+        toast({
+          title: "All trials deleted",
+          description: `Removed ${data?.deleted_count ?? 0} trial(s) from the development database.`,
+        });
+        await fetchTrials(true);
+      } else {
+        const errorPayload = await response.json().catch(() => null);
+        console.error(
+          "[AdminTherapeuticsPage] Delete all trials failed:",
+          errorPayload
+        );
+        toast({
+          title: "Error",
+          description:
+            errorPayload?.message || "Failed to delete all trials",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error(
+        "[AdminTherapeuticsPage] Delete all trials exception:",
+        error
+      );
+      toast({
+        title: "Error",
+        description: "Failed to delete all trials",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAllTrials(false);
+    }
+  };
 
   // Delete trial
   const deleteTrial = async (trialId: string) => {
@@ -1776,6 +1881,26 @@ export default function AdminTherapeuticsPage() {
             <Plus className="h-4 w-4 mr-2" />
             Add New Trial
           </Button>
+          {isDevMode && (
+            <Button
+              variant="destructive"
+              onClick={deleteAllTrials}
+              disabled={isDeletingAllTrials}
+              className="flex items-center"
+            >
+              {isDeletingAllTrials ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete All Trials (Dev)
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

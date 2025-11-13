@@ -45,9 +45,10 @@ export interface TherapeuticFormData {
     age_min: string;
     age_max: string;
     gender: string;
-    ecog_performance_status: string;
-    prior_treatments: string[];
-    biomarker_requirements: string[];
+    subject_type: string;
+    healthy_volunteers: string;
+    target_no_volunteers: string;
+    actual_enrolled_volunteers: string;
   };
 
   // Step 5-4: Patient Population
@@ -228,7 +229,13 @@ export interface TherapeuticFormData {
       type: string;
       content: string;
       sourceLink?: string;
-      attachments?: string[];
+      sourceType?: string;
+      sourceUrl?: string;
+      attachments?: Array<{
+        name: string;
+        url: string;
+        type: string;
+      }>;
       isVisible: boolean;
     }>;
     link: string;
@@ -300,9 +307,10 @@ const initialFormState: TherapeuticFormData = {
     age_min: "",
     age_max: "",
     gender: "",
-    ecog_performance_status: "",
-    prior_treatments: [""],
-    biomarker_requirements: [""],
+    healthy_volunteers: [""],
+    subject_type: "",
+    target_no_volunteers: "",
+    actual_enrolled_volunteers: "",
   },
   step5_4: {
     estimated_enrollment: "",
@@ -518,7 +526,7 @@ type FormAction =
       step: keyof TherapeuticFormData;
       field: string;
       index: number;
-      value: string;
+      value: any;
     }
   | { type: "RESET_FORM" }
   | { type: "LOAD_FORM"; data: TherapeuticFormData };
@@ -620,7 +628,7 @@ interface TherapeuticFormContextType {
     step: keyof TherapeuticFormData,
     field: string,
     index: number,
-    value: string
+    value: any
   ) => void;
   addComplexArrayItem: (step: keyof TherapeuticFormData, field: string, template: any) => void;
   updateComplexArrayItem: (
@@ -710,6 +718,21 @@ const TherapeuticFormContext = createContext<
 export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
   const [formData, dispatch] = useReducer(formReducer, initialFormState);
 
+  // Helper function to get tab name from step
+  const getTabName = (step: keyof TherapeuticFormData): string => {
+    const stepToTabMap: Record<string, string> = {
+      step5_1: "Trial Overview",
+      step5_2: "Outcome Measured",
+      step5_3: "Participation Criteria",
+      step5_4: "Timing",
+      step5_5: "Results",
+      step5_6: "Sites",
+      step5_7: "Other Sources",
+      step5_8: "Logs",
+    };
+    return stepToTabMap[step] || "Trial Overview";
+  };
+
   const updateStep = (
     step: keyof TherapeuticFormData,
     data: Partial<TherapeuticFormData[keyof TherapeuticFormData]>
@@ -732,6 +755,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     if (field !== "changesLog" && field !== "creationInfo" && field !== "modificationInfo" && currentValue !== value) {
       const now = new Date();
       const today = now.toISOString().split('T')[0];
+      const tabName = getTabName(step);
       
       // Determine change type and action
       let changeType: 'field_change' | 'content_addition' | 'content_removal' | 'visibility_change' | 'creation' = 'field_change';
@@ -741,15 +765,15 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       if (currentValue === "" || currentValue === undefined || currentValue === null) {
         changeType = 'content_addition';
         action = "added";
-        details = `Added "${value}" to ${field}`;
+        details = `${tabName} updated`;
       } else if (value === "" || value === undefined || value === null) {
         changeType = 'content_removal';
         action = "removed";
-        details = `Removed "${currentValue}" from ${field}`;
+        details = `${tabName} updated`;
       } else {
         changeType = 'field_change';
         action = "changed";
-        details = `"${field}" was changed from "${currentValue}" to "${value}"`;
+        details = `${tabName} updated`;
       }
       
       // Check if we should consolidate with existing changes from today
@@ -776,11 +800,12 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           );
           
           if (existingEntryIndex !== -1) {
-            // Update existing entry with additional details
+            // Update existing entry timestamp (details remain the same since all messages are simplified)
             const updatedArray = [...currentArray];
+            const tabName = getTabName(step);
             updatedArray[existingEntryIndex] = {
               ...updatedArray[existingEntryIndex],
-              details: `${updatedArray[existingEntryIndex].details}; ${details}`,
+              details: `${tabName} updated`,
               timestamp: now.toISOString(), // Update to latest time
             };
             
@@ -835,12 +860,13 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     // Log the array addition
     setTimeout(() => {
       const currentArray = (formData[step] as any)[field] as any[];
+      const tabName = getTabName(step);
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         user: "admin",
         action: "added",
-        details: `Added new item to ${field}`,
+        details: `${tabName} updated`,
         field,
         oldValue: "",
         newValue: "new item",
@@ -867,12 +893,13 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     // Log the array removal
     setTimeout(() => {
       const changesArray = (formData[step] as any).changesLog || [];
+      const tabName = getTabName(step);
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         user: "admin",
         action: "removed",
-        details: `Removed item from ${field}`,
+        details: `${tabName} updated`,
         field,
         oldValue: removedItem || "item",
         newValue: "",
@@ -890,7 +917,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     step: keyof TherapeuticFormData,
     field: string,
     index: number,
-    value: string
+    value: any
   ) => {
     const currentArray = (formData[step] as any)[field] as any[];
     const oldValue = currentArray[index];
@@ -900,12 +927,13 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
     // Log the array item update
     setTimeout(() => {
       const changesArray = (formData[step] as any).changesLog || [];
+      const tabName = getTabName(step);
       const newLogEntry = {
         id: Date.now().toString(),
         timestamp: new Date().toISOString(),
         user: "admin",
         action: "updated",
-        details: `Updated item in ${field}`,
+        details: `${tabName} updated`,
         field,
         oldValue: oldValue || "",
         newValue: value,
@@ -981,6 +1009,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       type: "General",
       content: "",
       sourceLink: "",
+      sourceType: "",
+      sourceUrl: "",
       attachments: [],
       isVisible: true,
     };
@@ -1042,11 +1072,10 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       value: updatedArray,
     });
     
-    // Log the visibility change with enhanced details
+    // Log the visibility change with simplified details
     const action = item.isVisible ? "hidden" : "shown";
-    const noteContent = item.content ? item.content.substring(0, 50) + "..." : "Note";
-    const noteDate = item.date || "Unknown date";
-    const details = `Date note dated ${noteDate} from ${item.type || "General"} was changed from ${item.isVisible ? "show" : "hide"} to ${item.isVisible ? "hide" : "show"}`;
+    const tabName = getTabName(step);
+    const details = `${tabName} updated`;
     
     setTimeout(() => {
       const currentLogArray = (formData.step5_8 as any).changesLog || [];
@@ -1438,13 +1467,10 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           age_from: ensureString(allFormData.step5_3.age_min),
           age_to: ensureString(allFormData.step5_3.age_max),
           sex: ensureString(allFormData.step5_3.gender),
-          healthy_volunteers: allFormData.step5_3.prior_treatments[0] || "",
-          subject_type: allFormData.step5_3.biomarker_requirements[0] || "",
-          target_no_volunteers: ensureNumber(allFormData.step5_4.estimated_enrollment, 0),
-          actual_enrolled_volunteers: ensureNumber(allFormData.step5_4.actual_enrollment, 0),
-          ecog_performance_status: allFormData.step5_3.ecog_performance_status || "",
-          prior_treatments: allFormData.step5_3.prior_treatments.filter(Boolean).join(", ") || "",
-          biomarker_requirements: allFormData.step5_3.biomarker_requirements.filter(Boolean).join(", ") || "",
+          healthy_volunteers: allFormData.step5_3.healthy_volunteers[0] || "",
+          subject_type: ensureString(allFormData.step5_3.subject_type),
+          target_no_volunteers: ensureString(allFormData.step5_3.target_no_volunteers || allFormData.step5_4.estimated_enrollment),
+          actual_enrolled_volunteers: ensureString(allFormData.step5_3.actual_enrolled_volunteers || allFormData.step5_4.actual_enrollment),
         },
         timing: (() => {
           const timingData = {
@@ -1586,18 +1612,86 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             ? formatDate((allFormData.step5_8 as any).nextReviewDate)
             : null,
           internal_note: (allFormData.step5_8 as any).internalNote || null,
+          attachment: (allFormData.step5_8 as any).logsAttachments && (allFormData.step5_8 as any).logsAttachments.length > 0
+            ? JSON.stringify((allFormData.step5_8 as any).logsAttachments)
+            : null,
         },
-        notes: {
-          date_type: ensureString(allFormData.step5_8.date_type),
-          notes: allFormData.step5_8.notes.filter(note => note.isVisible && note.content).length > 0 
-            ? allFormData.step5_8.notes.filter(note => note.isVisible && note.content).map(note => 
-                `${note.date} (${note.type}): ${note.content}${note.sourceLink ? ` - Source: ${note.sourceLink}` : ""}`
-              ).join("; ") 
-            : "No notes available",
-          link: ensureString(allFormData.step5_8.link),
-          attachments: allFormData.step5_8.notes.filter(note => note.isVisible && note.attachments && note.attachments.length > 0)
-            .flatMap(note => note.attachments) || [],
-        },
+        notes: (() => {
+          const rawNotes = allFormData.step5_8.notes || [];
+          const visibleNotes = rawNotes.filter((note) => {
+            const content =
+              typeof note.content === "string"
+                ? note.content
+                : note.content && typeof note.content === "object"
+                ? note.content.text || note.content.content
+                : "";
+            const hasContent = Boolean(content && String(content).trim());
+            const hasSource =
+              Boolean(note.sourceLink && String(note.sourceLink).trim()) ||
+              Boolean((note as any).sourceType && String((note as any).sourceType).trim()) ||
+              Boolean((note as any).sourceUrl && String((note as any).sourceUrl).trim());
+            const hasAttachments = Array.isArray(note.attachments) && note.attachments.length > 0;
+            return note.isVisible !== false && (hasContent || hasSource || hasAttachments);
+          });
+
+          const formattedNotes = visibleNotes.map((note) => {
+            const rawContent =
+              typeof note.content === "string"
+                ? note.content
+                : note.content && typeof note.content === "object"
+                ? note.content.text || note.content.content
+                : "";
+            const attachments = Array.isArray(note.attachments)
+              ? note.attachments.map((attachment: any) => ({
+                  name: attachment?.name || "",
+                  url: attachment?.url || "",
+                  type: attachment?.type || "application/octet-stream",
+                }))
+              : [];
+
+            return {
+              id: note.id,
+              date: formatDate(note.date),
+              type: ensureString(note.type) || "General",
+              content: ensureString(rawContent),
+              sourceLink: ensureString(note.sourceLink),
+              sourceType: ensureString((note as any).sourceType),
+              sourceUrl: ensureString((note as any).sourceUrl),
+              attachments,
+              isVisible: true,
+            };
+          });
+
+          const attachmentsList = formattedNotes
+            .flatMap((note) => note.attachments)
+            .filter((attachment) => attachment && (attachment.name || attachment.url));
+
+          const sourceList = formattedNotes
+            .map((note) => ({
+              id: note.id,
+              sourceLink: note.sourceLink,
+              sourceType: note.sourceType,
+              sourceUrl: note.sourceUrl,
+            }))
+            .filter(
+              (source) =>
+                (source.sourceLink && source.sourceLink.trim() !== "") ||
+                (source.sourceType && source.sourceType.trim() !== "") ||
+                (source.sourceUrl && source.sourceUrl.trim() !== "")
+            );
+
+          // New schema: Store all note data in the JSONB notes field
+          const notesPayload = formattedNotes.length > 0 ? formattedNotes : [];
+          
+          console.log('[TherapeuticFormContext] Notes payload:', { 
+            notesCount: notesPayload.length,
+            notes: typeof notesPayload 
+          });
+
+          return {
+            notes: notesPayload, // Store all note data in JSONB field
+          };
+        })(),
       };
 
       const fullUrl = `${apiBaseUrl}/api/v1/therapeutic/create-therapeutic`;

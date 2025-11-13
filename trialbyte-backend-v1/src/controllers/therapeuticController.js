@@ -606,7 +606,43 @@ const createWithAllData = async (req, res) => {
 
     // Create notes data if provided
     if (notes) {
-      const notesWithTrial = { ...notes, trial_id };
+      console.log('[TherapeuticController] Creating notes with data:', { trial_id, notes: typeof notes });
+      
+      // Normalize notes to JSONB format
+      // The notes field should be a JSONB array/object containing all note data
+      let notesData = notes.notes;
+      
+      // If notes.notes is already a string (JSON), parse it
+      if (typeof notesData === "string") {
+        try {
+          notesData = JSON.parse(notesData);
+        } catch (e) {
+          console.warn('[TherapeuticController] Failed to parse notes JSON string, using as-is');
+          notesData = notesData;
+        }
+      }
+      
+      // If notes.notes is not provided but other note fields are, create structure
+      if (!notesData && (notes.date_type || notes.link || notes.attachments)) {
+        notesData = {
+          date_type: notes.date_type || null,
+          link: notes.link || null,
+          attachments: notes.attachments || [],
+        };
+      }
+      
+      // Ensure notesData is an array or object
+      if (!notesData) {
+        notesData = [];
+      }
+
+      const notesWithTrial = {
+        trial_id,
+        notes: notesData, // Store all note data in JSONB field
+      };
+      
+      console.log('[TherapeuticController] Notes payload:', { trial_id, notes: typeof notesWithTrial.notes });
+      
       const createdNotes = await notesRepo.create(notesWithTrial);
       await logTherapeuticActivity(
         "INSERT",
@@ -702,6 +738,11 @@ const updateOverview = async (req, res) => {
       .status(StatusCodes.BAD_REQUEST)
       .json({ message: "user_id is required for activity logging" });
   }
+
+  console.log("[TherapeuticController] updateOverview payload:", {
+    overview_id: req.params.id,
+    updateData,
+  });
 
   const item = await trialRepo.update(req.params.id, updateData);
   if (!item) return respondNotFound(res, "Overview");
@@ -804,11 +845,106 @@ const updateOutcome = async (req, res) => {
   return res.status(StatusCodes.OK).json({ outcome: item });
 };
 const updateOutcomeByTrial = async (req, res) => {
-  const items = await outcomeRepo.updateByTrialId(
-    req.params.trial_id,
-    req.body || {}
-  );
-  return res.status(StatusCodes.OK).json({ outcomes: items });
+  const { trial_id } = req.params;
+  const { user_id, ...rawUpdate } = req.body || {};
+
+  console.log("[TherapeuticController] updateOutcomeByTrial payload:", {
+    trial_id,
+    user_id,
+    rawUpdate,
+  });
+
+  if (!user_id) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "user_id is required for activity logging" });
+  }
+
+  if (!trial_id) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "trial_id is required" });
+  }
+
+  // Ensure payload fields are strings where necessary
+  const stringFields = [
+    "purpose_of_trial",
+    "summary",
+    "primary_outcome_measure",
+    "other_outcome_measure",
+    "study_design_keywords",
+    "study_design",
+    "treatment_regimen",
+  ];
+
+  const processedUpdate = ensureStringFields(rawUpdate, stringFields);
+
+  // number_of_arms should be integer or null
+  if (
+    Object.prototype.hasOwnProperty.call(processedUpdate, "number_of_arms") &&
+    processedUpdate.number_of_arms !== null &&
+    processedUpdate.number_of_arms !== undefined
+  ) {
+    const parsedArms = parseInt(processedUpdate.number_of_arms, 10);
+    processedUpdate.number_of_arms = Number.isNaN(parsedArms)
+      ? null
+      : parsedArms;
+  }
+
+  try {
+    const updatedItems = await outcomeRepo.updateByTrialId(
+      trial_id,
+      processedUpdate
+    );
+
+    if (updatedItems.length === 0) {
+      // No existing outcome rows; create a new one
+      const toCreate = {
+        trial_id,
+        ...processedUpdate,
+      };
+
+      console.log("[TherapeuticController] No outcome rows found. Creating new outcome:", toCreate);
+
+      const createdOutcome = await outcomeRepo.create(toCreate);
+      await logTherapeuticActivity(
+        "INSERT",
+        "therapeutic_outcome_measured",
+        createdOutcome.id,
+        toCreate,
+        user_id
+      );
+      return res.status(StatusCodes.CREATED).json({
+        outcome: createdOutcome,
+        created: true,
+      });
+    }
+
+    // Log update for first updated row (all share same trial_id)
+    await logTherapeuticActivity(
+      "UPDATE",
+      "therapeutic_outcome_measured",
+      updatedItems[0].id,
+      processedUpdate,
+      user_id
+    );
+
+    console.log("[TherapeuticController] Outcome rows updated:", {
+      trial_id,
+      count: updatedItems.length,
+    });
+
+    return res.status(StatusCodes.OK).json({ outcomes: updatedItems });
+  } catch (error) {
+    console.error("Failed to update outcome for trial:", {
+      trial_id,
+      error,
+    });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Failed to update outcome data",
+      error: error.message,
+    });
+  }
 };
 const deleteOutcome = async (req, res) => {
   const { user_id } = req.body || {};
@@ -881,6 +1017,10 @@ const updateCriteria = async (req, res) => {
   return res.status(StatusCodes.OK).json({ criteria: item });
 };
 const updateCriteriaByTrial = async (req, res) => {
+  console.log("[TherapeuticController] updateCriteriaByTrial payload:", {
+    trial_id: req.params.trial_id,
+    body: req.body,
+  });
   const items = await criteriaRepo.updateByTrialId(
     req.params.trial_id,
     req.body || {}
@@ -921,6 +1061,10 @@ const updateTiming = async (req, res) => {
   return res.status(StatusCodes.OK).json({ timing: item });
 };
 const updateTimingByTrial = async (req, res) => {
+  console.log("[TherapeuticController] updateTimingByTrial payload:", {
+    trial_id: req.params.trial_id,
+    body: req.body,
+  });
   const items = await timingRepo.updateByTrialId(
     req.params.trial_id,
     req.body || {}
@@ -961,6 +1105,10 @@ const updateResults = async (req, res) => {
   return res.status(StatusCodes.OK).json({ results: item });
 };
 const updateResultsByTrial = async (req, res) => {
+  console.log("[TherapeuticController] updateResultsByTrial payload:", {
+    trial_id: req.params.trial_id,
+    body: req.body,
+  });
   const items = await resultsRepo.updateByTrialId(
     req.params.trial_id,
     req.body || {}
@@ -1137,6 +1285,75 @@ const deleteNotesByTrial = async (req, res) => {
   return res.status(StatusCodes.OK).json({ deleted: count });
 };
 
+const performCascadeDeleteForTrial = async (trial_id, user_id) => {
+  const trialToDelete = await trialRepo.findById(trial_id);
+  if (!trialToDelete) {
+    return { notFound: true };
+  }
+
+  console.log(
+    `[TherapeuticController] Starting cascade delete for trial ${trial_id} by user ${user_id}`
+  );
+
+  const deletionResults = {
+    outcomes: await outcomeRepo.deleteByTrialId(trial_id),
+    criteria: await criteriaRepo.deleteByTrialId(trial_id),
+    timing: await timingRepo.deleteByTrialId(trial_id),
+    results: await resultsRepo.deleteByTrialId(trial_id),
+    sites: await sitesRepo.deleteByTrialId(trial_id),
+    other_sources: await otherRepo.deleteByTrialId(trial_id),
+    logs: await logsRepo.deleteByTrialId(trial_id),
+    notes: await notesRepo.deleteByTrialId(trial_id),
+    overview: await trialRepo.deleteByTrialId(trial_id),
+  };
+
+  const totalDeleted = Object.values(deletionResults).reduce(
+    (sum, count) => sum + count,
+    0
+  );
+
+  console.log(
+    `[TherapeuticController] Cascade delete complete for trial ${trial_id}`,
+    deletionResults
+  );
+
+  await logTherapeuticActivity(
+    "DELETE",
+    "therapeutic_trial_overview",
+    trial_id,
+    {
+      deleted_trial: {
+        id: trial_id,
+        trial_identifier: trialToDelete.trial_identifier,
+        title: trialToDelete.title,
+        therapeutic_area: trialToDelete.therapeutic_area,
+      },
+      deletion_summary: deletionResults,
+      total_records_deleted: totalDeleted,
+    },
+    user_id
+  );
+
+  return {
+    notFound: false,
+    payload: {
+      success: true,
+      message: `Successfully deleted all therapeutic data for trial ${trial_id}`,
+      trial_info: {
+        id: trial_id,
+        trial_identifier: trialToDelete.trial_identifier,
+        title: trialToDelete.title,
+      },
+      deletion_summary: deletionResults,
+      total_records_deleted: totalDeleted,
+    },
+    details: {
+      deletionResults,
+      trial: trialToDelete,
+    },
+  };
+};
+
 // NEW: Delete all therapeutic data for a specific trial
 const deleteAllTherapeuticDataByTrial = async (req, res) => {
   const { trial_id, user_id } = req.params;
@@ -1154,87 +1371,82 @@ const deleteAllTherapeuticDataByTrial = async (req, res) => {
   }
 
   try {
-    // Get trial info before deletion for logging
-    const trialToDelete = await trialRepo.findById(trial_id);
-    if (!trialToDelete) {
+    const result = await performCascadeDeleteForTrial(trial_id, user_id);
+
+    if (result.notFound) {
       return res
         .status(StatusCodes.NOT_FOUND)
         .json({ message: "Therapeutic trial not found" });
     }
 
-    console.log(
-      `Starting deletion of all therapeutic data for trial ${trial_id}...`
-    );
-
-    // Delete all related data in the correct order (child tables first)
-    const deletionResults = {
-      outcomes: 0,
-      criteria: 0,
-      timing: 0,
-      results: 0,
-      sites: 0,
-      other_sources: 0,
-      logs: 0,
-      notes: 0,
-      overview: 0,
-    };
-
-    // Delete child records first
-    deletionResults.outcomes = await outcomeRepo.deleteByTrialId(trial_id);
-    deletionResults.criteria = await criteriaRepo.deleteByTrialId(trial_id);
-    deletionResults.timing = await timingRepo.deleteByTrialId(trial_id);
-    deletionResults.results = await resultsRepo.deleteByTrialId(trial_id);
-    deletionResults.sites = await sitesRepo.deleteByTrialId(trial_id);
-    deletionResults.other_sources = await otherRepo.deleteByTrialId(trial_id);
-    deletionResults.logs = await logsRepo.deleteByTrialId(trial_id);
-    deletionResults.notes = await notesRepo.deleteByTrialId(trial_id);
-
-    // Finally delete the overview record
-    deletionResults.overview = await trialRepo.deleteByTrialId(trial_id);
-
-    const totalDeleted = Object.values(deletionResults).reduce(
-      (sum, count) => sum + count,
-      0
-    );
-
-    console.log(
-      `Successfully deleted all therapeutic data for trial ${trial_id}:`,
-      deletionResults
-    );
-
-    // Log the comprehensive deletion activity
-    await logTherapeuticActivity(
-      "DELETE",
-      "therapeutic_trial_overview",
-      trial_id,
-      {
-        deleted_trial: {
-          id: trial_id,
-          trial_identifier: trialToDelete.trial_identifier,
-          title: trialToDelete.title,
-          therapeutic_area: trialToDelete.therapeutic_area,
-        },
-        deletion_summary: deletionResults,
-        total_records_deleted: totalDeleted,
-      },
-      user_id
-    );
-
-    return res.status(StatusCodes.OK).json({
-      success: true,
-      message: `Successfully deleted all therapeutic data for trial ${trial_id}`,
-      trial_info: {
-        id: trial_id,
-        trial_identifier: trialToDelete.trial_identifier,
-        title: trialToDelete.title,
-      },
-      deletion_summary: deletionResults,
-      total_records_deleted: totalDeleted,
-    });
+    return res.status(StatusCodes.OK).json(result.payload);
   } catch (error) {
     console.error("Error deleting therapeutic trial data:", error);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       message: "Failed to delete therapeutic trial data",
+      error: error.message,
+    });
+  }
+};
+
+// NEW: Delete ALL trials (dev only)
+const deleteAllTherapeuticTrialsDevOnly = async (req, res) => {
+  console.log("[TherapeuticController] deleteAllTherapeuticTrialsDevOnly invoked", {
+    nodeEnv: process.env.NODE_ENV,
+  });
+
+  if (process.env.NODE_ENV !== "development") {
+    return res.status(StatusCodes.FORBIDDEN).json({
+      message: "Bulk delete is only allowed in development mode",
+    });
+  }
+
+  const { user_id } = req.body || {};
+
+  if (!user_id) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "user_id is required in request body" });
+  }
+
+  try {
+    const allTrials = await trialRepo.findAll();
+    console.log(
+      `[TherapeuticController] Found ${allTrials.length} trials to delete`
+    );
+
+    const results = [];
+
+    for (const trial of allTrials) {
+      try {
+        const deletionResult = await performCascadeDeleteForTrial(
+          trial.id,
+          user_id
+        );
+
+        if (!deletionResult.notFound) {
+          results.push({
+            trial_id: trial.id,
+            deletion_summary: deletionResult.details.deletionResults,
+          });
+        }
+      } catch (innerError) {
+        console.error(
+          `[TherapeuticController] Failed to delete trial ${trial.id}:`,
+          innerError
+        );
+      }
+    }
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      deleted_count: results.length,
+      details: results,
+    });
+  } catch (error) {
+    console.error("Error deleting all therapeutic trials:", error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Failed to delete all therapeutic trials",
       error: error.message,
     });
   }
@@ -1245,6 +1457,7 @@ module.exports = {
   fetchAllTherapeuticData, // NEW endpoint
   fetchAllTherapeuticTrials, // NEW endpoint
   deleteAllTherapeuticDataByTrial, // NEW endpoint
+  deleteAllTherapeuticTrialsDevOnly,
   createOverview,
   listOverview,
   getOverview,

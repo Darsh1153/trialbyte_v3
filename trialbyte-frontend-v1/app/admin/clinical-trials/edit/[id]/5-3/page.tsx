@@ -238,9 +238,9 @@ export default function EditTherapeuticsStep5_3() {
                 <Label>Healthy Volunteers</Label>
                <SearchableSelect
                  options={healthyVolunteersOptions}
-                 value={form.prior_treatments[0] || ""}
+                 value={form.healthy_volunteers[0] || ""}
                  onValueChange={(v) =>
-                   updateField("step5_3", "prior_treatments", [v])
+                   updateField("step5_3", "healthy_volunteers", [v])
                  }
                  placeholder="Select"
                  searchPlaceholder="Search..."
