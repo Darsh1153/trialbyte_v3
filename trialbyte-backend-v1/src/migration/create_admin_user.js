@@ -1,10 +1,10 @@
 const {
   pool,
   connect_PgSQL_DB,
-} = require("./src/infrastructure/PgDB/connect");
-const { UserRepository } = require("./src/repositories/userRepository");
-const { RoleRepository } = require("./src/repositories/roleRepository");
-const { UserRoleRepository } = require("./src/repositories/userRoleRepository");
+} = require("../infrastructure/PgDB/connect");
+const { UserRepository } = require("../repositories/userRepository");
+const { RoleRepository } = require("../repositories/roleRepository");
+const { UserRoleRepository } = require("../repositories/userRoleRepository");
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 

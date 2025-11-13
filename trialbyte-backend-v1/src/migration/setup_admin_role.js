@@ -1,9 +1,9 @@
 const {
   pool,
   connect_PgSQL_DB,
-} = require("./src/infrastructure/PgDB/connect");
-const { RoleRepository } = require("./src/repositories/roleRepository");
-const { UserRoleRepository } = require("./src/repositories/userRoleRepository");
+} = require("../infrastructure/PgDB/connect");
+const { RoleRepository } = require("../repositories/roleRepository");
+const { UserRoleRepository } = require("../repositories/userRoleRepository");
 require("dotenv").config();
 
 async function setupAdminRole() {

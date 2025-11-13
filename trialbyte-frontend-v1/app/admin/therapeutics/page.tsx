@@ -2155,7 +2155,7 @@ export default function AdminTherapeuticsPage() {
 
       <div className="rounded-xl border bg-card ">
         {/* Desktop / larger screens → normal table */}
-        <ScrollArea className="h-[30rem]  w-[70rem] rounded-md border">
+        <ScrollArea className="rounded-md border">
           <div className="">
         <Table>
             <TableHeader>
