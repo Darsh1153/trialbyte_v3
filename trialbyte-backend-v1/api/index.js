@@ -96,6 +96,69 @@ app.use(cors(corsOptions));
 
 registerEdgeStoreRoutes(app);
 
+// Ensure database connection for serverless functions
+let dbConnectionPromise = null;
+const ensureDbConnection = async () => {
+  // If we already have a connection attempt in progress, wait for it
+  if (dbConnectionPromise) {
+    return dbConnectionPromise;
+  }
+  
+  // Check if pool is already connected by trying a simple query
+  try {
+    const { pool } = require("../src/infrastructure/PgDB/connect");
+    await pool.query("SELECT 1");
+    console.log("✅ Database connection already established");
+    return pool;
+  } catch (error) {
+    console.log("🔄 Database not connected, establishing connection...");
+  }
+  
+  // Start a new connection attempt
+  dbConnectionPromise = (async () => {
+    try {
+      console.log("🔄 Establishing database connection...");
+      const pool = await connect_PgSQL_DB();
+      console.log("✅ Database connection established");
+      return pool;
+    } catch (error) {
+      console.error("❌ Database connection error:", error);
+      dbConnectionPromise = null; // Reset so we can retry
+      throw error;
+    }
+  })();
+  
+  return dbConnectionPromise;
+};
+
+// Health check endpoint (before DB middleware so it can work even if DB is down)
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ 
+    status: "ok", 
+    message: "API is running",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Middleware to ensure DB connection before handling API requests
+app.use("/api", async (req, res, next) => {
+  // Skip health check
+  if (req.path === "/health") {
+    return next();
+  }
+  
+  try {
+    await ensureDbConnection();
+    next();
+  } catch (error) {
+    console.error("Database connection failed in middleware:", error);
+    res.status(500).json({ 
+      message: "Database connection failed", 
+      error: error.message 
+    });
+  }
+});
+
 //routes
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/roles", roleRouter);
