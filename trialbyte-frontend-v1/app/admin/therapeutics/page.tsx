@@ -1336,6 +1336,9 @@ export default function AdminTherapeuticsPage() {
   const getSortValue = (trial: TherapeuticTrial, field: string): string | number => {
     switch (field) {
       // Core fields
+      case "trialId": 
+      case "trial_id": return trial.overview?.trial_id || trial.trial_id || "";
+      case "title": return trial.overview?.title || "";
       case "therapeuticArea": return trial.overview?.therapeutic_area || "";
       case "diseaseType": return trial.overview?.disease_type || "";
       case "primaryDrug": return trial.overview?.primary_drugs || "";
@@ -1405,7 +1408,6 @@ export default function AdminTherapeuticsPage() {
       case "studyType": return "";
       
       // Legacy support
-      case "trial_id": return trial.overview.trial_id || trial.trial_id;
       case "therapeutic_area": return trial.overview?.therapeutic_area || "";
       case "disease_type": return trial.overview?.disease_type || "";
       case "primary_drug": return trial.overview?.primary_drugs || "";
@@ -1418,11 +1420,15 @@ export default function AdminTherapeuticsPage() {
   };
 
   const handleSort = (field: string) => {
+    console.log('handleSort called with field:', field, 'current sortField:', sortField);
     if (sortField === field) {
       // Toggle sort direction if same field
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      const newDirection = sortDirection === "asc" ? "desc" : "asc";
+      console.log('Toggling sort direction to:', newDirection);
+      setSortDirection(newDirection);
     } else {
       // Set new field and default to ascending
+      console.log('Setting new sort field:', field, 'direction: asc');
       setSortField(field);
       setSortDirection("asc");
     }
@@ -1634,7 +1640,9 @@ export default function AdminTherapeuticsPage() {
     const savedSettings = localStorage.getItem('adminTrialColumnSettings');
     if (savedSettings) {
       try {
-        setColumnSettings(JSON.parse(savedSettings));
+        const parsedSettings = JSON.parse(savedSettings);
+        // Merge with default settings to ensure new fields (trialId, title) are included
+        setColumnSettings({ ...DEFAULT_COLUMN_SETTINGS, ...parsedSettings });
       } catch (error) {
         console.error('Error loading column settings:', error);
       }

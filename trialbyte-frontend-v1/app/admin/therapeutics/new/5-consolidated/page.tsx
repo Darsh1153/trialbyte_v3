@@ -104,9 +104,9 @@ export default function NewTherapeuticsConsolidated() {
 
   return (
     <div className="space-y-4">
-      {/* Section Navigation Tabs - Matching image 1 style */}
+      {/* Section Navigation Tabs - Matching image 1 style - Fixed Header */}
       <div 
-        className="flex overflow-x-auto rounded-r-lg"
+        className="flex overflow-x-auto rounded-r-lg sticky top-0 z-50 shadow-md"
         style={{ 
           backgroundColor: '#D0EEF9',
           height: '50px'

@@ -51,20 +51,49 @@ function buildRequestUrl(path: string): string {
 async function request<T>(path: string, options: { method?: HttpMethod; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
   const { method = 'GET', body, headers = {} } = options;
   const targetUrl = buildRequestUrl(path).replace(/\/$/, '');
-  debugApiLog("request executing fetch", { method, targetUrl });
-  const res = await fetch(targetUrl, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-  });
-  let data: any = null;
-  try { data = await res.json(); } catch { /* ignore non-json */ }
-  if (!res.ok) {
-    const message = data?.error || data?.message || `Request failed (${res.status})`;
-    throw new Error(message);
+  debugApiLog("request executing fetch", { method, targetUrl, body });
+  
+  try {
+    const res = await fetch(targetUrl, {
+      method,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: 'include',
+    });
+    
+    let data: any = null;
+    try { 
+      data = await res.json(); 
+    } catch (parseError) { 
+      console.error("Failed to parse response as JSON:", parseError);
+      // If response is not JSON, try to get text
+      const text = await res.text();
+      console.error("Response text:", text);
+    }
+    
+    if (!res.ok) {
+      const message = data?.error || data?.message || `Request failed (${res.status})`;
+      console.error("API request failed:", {
+        status: res.status,
+        statusText: res.statusText,
+        url: targetUrl,
+        message,
+        data
+      });
+      throw new Error(message);
+    }
+    return data as T;
+  } catch (error) {
+    if (error instanceof Error) {
+      // Check if it's a network error
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        console.error("Network error - API might be unreachable:", targetUrl);
+        throw new Error(`Cannot connect to API. Please check if the backend is running and the API URL is configured correctly.`);
+      }
+      throw error;
+    }
+    throw new Error("An unexpected error occurred");
   }
-  return data as T;
 }
 
 export const authApi = {

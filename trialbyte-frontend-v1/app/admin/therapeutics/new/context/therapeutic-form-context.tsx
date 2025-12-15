@@ -6,23 +6,23 @@ import React, { createContext, useContext, useReducer, ReactNode } from "react";
 export interface TherapeuticFormData {
   // Step 5-1: Trial Overview
   step5_1: {
-    therapeutic_area: string;
+    therapeutic_area: string | string[];
     trial_identifier: string[];
     trial_phase: string;
     status: string;
-    primary_drugs: string;
-    other_drugs: string;
+    primary_drugs: string | string[];
+    other_drugs: string | string[];
     title: string;
-    disease_type: string;
-    patient_segment: string;
-    line_of_therapy: string;
+    disease_type: string | string[];
+    patient_segment: string | string[];
+    line_of_therapy: string | string[];
     reference_links: string[];
     trial_tags: string;
-    sponsor_collaborators: string;
-    sponsor_field_activity: string;
+    sponsor_collaborators: string | string[];
+    sponsor_field_activity: string | string[];
     associated_cro: string;
-    countries: string;
-    region: string;
+    countries: string | string[];
+    region: string | string[];
     trial_record_status: string;
   };
 
@@ -193,6 +193,7 @@ export interface TherapeuticFormData {
     }>;
     publications: Array<{
       id: string;
+      date: string;
       type: string;
       title: string;
       description: string;
@@ -202,6 +203,7 @@ export interface TherapeuticFormData {
     }>;
     trial_registries: Array<{
       id: string;
+      date: string;
       registry: string;
       identifier: string;
       description: string;
@@ -211,6 +213,7 @@ export interface TherapeuticFormData {
     }>;
     associated_studies: Array<{
       id: string;
+      date: string;
       type: string;
       title: string;
       description: string;
@@ -272,23 +275,23 @@ export interface TherapeuticFormData {
 // Initial form state
 const initialFormState: TherapeuticFormData = {
   step5_1: {
-    therapeutic_area: "",
+    therapeutic_area: [],
     trial_identifier: [],
     trial_phase: "",
     status: "",
-    primary_drugs: "",
-    other_drugs: "",
+    primary_drugs: [],
+    other_drugs: [],
     title: "",
-    disease_type: "",
-    patient_segment: "",
-    line_of_therapy: "",
+    disease_type: [],
+    patient_segment: [],
+    line_of_therapy: [],
     reference_links: [""],
     trial_tags: "",
-    sponsor_collaborators: "",
-    sponsor_field_activity: "",
+    sponsor_collaborators: [],
+    sponsor_field_activity: [],
     associated_cro: "",
-    countries: "",
-    region: "",
+    countries: [],
+    region: [],
     trial_record_status: "",
   },
   step5_2: {
@@ -307,7 +310,7 @@ const initialFormState: TherapeuticFormData = {
     age_min: "",
     age_max: "",
     gender: "",
-    healthy_volunteers: [""],
+    healthy_volunteers: "",
     subject_type: "",
     target_no_volunteers: "",
     actual_enrolled_volunteers: "",
@@ -445,6 +448,7 @@ const initialFormState: TherapeuticFormData = {
     }],
     publications: [{
       id: "1",
+      date: "",
       type: "",
       title: "",
       description: "",
@@ -454,6 +458,7 @@ const initialFormState: TherapeuticFormData = {
     }],
     trial_registries: [{
       id: "1",
+      date: "",
       registry: "",
       identifier: "",
       description: "",
@@ -463,6 +468,7 @@ const initialFormState: TherapeuticFormData = {
     }],
     associated_studies: [{
       id: "1",
+      date: "",
       type: "",
       title: "",
       description: "",
@@ -1432,23 +1438,43 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       const therapeuticPayload = {
         user_id: currentUserId, // Use valid UUID from localStorage or default admin UUID
         overview: {
-          therapeutic_area: ensureString(allFormData.step5_1.therapeutic_area),
+          therapeutic_area: Array.isArray(allFormData.step5_1.therapeutic_area) 
+            ? allFormData.step5_1.therapeutic_area.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.therapeutic_area),
           trial_identifier: allFormData.step5_1.trial_identifier.filter(Boolean).length > 0 ? allFormData.step5_1.trial_identifier.filter(Boolean) : [],
           trial_phase: ensureString(allFormData.step5_1.trial_phase),
           status: ensureString(allFormData.step5_1.status),
-          primary_drugs: ensureString(allFormData.step5_1.primary_drugs),
-          other_drugs: ensureString(allFormData.step5_1.other_drugs),
+          primary_drugs: Array.isArray(allFormData.step5_1.primary_drugs) 
+            ? allFormData.step5_1.primary_drugs.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.primary_drugs),
+          other_drugs: Array.isArray(allFormData.step5_1.other_drugs) 
+            ? allFormData.step5_1.other_drugs.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.other_drugs),
           title: ensureString(allFormData.step5_1.title),
-          disease_type: ensureString(allFormData.step5_1.disease_type),
-          patient_segment: ensureString(allFormData.step5_1.patient_segment),
-          line_of_therapy: ensureString(allFormData.step5_1.line_of_therapy),
+          disease_type: Array.isArray(allFormData.step5_1.disease_type) 
+            ? allFormData.step5_1.disease_type.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.disease_type),
+          patient_segment: Array.isArray(allFormData.step5_1.patient_segment) 
+            ? allFormData.step5_1.patient_segment.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.patient_segment),
+          line_of_therapy: Array.isArray(allFormData.step5_1.line_of_therapy) 
+            ? allFormData.step5_1.line_of_therapy.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.line_of_therapy),
           reference_links: allFormData.step5_1.reference_links.filter(Boolean).length > 0 ? allFormData.step5_1.reference_links.filter(Boolean) : [],
           trial_tags: ensureString(allFormData.step5_1.trial_tags),
-          sponsor_collaborators: ensureString(allFormData.step5_1.sponsor_collaborators),
-          sponsor_field_activity: ensureString(allFormData.step5_1.sponsor_field_activity),
+          sponsor_collaborators: Array.isArray(allFormData.step5_1.sponsor_collaborators) 
+            ? allFormData.step5_1.sponsor_collaborators.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.sponsor_collaborators),
+          sponsor_field_activity: Array.isArray(allFormData.step5_1.sponsor_field_activity) 
+            ? allFormData.step5_1.sponsor_field_activity.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.sponsor_field_activity),
           associated_cro: ensureString(allFormData.step5_1.associated_cro),
-          countries: ensureString(allFormData.step5_1.countries),
-          region: ensureString(allFormData.step5_1.region),
+          countries: Array.isArray(allFormData.step5_1.countries) 
+            ? allFormData.step5_1.countries.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.countries),
+          region: Array.isArray(allFormData.step5_1.region) 
+            ? allFormData.step5_1.region.filter(Boolean).join(", ") 
+            : ensureString(allFormData.step5_1.region),
           trial_record_status: ensureString(allFormData.step5_1.trial_record_status),
         },
         outcome: {
@@ -1592,11 +1618,11 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           }))
         },
         other_sources: {
-          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information || item.url || item.file)),
-          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title || item.url || item.file)),
-          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.type || item.title || item.url || item.file)),
-          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.registry || item.identifier || item.url || item.file)),
-          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.type || item.title || item.url || item.file)),
+          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information || item.url)),
+          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title || item.url)),
+          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.date || item.type || item.title || item.url)),
+          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.date || item.registry || item.identifier || item.url)),
+          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.date || item.type || item.title || item.url)),
         },
         logs: {
           trial_changes_log: allFormData.step5_8.changesLog.length > 0 
@@ -1618,12 +1644,12 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         },
         notes: (() => {
           const rawNotes = allFormData.step5_8.notes || [];
-          const visibleNotes = rawNotes.filter((note) => {
+          const visibleNotes = rawNotes.filter((note: any) => {
             const content =
               typeof note.content === "string"
                 ? note.content
                 : note.content && typeof note.content === "object"
-                ? note.content.text || note.content.content
+                ? (note.content as any).text || (note.content as any).content
                 : "";
             const hasContent = Boolean(content && String(content).trim());
             const hasSource =
@@ -1634,12 +1660,12 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             return note.isVisible !== false && (hasContent || hasSource || hasAttachments);
           });
 
-          const formattedNotes = visibleNotes.map((note) => {
+          const formattedNotes = visibleNotes.map((note: any) => {
             const rawContent =
               typeof note.content === "string"
                 ? note.content
                 : note.content && typeof note.content === "object"
-                ? note.content.text || note.content.content
+                ? (note.content as any).text || (note.content as any).content
                 : "";
             const attachments = Array.isArray(note.attachments)
               ? note.attachments.map((attachment: any) => ({

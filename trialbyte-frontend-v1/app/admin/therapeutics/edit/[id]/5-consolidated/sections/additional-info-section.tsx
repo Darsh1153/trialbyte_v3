@@ -13,11 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useEdgeStore } from "@/lib/edgestore";
 
 export default function AdditionalInfoSection() {
-  const { 
-    formData, 
+  const {
+    formData,
     updateComplexArrayItem,
     addComplexArrayItem,
-    removeArrayItem, 
+    removeArrayItem,
     toggleArrayItemVisibility,
   } = useEditTherapeuticForm();
   const { toast } = useToast();
@@ -28,7 +28,7 @@ export default function AdditionalInfoSection() {
 
   console.log("📋 AdditionalInfoSection (Edit) - Current form data:", form);
   console.log("🎯 Active tab:", activeTab, "Items:", ((form as any)[activeTab] || []).length);
-  
+
   // Debug logging for description fields
   if (form) {
     const debugItems = (form as any)[activeTab] || [];
@@ -92,7 +92,7 @@ export default function AdditionalInfoSection() {
   // Ensure at least one item exists for each tab (matching creation phase behavior)
   useEffect(() => {
     if (!form) return; // Wait for form data to load
-    
+
     const tabs = ["pipeline_data", "press_releases", "publications", "trial_registries", "associated_studies"];
     tabs.forEach((tab) => {
       const currentItems = (form as any)[tab] || [];
@@ -100,9 +100,9 @@ export default function AdditionalInfoSection() {
         const templates = {
           pipeline_data: { id: Date.now().toString(), date: "", information: "", url: "", file: "", isVisible: true },
           press_releases: { id: Date.now().toString(), date: "", title: "", description: "", url: "", file: "", isVisible: true },
-          publications: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
-          trial_registries: { id: Date.now().toString(), registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
-          associated_studies: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
+          publications: { id: Date.now().toString(), date: "", type: "", title: "", description: "", url: "", file: "", isVisible: true },
+          trial_registries: { id: Date.now().toString(), date: "", registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
+          associated_studies: { id: Date.now().toString(), date: "", type: "", title: "", description: "", url: "", file: "", isVisible: true },
         };
         addComplexArrayItem("step5_7", tab, templates[tab as keyof typeof templates]);
         console.log(`✅ Initialized empty ${tab} with default item`);
@@ -113,15 +113,15 @@ export default function AdditionalInfoSection() {
   // Also ensure current tab has at least one item when switching tabs
   useEffect(() => {
     if (!form) return; // Wait for form data to load
-    
+
     const currentItems = (form as any)[activeTab] || [];
     if (currentItems.length === 0) {
       const templates = {
         pipeline_data: { id: Date.now().toString(), date: "", information: "", url: "", file: "", isVisible: true },
         press_releases: { id: Date.now().toString(), date: "", title: "", description: "", url: "", file: "", isVisible: true },
-        publications: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
-        trial_registries: { id: Date.now().toString(), registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
-        associated_studies: { id: Date.now().toString(), type: "", title: "", description: "", url: "", file: "", isVisible: true },
+        publications: { id: Date.now().toString(), date: "", type: "", title: "", description: "", url: "", file: "", isVisible: true },
+        trial_registries: { id: Date.now().toString(), date: "", registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
+        associated_studies: { id: Date.now().toString(), date: "", type: "", title: "", description: "", url: "", file: "", isVisible: true },
       };
       addComplexArrayItem("step5_7", activeTab, templates[activeTab as keyof typeof templates]);
       console.log(`✅ Initialized empty ${activeTab} with default item when switching tabs`);
@@ -176,7 +176,7 @@ export default function AdditionalInfoSection() {
     if (!file) return;
 
     const uploadKey = `${activeTab}_${itemIndex}`;
-    
+
     try {
       setUploadingFiles(prev => ({ ...prev, [uploadKey]: true }));
       console.log(`Uploading file to Edge Store for ${activeTab} item ${itemIndex}:`, file.name);
@@ -189,11 +189,11 @@ export default function AdditionalInfoSection() {
       });
 
       console.log("File uploaded successfully:", res.url);
-      
+
       // Update both file name and URL
-      updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+      updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: file.name,
-        url: res.url 
+        url: res.url
       });
 
       toast({
@@ -220,10 +220,10 @@ export default function AdditionalInfoSection() {
       await edgestore.trialOutcomeAttachments.delete({
         url: fileUrl,
       });
-      
-      updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+
+      updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: null,
-        url: null 
+        url: null
       });
 
       toast({
@@ -249,11 +249,10 @@ export default function AdditionalInfoSection() {
             key={tab.key}
             type="button"
             variant={activeTab === tab.key ? "default" : "outline"}
-            className={`text-sm px-4 py-2 whitespace-nowrap ${
-              activeTab === tab.key
+            className={`text-sm px-4 py-2 whitespace-nowrap ${activeTab === tab.key
                 ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
                 : "text-gray-600 hover:text-gray-800"
-            }`}
+              }`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -347,8 +346,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -493,8 +492,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -553,7 +552,23 @@ export default function AdditionalInfoSection() {
               {activeTab === "publications" && (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="w-1/2">
+                    <div className="w-1/4">
+                      <Label className="text-sm">Publication Date</Label>
+                      <Input
+                        type="date"
+                        value={item.date || ""}
+                        onChange={(e) =>
+                          updateComplexArrayItem(
+                            "step5_7",
+                            activeTab,
+                            idx,
+                            { date: e.target.value }
+                          )
+                        }
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                    <div className="w-1/4">
                       <Label className="text-sm">Publication Type</Label>
                       <SearchableSelect
                         options={publicationTypeOptions}
@@ -642,8 +657,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -702,7 +717,23 @@ export default function AdditionalInfoSection() {
               {activeTab === "trial_registries" && (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="w-1/2">
+                    <div className="w-1/4">
+                      <Label className="text-sm">Registry Date</Label>
+                      <Input
+                        type="date"
+                        value={item.date || ""}
+                        onChange={(e) =>
+                          updateComplexArrayItem(
+                            "step5_7",
+                            activeTab,
+                            idx,
+                            { date: e.target.value }
+                          )
+                        }
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                    <div className="w-1/4">
                       <Label className="text-sm">Registry Name</Label>
                       <SearchableSelect
                         options={registryNameOptions}
@@ -791,8 +822,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -851,7 +882,23 @@ export default function AdditionalInfoSection() {
               {activeTab === "associated_studies" && (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="w-1/2">
+                    <div className="w-1/4">
+                      <Label className="text-sm">Study Date</Label>
+                      <Input
+                        type="date"
+                        value={item.date || ""}
+                        onChange={(e) =>
+                          updateComplexArrayItem(
+                            "step5_7",
+                            activeTab,
+                            idx,
+                            { date: e.target.value }
+                          )
+                        }
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                    <div className="w-1/4">
                       <Label className="text-sm">Study Type</Label>
                       <SearchableSelect
                         options={studyTypeOptions}
@@ -940,8 +987,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -1020,9 +1067,9 @@ export default function AdditionalInfoSection() {
                         const templates = {
                           pipeline_data: { date: "", information: "", url: "", file: "", isVisible: true },
                           press_releases: { date: "", title: "", description: "", url: "", file: "", isVisible: true },
-                          publications: { type: "", title: "", description: "", url: "", file: "", isVisible: true },
-                          trial_registries: { registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
-                          associated_studies: { type: "", title: "", description: "", url: "", file: "", isVisible: true },
+                          publications: { date: "", type: "", title: "", description: "", url: "", file: "", isVisible: true },
+                          trial_registries: { date: "", registry: "", identifier: "", description: "", url: "", file: "", isVisible: true },
+                          associated_studies: { date: "", type: "", title: "", description: "", url: "", file: "", isVisible: true },
                         };
                         addComplexArrayItem("step5_7", activeTab, templates[activeTab as keyof typeof templates]);
                       }}

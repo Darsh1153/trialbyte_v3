@@ -83,10 +83,10 @@ export default function EditTherapeuticsConsolidated() {
     try {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
-      
+
       // Note: localStorage is now repopulated with fresh data inside saveTrial/loadTrialData
       // No need to clear it - keeping it ensures auto-fill works when revisiting
-      
+
       toast({
         title: "Success",
         description: "Trial updated successfully",
@@ -107,10 +107,10 @@ export default function EditTherapeuticsConsolidated() {
     try {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
-      
+
       // Note: localStorage is now repopulated with fresh data inside saveTrial/loadTrialData
       // No need to clear it - keeping it ensures auto-fill works when revisiting
-      
+
       toast({
         title: "Success",
         description: "Clinical trial updated successfully!",
@@ -142,10 +142,10 @@ export default function EditTherapeuticsConsolidated() {
 
   return (
     <div className="space-y-4">
-      {/* Section Navigation Tabs - Matching creation form style */}
-      <div 
-        className="flex overflow-x-auto rounded-r-lg"
-        style={{ 
+      {/* Section Navigation Tabs - Matching creation form style - Fixed Header */}
+      <div
+        className="flex overflow-x-auto rounded-r-lg sticky top-0 z-50 shadow-md"
+        style={{
           backgroundColor: '#D0EEF9',
           height: '50px'
         }}
@@ -165,9 +165,8 @@ export default function EditTherapeuticsConsolidated() {
               key={section.key}
               type="button"
               onClick={() => setActiveSection(section.key)}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-all h-full flex flex-col items-center justify-center ${
-                isLast ? 'rounded-r-lg' : ''
-              }`}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-all h-full flex flex-col items-center justify-center ${isLast ? 'rounded-r-lg' : ''
+                }`}
               style={{
                 backgroundColor: isActive ? '#284A70' : 'transparent',
                 color: isActive ? 'white' : '#4A5568',
@@ -210,7 +209,7 @@ export default function EditTherapeuticsConsolidated() {
             onClick={handleFinish}
             disabled={isSavingStep || isSaving}
           >
-            {isSavingStep || isSaving ? "Finishing..." : "Update Trial"}
+            {isSavingStep || isSaving ? "Saving..." : "Save & Close"}
           </Button>
         </div>
       </div>

@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
+import { MultiSelectSearchable } from "@/components/ui/multi-select-searchable";
 import { Plus, X } from "lucide-react";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,55 +33,40 @@ export default function BasicInfoSection() {
 
   // Helper functions for hierarchical dropdowns
   const getDiseaseTypeOptions = (): SearchableSelectOption[] => {
-    if (!form.therapeutic_area) {
+    const therapeuticAreas = Array.isArray(form.therapeutic_area) ? form.therapeutic_area : (form.therapeutic_area ? [form.therapeutic_area] : []);
+    if (therapeuticAreas.length === 0) {
       return diseaseTypeOptions; // Return all options if no therapeutic area selected
     }
     
-    const therapeuticAreaData = hierarchicalData[form.therapeutic_area as keyof typeof hierarchicalData];
-    if (therapeuticAreaData?.diseaseTypes) {
-      return therapeuticAreaData.diseaseTypes;
-    }
-    
-    return diseaseTypeOptions; // Fallback to all options
+    // For multiple therapeutic areas, return all disease types
+    return diseaseTypeOptions;
   };
 
   const getPatientSegmentOptions = (): SearchableSelectOption[] => {
-    if (!form.therapeutic_area) {
+    const therapeuticAreas = Array.isArray(form.therapeutic_area) ? form.therapeutic_area : (form.therapeutic_area ? [form.therapeutic_area] : []);
+    if (therapeuticAreas.length === 0) {
       return patientSegmentOptions; // Return all options if no therapeutic area selected
     }
     
-    const therapeuticAreaData = hierarchicalData[form.therapeutic_area as keyof typeof hierarchicalData];
-    if (!therapeuticAreaData?.patientSegments) {
-      return patientSegmentOptions; // Fallback to all options
-    }
-    
-    if (!form.disease_type) {
-      return therapeuticAreaData.patientSegments.default || patientSegmentOptions;
-    }
-    
-    const diseaseTypeSegments = therapeuticAreaData.patientSegments[form.disease_type as keyof typeof therapeuticAreaData.patientSegments];
-    if (diseaseTypeSegments) {
-      return diseaseTypeSegments;
-    }
-    
-    return therapeuticAreaData.patientSegments.default || patientSegmentOptions;
+    // For multiple therapeutic areas, return all patient segments
+    return patientSegmentOptions;
   };
 
   // Handle therapeutic area change
-  const handleTherapeuticAreaChange = (value: string) => {
+  const handleTherapeuticAreaChange = (value: string[]) => {
     console.log("Therapeutic area changed to:", value);
     updateField("step5_1", "therapeutic_area", value);
     // Clear dependent fields when therapeutic area changes
-    updateField("step5_1", "disease_type", "");
-    updateField("step5_1", "patient_segment", "");
+    updateField("step5_1", "disease_type", []);
+    updateField("step5_1", "patient_segment", []);
   };
 
   // Handle disease type change
-  const handleDiseaseTypeChange = (value: string) => {
+  const handleDiseaseTypeChange = (value: string[]) => {
     console.log("Disease type changed to:", value);
     updateField("step5_1", "disease_type", value);
     // Clear patient segment when disease type changes
-    updateField("step5_1", "patient_segment", "");
+    updateField("step5_1", "patient_segment", []);
   };
 
   // Hierarchical data structure for cascading dropdowns
@@ -508,9 +494,9 @@ export default function BasicInfoSection() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>Therapeutic Area</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={therapeuticAreaOptions}
-            value={form.therapeutic_area}
+            value={Array.isArray(form.therapeutic_area) ? form.therapeutic_area : (form.therapeutic_area ? [form.therapeutic_area] : [])}
             onValueChange={handleTherapeuticAreaChange}
             placeholder="Select Therapeutic Area"
             searchPlaceholder="Search therapeutic areas..."
@@ -612,9 +598,9 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Primary Drugs</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={primaryDrugsOptions}
-            value={form.primary_drugs}
+            value={Array.isArray(form.primary_drugs) ? form.primary_drugs : (form.primary_drugs ? [form.primary_drugs] : [])}
             onValueChange={(v) => updateField("step5_1", "primary_drugs", v)}
             placeholder="Select primary drug"
             searchPlaceholder="Search primary drugs..."
@@ -624,9 +610,9 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Other Drugs</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={otherDrugsOptions}
-            value={form.other_drugs}
+            value={Array.isArray(form.other_drugs) ? form.other_drugs : (form.other_drugs ? [form.other_drugs] : [])}
             onValueChange={(v) => updateField("step5_1", "other_drugs", v)}
             placeholder="Select other drug"
             searchPlaceholder="Search other drugs..."
@@ -650,9 +636,9 @@ export default function BasicInfoSection() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>Disease Type</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={getDiseaseTypeOptions()}
-            value={form.disease_type}
+            value={Array.isArray(form.disease_type) ? form.disease_type : (form.disease_type ? [form.disease_type] : [])}
             onValueChange={handleDiseaseTypeChange}
             placeholder="Select disease type"
             searchPlaceholder="Search disease types..."
@@ -662,9 +648,9 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Patient Segment</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={getPatientSegmentOptions()}
-            value={form.patient_segment}
+            value={Array.isArray(form.patient_segment) ? form.patient_segment : (form.patient_segment ? [form.patient_segment] : [])}
             onValueChange={(v) => updateField("step5_1", "patient_segment", v)}
             placeholder="Select segment"
             searchPlaceholder="Search patient segments..."
@@ -674,9 +660,9 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Line Of Therapy</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={lineOfTherapyOptions}
-            value={form.line_of_therapy}
+            value={Array.isArray(form.line_of_therapy) ? form.line_of_therapy : (form.line_of_therapy ? [form.line_of_therapy] : [])}
             onValueChange={(v) => updateField("step5_1", "line_of_therapy", v)}
             placeholder="Select line of therapy"
             searchPlaceholder="Search lines of therapy..."
@@ -739,9 +725,9 @@ export default function BasicInfoSection() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>Sponsor & Collaborators</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={sponsorOptions}
-            value={form.sponsor_collaborators}
+            value={Array.isArray(form.sponsor_collaborators) ? form.sponsor_collaborators : (form.sponsor_collaborators ? [form.sponsor_collaborators] : [])}
             onValueChange={(v) => updateField("step5_1", "sponsor_collaborators", v)}
             placeholder="Select sponsor"
             searchPlaceholder="Search sponsors..."
@@ -751,9 +737,9 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Sponsor Field of Activity</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={sponsorFieldOptions}
-            value={form.sponsor_field_activity}
+            value={Array.isArray(form.sponsor_field_activity) ? form.sponsor_field_activity : (form.sponsor_field_activity ? [form.sponsor_field_activity] : [])}
             onValueChange={(v) => updateField("step5_1", "sponsor_field_activity", v)}
             placeholder="Select field"
             searchPlaceholder="Search sponsor fields..."
@@ -779,9 +765,9 @@ export default function BasicInfoSection() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-2">
           <Label>Countries</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={countriesOptions}
-            value={form.countries}
+            value={Array.isArray(form.countries) ? form.countries : (form.countries ? [form.countries] : [])}
             onValueChange={(v) => updateField("step5_1", "countries", v)}
             placeholder="Select countries"
             searchPlaceholder="Search countries..."
@@ -791,9 +777,9 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Region</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={regionOptions}
-            value={form.region}
+            value={Array.isArray(form.region) ? form.region : (form.region ? [form.region] : [])}
             onValueChange={(v) => updateField("step5_1", "region", v)}
             placeholder="Select region"
             searchPlaceholder="Search regions..."

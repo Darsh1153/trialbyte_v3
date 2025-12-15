@@ -102,7 +102,7 @@ export default function ResultsSection() {
       });
 
       console.log("File uploaded successfully:", res.url);
-      
+
       // Store the URL and file info in form data
       updateField("step5_5", "trial_outcome_attachment", {
         url: res.url,
@@ -166,7 +166,7 @@ export default function ResultsSection() {
       });
 
       console.log("File uploaded successfully:", res.url);
-      
+
       // Get current attachments and add the new one
       const currentNote = form.site_notes[noteIndex];
       const currentAttachments = currentNote?.attachments || [];
@@ -176,7 +176,7 @@ export default function ResultsSection() {
         size: file.size,
         type: file.type,
       };
-      
+
       handleUpdateSiteNote(noteIndex, "attachments", [...currentAttachments, newAttachment]);
 
       toast({
@@ -199,16 +199,16 @@ export default function ResultsSection() {
   const handleRemoveNoteAttachment = async (noteIndex: number, attachmentIndex: number) => {
     const currentNote = form.site_notes[noteIndex];
     const attachment = currentNote?.attachments[attachmentIndex];
-    
-    if (attachment?.url) {
+
+    if (attachment && typeof attachment === "object" && "url" in attachment && (attachment as any).url) {
       try {
         await edgestore.trialOutcomeAttachments.delete({
-          url: attachment.url,
+          url: (attachment as any).url,
         });
-        
+
         const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
         handleUpdateSiteNote(noteIndex, "attachments", updatedAttachments);
-        
+
         toast({
           title: "Success",
           description: "File removed successfully",
@@ -303,13 +303,15 @@ export default function ResultsSection() {
 
         <div className="space-y-2 border rounded-md p-2">
           <Label>Trial Outcome Reference</Label>
-          <CustomDateInput
-            value={form.trial_outcome_reference_date || ""}
-            onChange={(value) => updateField("step5_5", "trial_outcome_reference_date", value)}
-            placeholder="Select date"
-            className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-          />
-          
+          <div className="w-1/2">
+            <CustomDateInput
+              value={form.trial_outcome_reference_date || ""}
+              onChange={(value) => updateField("step5_5", "trial_outcome_reference_date", value)}
+              placeholder="Select date"
+              className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            />
+          </div>
+
           {/* Trial Outcome Results Content */}
           <div className="space-y-2">
             <Label>Trial Outcome Results Content</Label>
@@ -321,7 +323,7 @@ export default function ResultsSection() {
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
-          
+
           <div className="flex gap-2 mt-2">
             <div className="flex items-center gap-2 flex-1">
               <Label className="whitespace-nowrap">Link</Label>
@@ -340,8 +342,8 @@ export default function ResultsSection() {
               <Label className="whitespace-nowrap">Attachments</Label>
               <div className="flex-1 flex flex-col gap-2">
                 <div className="flex gap-2">
-              <Input
-                type="file"
+                  <Input
+                    type="file"
                     accept="image/*,.pdf,.doc,.docx"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -351,10 +353,10 @@ export default function ResultsSection() {
                     }}
                     disabled={uploadingAttachment}
                     className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 flex-1"
-              />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
                     size="icon"
                     disabled={uploadingAttachment}
                   >
@@ -373,7 +375,7 @@ export default function ResultsSection() {
                       className="text-red-500 hover:text-red-700"
                     >
                       <X className="h-4 w-4" />
-              </Button>
+                    </Button>
                   )}
                 </div>
                 {form.trial_outcome_attachment?.url && (
@@ -401,16 +403,7 @@ export default function ResultsSection() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-lg font-semibold">Results Notes</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddSiteNote}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Note
-          </Button>
+
         </div>
 
         <div className="space-y-4">
@@ -429,9 +422,15 @@ export default function ResultsSection() {
                       className="text-gray-500 hover:text-gray-700"
                     >
                       {note.isVisible ? (
-                        <Eye className="h-4 w-4" />
+                        <>
+                          <Eye className="h-4 w-4 mr-1" />
+                          Visible
+                        </>
                       ) : (
-                        <EyeOff className="h-4 w-4" />
+                        <>
+                          <EyeOff className="h-4 w-4 mr-1" />
+                          Hidden
+                        </>
                       )}
                     </Button>
                     {(form.site_notes || []).length > 1 && (
@@ -453,12 +452,14 @@ export default function ResultsSection() {
                   {/* Date */}
                   <div className="space-y-2">
                     <Label htmlFor={`site-note-date-${index}`}>Date</Label>
-                    <CustomDateInput
-                      value={note.date || ""}
-                      onChange={(value) => handleUpdateSiteNote(index, "date", value)}
-                      placeholder="Select date"
-                      className="w-full"
-                    />
+                    <div className="w-1/2">
+                      <CustomDateInput
+                        value={note.date || ""}
+                        onChange={(value) => handleUpdateSiteNote(index, "date", value)}
+                        placeholder="Select date"
+                        className="w-full"
+                      />
+                    </div>
                   </div>
 
                   {/* Note Type */}
@@ -518,11 +519,11 @@ export default function ResultsSection() {
                 <div className="space-y-2">
                   <Label htmlFor={`site-note-attachments-${index}`}>Attachments</Label>
                   <div className="flex gap-2">
-                  <Input
+                    <Input
                       id={`site-note-attachments-${index}`}
-                    type="file"
+                      type="file"
                       accept="image/*,.pdf,.doc,.docx"
-                    onChange={(e) => {
+                      onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
                           handleNoteAttachmentUpload(file, index);
@@ -532,10 +533,10 @@ export default function ResultsSection() {
                       }}
                       disabled={uploadingNoteAttachment[index]}
                       className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 flex-1"
-                  />
-                    <Button 
-                      type="button" 
-                      variant="outline" 
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
                       size="icon"
                       disabled={uploadingNoteAttachment[index]}
                     >
@@ -551,12 +552,12 @@ export default function ResultsSection() {
                       {note.attachments.map((attachment: any, attachIndex: number) => {
                         const fileName = typeof attachment === 'string' ? attachment : attachment.name;
                         const fileUrl = typeof attachment === 'object' ? attachment.url : null;
-                        
+
                         return (
                           <div
-                          key={attachIndex}
+                            key={attachIndex}
                             className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm"
-                        >
+                          >
                             <span className="truncate max-w-[200px]">{fileName}</span>
                             {fileUrl && (
                               <a

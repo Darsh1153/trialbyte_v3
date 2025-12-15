@@ -174,6 +174,27 @@ export default function AdditionalInfoSection() {
         {currentItems.length > 0 ? (
           currentItems.map((item: any, idx: number) => (
             <div key={item.id || idx} className={`space-y-2 p-4 border rounded-lg ${!item.isVisible ? 'bg-gray-50 opacity-60' : 'bg-white'}`}>
+              <div className="flex items-center justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toggleArrayItemVisibility("step5_7", activeTab, idx)}
+                  className={item.isVisible ? "text-green-600 hover:text-green-700 hover:bg-green-50" : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"}
+                >
+                  {item.isVisible ? (
+                    <>
+                      <Eye className="h-4 w-4 mr-1" />
+                      Visible
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="h-4 w-4 mr-1" />
+                      Hidden
+                    </>
+                  )}
+                </Button>
+              </div>
               {/* Pipeline Data */}
               {activeTab === "pipeline_data" && (
                 <div className="space-y-3">
@@ -450,7 +471,23 @@ export default function AdditionalInfoSection() {
               {activeTab === "publications" && (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="w-1/2">
+                    <div className="w-1/4">
+                      <Label className="text-sm">Publication Date</Label>
+                      <Input
+                        type="date"
+                        value={item.date || ""}
+                        onChange={(e) =>
+                          updateComplexArrayItem(
+                            "step5_7",
+                            activeTab,
+                            idx,
+                            { date: e.target.value }
+                          )
+                        }
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                    <div className="w-1/4">
                       <Label className="text-sm">Publication Type</Label>
                       <SearchableSelect
                         options={publicationTypeOptions}
@@ -597,7 +634,23 @@ export default function AdditionalInfoSection() {
               {activeTab === "trial_registries" && (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="w-1/2">
+                    <div className="w-1/4">
+                      <Label className="text-sm">Registry Date</Label>
+                      <Input
+                        type="date"
+                        value={item.date || ""}
+                        onChange={(e) =>
+                          updateComplexArrayItem(
+                            "step5_7",
+                            activeTab,
+                            idx,
+                            { date: e.target.value }
+                          )
+                        }
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                    <div className="w-1/4">
                       <Label className="text-sm">Registry Name</Label>
                       <SearchableSelect
                         options={registryNameOptions}
@@ -744,7 +797,23 @@ export default function AdditionalInfoSection() {
               {activeTab === "associated_studies" && (
                 <div className="space-y-3">
                   <div className="flex gap-2">
-                    <div className="w-1/2">
+                    <div className="w-1/4">
+                      <Label className="text-sm">Study Date</Label>
+                      <Input
+                        type="date"
+                        value={item.date || ""}
+                        onChange={(e) =>
+                          updateComplexArrayItem(
+                            "step5_7",
+                            activeTab,
+                            idx,
+                            { date: e.target.value }
+                          )
+                        }
+                        className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                      />
+                    </div>
+                    <div className="w-1/4">
                       <Label className="text-sm">Study Type</Label>
                       <SearchableSelect
                         options={studyTypeOptions}
@@ -888,19 +957,7 @@ export default function AdditionalInfoSection() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-between items-center">
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleArrayItemVisibility("step5_7", activeTab, idx)}
-                    className={item.isVisible ? "text-green-600 hover:text-green-700 hover:bg-green-50" : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"}
-                  >
-                    {item.isVisible ? <Eye className="h-4 w-4 mr-1" /> : <EyeOff className="h-4 w-4 mr-1" />}
-                    {item.isVisible ? "Visible" : "Hidden"}
-                  </Button>
-                </div>
+              <div className="flex justify-end items-center">
                 <div className="flex gap-2">
                   {idx === 0 ? (
                     <Button

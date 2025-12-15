@@ -14,6 +14,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface ColumnSettings {
   // Core fields
+  trialId: boolean;
+  title: boolean;
   therapeuticArea: boolean;
   diseaseType: boolean;
   primaryDrug: boolean;
@@ -98,6 +100,8 @@ interface CustomizeColumnModalProps {
 }
 
 const DEFAULT_COLUMN_SETTINGS: ColumnSettings = {
+  trialId: true,
+  title: true,
   therapeuticArea: true,
   diseaseType: true,
   primaryDrug: true,
@@ -177,6 +181,8 @@ const DEFAULT_COLUMN_SETTINGS: ColumnSettings = {
 const MAX_COLUMNS = 15;
 
 export const COLUMN_OPTIONS = [
+  { key: 'trialId' as keyof ColumnSettings, label: 'Trial ID' },
+  { key: 'title' as keyof ColumnSettings, label: 'Title' },
   { key: 'therapeuticArea' as keyof ColumnSettings, label: 'Therapeutic Area' },
   { key: 'diseaseType' as keyof ColumnSettings, label: 'Disease Type' },
   { key: 'primaryDrug' as keyof ColumnSettings, label: 'Primary Drugs' },

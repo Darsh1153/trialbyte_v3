@@ -92,7 +92,7 @@ export default function ResultsSection() {
       console.log("✅ React-Query: Auto-filling trial_outcome:", results.trial_outcome);
       updateField("step5_5", "trial_outcome", results.trial_outcome);
     }
-    
+
     if (results.reference && (!form.trial_outcome_reference_date || form.trial_outcome_reference_date.trim() === "")) {
       const formattedDate = formatDateForInput(results.reference);
       if (formattedDate) {
@@ -100,12 +100,12 @@ export default function ResultsSection() {
         updateField("step5_5", "trial_outcome_reference_date", formattedDate);
       }
     }
-    
+
     if (results.trial_outcome_link && (!form.trial_outcome_link || form.trial_outcome_link.trim() === "")) {
       console.log("✅ React-Query: Auto-filling trial_outcome_link:", results.trial_outcome_link);
       updateField("step5_5", "trial_outcome_link", results.trial_outcome_link);
     }
-    
+
     if (results.treatment_for_adverse_events && (!form.treatment_for_adverse_events || form.treatment_for_adverse_events.trim() === "")) {
       console.log("✅ React-Query: Auto-filling treatment_for_adverse_events:", results.treatment_for_adverse_events);
       updateField("step5_5", "treatment_for_adverse_events", results.treatment_for_adverse_events);
@@ -123,28 +123,28 @@ export default function ResultsSection() {
           siteNotes = [];
         }
       }
-      
+
       if (Array.isArray(siteNotes) && siteNotes.length > 0) {
         const firstNote = siteNotes[0];
         const currentFirstNote = form.site_notes?.[0];
-        
+
         // Check if Result Type needs to be filled
         const needsNoteTypeFill = !currentFirstNote?.noteType || currentFirstNote.noteType.trim() === "";
         const hasNoteType = firstNote.noteType || firstNote.type;
-        
+
         if (needsNoteTypeFill && hasNoteType) {
           console.log("✅ React-Query: Auto-filling Result Type (noteType):", firstNote.noteType || firstNote.type);
-          
+
           // Ensure we have at least one note in the form
           if (!form.site_notes || form.site_notes.length === 0) {
             addSiteNote("step5_5", "site_notes");
           }
-          
+
           // Use a small delay to ensure form state is ready
           setTimeout(() => {
             const noteType = firstNote.noteType || firstNote.type;
             updateSiteNote("step5_5", "site_notes", 0, { noteType });
-            
+
             // Also fill other fields if they're empty
             if (firstNote.date && (!currentFirstNote?.date || currentFirstNote.date.trim() === "")) {
               const formattedDate = formatDateForInput(firstNote.date);
@@ -161,7 +161,7 @@ export default function ResultsSection() {
       }
     }
   }, [trialData, form, isTrialLoading, updateField, updateSiteNote, addSiteNote]);
-  
+
   const [openOutcome, setOpenOutcome] = useState(false);
   const [openAdverseReported, setOpenAdverseReported] = useState(false);
   const [openAdverseType, setOpenAdverseType] = useState(false);
@@ -373,13 +373,15 @@ export default function ResultsSection() {
 
         <div className="space-y-2 border rounded-md p-2">
           <Label>Trial Outcome Reference</Label>
-          <CustomDateInput
-            value={form.trial_outcome_reference_date || ""}
-            onChange={(value) => updateField("step5_5", "trial_outcome_reference_date", value)}
-            placeholder="Select date"
-            className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-          />
-          
+          <div className="w-1/2">
+            <CustomDateInput
+              value={form.trial_outcome_reference_date || ""}
+              onChange={(value) => updateField("step5_5", "trial_outcome_reference_date", value)}
+              placeholder="Select date"
+              className="w-full border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            />
+          </div>
+
           {/* Trial Outcome Results Content */}
           <div className="space-y-2">
             <Label>Trial Outcome Results Content</Label>
@@ -391,7 +393,7 @@ export default function ResultsSection() {
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
-          
+
           <div className="flex flex-col gap-3 mt-2 md:flex-row">
             <div className="flex flex-1 flex-col gap-2">
               <Label className="whitespace-nowrap">Link</Label>
@@ -451,16 +453,7 @@ export default function ResultsSection() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-lg font-semibold">Results Notes</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAddSiteNote}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Note
-          </Button>
+
         </div>
 
         <div className="space-y-4">
@@ -503,12 +496,14 @@ export default function ResultsSection() {
                   {/* Date */}
                   <div className="space-y-2">
                     <Label htmlFor={`site-note-date-${index}`}>Date</Label>
-                    <CustomDateInput
-                      value={note.date || ""}
-                      onChange={(value) => handleUpdateSiteNote(index, "date", value)}
-                      placeholder="Select date"
-                      className="w-full"
-                    />
+                    <div className="w-1/2">
+                      <CustomDateInput
+                        value={note.date || ""}
+                        onChange={(value) => handleUpdateSiteNote(index, "date", value)}
+                        placeholder="Select date"
+                        className="w-full"
+                      />
+                    </div>
                   </div>
 
                   {/* Note Type */}
