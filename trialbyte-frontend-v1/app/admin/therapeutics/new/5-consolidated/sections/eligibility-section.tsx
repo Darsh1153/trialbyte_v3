@@ -14,10 +14,7 @@ export default function EligibilitySection() {
   } = useTherapeuticForm();
   const form = formData.step5_3;
 
-  const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
-    value: i.toString(),
-    label: i.toString()
-  }));
+
 
   const ageUnitOptions: SearchableSelectOption[] = [
     { value: "years", label: "Years" },
@@ -87,22 +84,27 @@ export default function EligibilitySection() {
         <div className="space-y-2">
           <Label>Age From</Label>
           <div className="flex gap-2">
-            <SearchableSelect
-              options={ageNumberOptions}
-              value={form.age_min || ""}
-              onValueChange={(value) => updateField("step5_3", "age_min", value)}
-              placeholder="0"
-              searchPlaceholder="Search age..."
-              emptyMessage="No age found."
-              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            <Input
+              type="number"
+              min="0"
+              max="150"
+              placeholder="e.g., 0"
+              value={form.age_min?.[0] || ""}
+              onChange={(e) => {
+                const current = form.age_min || ["", "years"];
+                const updated = [...current];
+                updated[0] = e.target.value;
+                updateField("step5_3", "age_min", updated);
+              }}
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.age_min[0] || ""}
+              value={form.age_min?.[1] || "years"}
               onValueChange={(value) => {
-                const current = form.age_min || [""];
+                const current = form.age_min || ["", "years"];
                 const updated = [...current];
-                updated[0] = value;
+                updated[1] = value;
                 updateField("step5_3", "age_min", updated);
               }}
               placeholder="Years"
@@ -111,6 +113,7 @@ export default function EligibilitySection() {
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
+
         </div>
         <div className="space-y-2">
           <Label>Subject Type</Label>
@@ -127,20 +130,25 @@ export default function EligibilitySection() {
         <div className="space-y-2">
           <Label>Age To</Label>
           <div className="flex gap-2">
-            <SearchableSelect
-              options={ageNumberOptions}
-              value={form.age_max || ""}
-              onValueChange={(value) => updateField("step5_3", "age_max", value)}
-              placeholder="150"
-              searchPlaceholder="Search age..."
-              emptyMessage="No age found."
-              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            <Input
+              type="number"
+              min="0"
+              max="150"
+              placeholder="e.g., 150"
+              value={form.age_max?.[0] || ""}
+              onChange={(e) => {
+                const current = form.age_max || ["", "years"];
+                const updated = [...current];
+                updated[0] = e.target.value;
+                updateField("step5_3", "age_max", updated);
+              }}
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.age_max[1] || ""}
+              value={form.age_max?.[1] || "years"}
               onValueChange={(value) => {
-                const current = form.age_max || [""];
+                const current = form.age_max || ["", "years"];
                 const updated = [...current];
                 updated[1] = value;
                 updateField("step5_3", "age_max", updated);
@@ -151,6 +159,7 @@ export default function EligibilitySection() {
               className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             />
           </div>
+
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -184,7 +193,7 @@ export default function EligibilitySection() {
             />
           </div>
         </div>
-      </div>
+      </div >
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
@@ -208,6 +217,6 @@ export default function EligibilitySection() {
           />
         </div>
       </div>
-    </div>
+    </div >
   );
 }

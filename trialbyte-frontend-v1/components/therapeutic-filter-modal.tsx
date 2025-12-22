@@ -6,95 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SaveQueryModal } from "@/components/save-query-modal"
 
-interface SearchableSelectOption {
-  value: string
-  label: string
-}
+import { TherapeuticFilterState, SearchableSelectOption } from "@/components/therapeutic-types"
+export type { TherapeuticFilterState, SearchableSelectOption } // Re-export for compatibility
 
 interface TherapeuticFilterModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onApplyFilters: (filters: TherapeuticFilterState) => void
   currentFilters: TherapeuticFilterState
-  trials?: any[] // Add trials data for dynamic filtering
-}
-
-export interface TherapeuticFilterState {
-  therapeuticAreas: string[]
-  statuses: string[]
-  diseaseTypes: string[]
-  primaryDrugs: string[]
-  trialPhases: string[]
-  patientSegments: string[]
-  lineOfTherapy: string[]
-  countries: string[]
-  sponsorsCollaborators: string[]
-  sponsorFieldActivity: string[]
-  associatedCro: string[]
-  trialTags: string[]
-  sex: string[]
-  healthyVolunteers: string[]
-  trialRecordStatus: string[]
-  // Additional fields from trial creation form
-  otherDrugs: string[]
-  regions: string[]
-  ageMin: string[]
-  ageMax: string[]
-  subjectType: string[]
-  ecogPerformanceStatus: string[]
-  priorTreatments: string[]
-  biomarkerRequirements: string[]
-  estimatedEnrollment: string[]
-  actualEnrollment: string[]
-  enrollmentStatus: string[]
-  recruitmentPeriod: string[]
-  studyCompletionDate: string[]
-  primaryCompletionDate: string[]
-  populationDescription: string[]
-  studySites: string[]
-  principalInvestigators: string[]
-  siteStatus: string[]
-  siteCountries: string[]
-  siteRegions: string[]
-  siteContactInfo: string[]
-  trialResults: string[]
-  trialOutcomeContent: string[]
-  resultsAvailable: string[]
-  endpointsMet: string[]
-  adverseEventsReported: string[]
-  studyStartDate: string[]
-  firstPatientIn: string[]
-  lastPatientIn: string[]
-  studyEndDate: string[]
-  interimAnalysisDates: string[]
-  finalAnalysisDate: string[]
-  regulatorySubmissionDate: string[]
-  purposeOfTrial: string[]
-  summary: string[]
-  primaryOutcomeMeasures: string[]
-  otherOutcomeMeasures: string[]
-  studyDesignKeywords: string[]
-  studyDesign: string[]
-  treatmentRegimen: string[]
-  numberOfArms: string[]
-  inclusionCriteria: string[]
-  exclusionCriteria: string[]
-  ageFrom: string[]
-  ageTo: string[]
-  gender: string[]
-  targetNoVolunteers: string[]
-  actualEnrolledVolunteers: string[]
-  startDateEstimated: string[]
-  trialEndDateEstimated: string[]
-  trialOutcome: string[]
-  adverseEventReported: string[]
-  adverseEventType: string[]
-  treatmentForAdverseEvents: string[]
-  totalSites: string[]
-  siteNotes: string[]
-  publicationType: string[]
-  registryName: string[]
-  studyType: string[]
+  trials?: any[]
 }
 
 // Comprehensive dropdown options for all filter fields
@@ -788,51 +708,51 @@ const DROPDOWN_OPTIONS: Record<keyof TherapeuticFilterState, SearchableSelectOpt
 // Function to extract unique values from trials data
 const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
   const values = new Set<string>()
-  
+
   console.log(`Extracting values for ${fieldPath} from ${trials.length} trials`)
-  
+
   trials.forEach((trial, index) => {
     let value: any = ''
-    
+
     // Handle direct fields based on field path
-      switch (fieldPath) {
+    switch (fieldPath) {
       // Overview fields
-        case 'therapeutic_area':
-          value = trial.overview?.therapeutic_area || ''
-          break
-        case 'status':
-          value = trial.overview?.status || ''
-          break
-        case 'disease_type':
-          value = trial.overview?.disease_type || ''
-          break
-        case 'primary_drugs':
-          value = trial.overview?.primary_drugs || ''
-          break
-        case 'trial_phase':
-          value = trial.overview?.trial_phase || ''
-          break
-        case 'patient_segment':
-          value = trial.overview?.patient_segment || ''
-          break
-        case 'line_of_therapy':
-          value = trial.overview?.line_of_therapy || ''
-          break
-        case 'countries':
-          value = trial.overview?.countries || ''
-          break
-        case 'sponsor_collaborators':
-          value = trial.overview?.sponsor_collaborators || ''
-          break
-        case 'sponsor_field_activity':
-          value = trial.overview?.sponsor_field_activity || ''
-          break
-        case 'associated_cro':
-          value = trial.overview?.associated_cro || ''
-          break
-        case 'trial_tags':
-          value = trial.overview?.trial_tags || ''
-          break
+      case 'therapeutic_area':
+        value = trial.overview?.therapeutic_area || ''
+        break
+      case 'status':
+        value = trial.overview?.status || ''
+        break
+      case 'disease_type':
+        value = trial.overview?.disease_type || ''
+        break
+      case 'primary_drugs':
+        value = trial.overview?.primary_drugs || ''
+        break
+      case 'trial_phase':
+        value = trial.overview?.trial_phase || ''
+        break
+      case 'patient_segment':
+        value = trial.overview?.patient_segment || ''
+        break
+      case 'line_of_therapy':
+        value = trial.overview?.line_of_therapy || ''
+        break
+      case 'countries':
+        value = trial.overview?.countries || ''
+        break
+      case 'sponsor_collaborators':
+        value = trial.overview?.sponsor_collaborators || ''
+        break
+      case 'sponsor_field_activity':
+        value = trial.overview?.sponsor_field_activity || ''
+        break
+      case 'associated_cro':
+        value = trial.overview?.associated_cro || ''
+        break
+      case 'trial_tags':
+        value = trial.overview?.trial_tags || ''
+        break
       case 'trial_record_status':
         value = trial.overview?.trial_record_status || ''
         break
@@ -842,17 +762,17 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'region':
         value = trial.overview?.region || ''
         break
-      
+
       // Criteria fields
-        case 'sex':
-          value = trial.criteria?.[0]?.sex || ''
-          break
-        case 'healthy_volunteers':
-          value = trial.criteria?.[0]?.healthy_volunteers || ''
-          break
+      case 'sex':
+        value = trial.criteria?.[0]?.sex || ''
+        break
+      case 'healthy_volunteers':
+        value = trial.criteria?.[0]?.healthy_volunteers || ''
+        break
       case 'age_from':
         value = trial.criteria?.[0]?.age_from || ''
-          break
+        break
       case 'age_to':
         value = trial.criteria?.[0]?.age_to || ''
         break
@@ -901,7 +821,7 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'exclusion_criteria':
         value = trial.criteria?.[0]?.exclusion_criteria || ''
         break
-      
+
       // Outcomes fields
       case 'purpose_of_trial':
         value = trial.outcomes?.[0]?.purpose_of_trial || ''
@@ -927,7 +847,7 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'number_of_arms':
         value = trial.outcomes?.[0]?.number_of_arms || ''
         break
-      
+
       // Sites fields
       case 'study_sites':
         value = trial.sites?.[0]?.study_sites || ''
@@ -953,7 +873,7 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'notes':
         value = trial.sites?.[0]?.notes || ''
         break
-      
+
       // Results fields
       case 'trial_results':
         value = trial.results?.[0]?.trial_results || ''
@@ -982,7 +902,7 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'treatment_for_adverse_events':
         value = trial.results?.[0]?.treatment_for_adverse_events || ''
         break
-      
+
       // Timing fields
       case 'study_start_date':
         value = trial.timing?.[0]?.study_start_date || trial.timing?.[0]?.start_date_actual || trial.timing?.[0]?.start_date_estimated || ''
@@ -1011,7 +931,7 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'trial_end_date_estimated':
         value = trial.timing?.[0]?.trial_end_date_estimated || ''
         break
-      
+
       // Additional fields that might be in notes or other sections
       case 'publication_type':
         value = trial.notes?.[0]?.publication_type || ''
@@ -1022,20 +942,20 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       case 'study_type':
         value = trial.outcomes?.[0]?.study_type || trial.overview?.study_type || ''
         break
-      
+
       default:
         value = ''
     }
-    
+
     // Debug: Log the value found for this trial
     if (index < 3) { // Only log first 3 trials to avoid spam
       console.log(`Trial ${index} - ${fieldPath}: "${value}"`)
     }
-    
+
     // Handle different value types
     if (value !== null && value !== undefined && value !== '') {
       const stringValue = String(value)
-      
+
       // Handle arrays (some fields might return arrays)
       if (Array.isArray(value)) {
         value.forEach((item: any) => {
@@ -1069,7 +989,7 @@ const getUniqueValues = (trials: any[], fieldPath: string): string[] => {
       }
     }
   })
-  
+
   const result = Array.from(values).sort()
   console.log(`Found ${result.length} unique values for ${fieldPath}:`, result)
   return result
@@ -1161,7 +1081,7 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
   useEffect(() => {
     console.log('TherapeuticFilterModal: Trials data changed, updating filter categories', trials.length)
     console.log('TherapeuticFilterModal: Sample trial data:', trials[0])
-    
+
     // Helper function to get fallback options from DROPDOWN_OPTIONS for a category
     const getFallbackOptions = (category: keyof TherapeuticFilterState): string[] => {
       const options = DROPDOWN_OPTIONS[category]
@@ -1181,7 +1101,7 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
       }
       return fallbackValues
     }
-    
+
     if (trials.length > 0) {
       const newFilterCategories = {
         therapeuticAreas: mergeWithFallback(getUniqueValues(trials, 'therapeutic_area'), 'therapeuticAreas'),
@@ -1260,10 +1180,10 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
         registryName: mergeWithFallback(getUniqueValues(trials, 'registry_name'), 'registryName'),
         studyType: mergeWithFallback(getUniqueValues(trials, 'study_type'), 'studyType')
       }
-      
+
       console.log('TherapeuticFilterModal: Updated filter categories with merged data')
-        setFilterCategories(newFilterCategories)
-      } else {
+      setFilterCategories(newFilterCategories)
+    } else {
       console.log('TherapeuticFilterModal: No trials data available, using static dropdown options')
       // Use static dropdown options when no trials data is available
       const fallbackCategories = Object.keys(DROPDOWN_OPTIONS).reduce((acc, key) => {
@@ -1271,7 +1191,7 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
         acc[category] = getFallbackOptions(category)
         return acc
       }, {} as Record<keyof TherapeuticFilterState, string[]>)
-      
+
       setFilterCategories(fallbackCategories)
     }
   }, [trials])
@@ -1293,8 +1213,8 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
   const handleItemToggle = (category: keyof TherapeuticFilterState, item: string) => {
     setFilters((prev) => ({
       ...prev,
-      [category]: prev[category].includes(item) 
-        ? prev[category].filter((i) => i !== item) 
+      [category]: prev[category].includes(item)
+        ? prev[category].filter((i) => i !== item)
         : [...prev[category], item],
     }))
   }
@@ -1310,7 +1230,7 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
 
   const categoryLabels: Record<keyof TherapeuticFilterState, string> = {
     therapeuticAreas: "Therapeutic Area",
-    statuses: "Status", 
+    statuses: "Status",
     diseaseTypes: "Disease Type",
     primaryDrugs: "Primary Drug",
     trialPhases: "Trial Phase",
@@ -1405,9 +1325,8 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
                   <button
                     key={category}
                     onClick={() => setActiveCategory(category)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm ${
-                      activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
-                    }`}
+                    className={`w-full text-left px-3 py-2 rounded text-sm ${activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                      }`}
                   >
                     {categoryLabels[category]}
                   </button>

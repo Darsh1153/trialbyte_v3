@@ -8,8 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, AlertCircle } from "lucide-react"
-import { TherapeuticFilterState } from "./therapeutic-filter-modal"
-import { TherapeuticSearchCriteria } from "./therapeutic-advanced-search-modal"
+import { TherapeuticFilterState, TherapeuticSearchCriteria } from "@/components/therapeutic-types"
 
 interface SaveQueryModalProps {
   open: boolean
@@ -23,9 +22,9 @@ interface SaveQueryModalProps {
   editingQueryDescription?: string
 }
 
-export function SaveQueryModal({ 
-  open, 
-  onOpenChange, 
+export function SaveQueryModal({
+  open,
+  onOpenChange,
   onSaveSuccess,
   currentFilters,
   currentSearchCriteria,
@@ -38,7 +37,7 @@ export function SaveQueryModal({
   const [description, setDescription] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  
+
   const isEditMode = editingQueryId !== null && editingQueryId !== ""
 
   const resetForm = () => {
@@ -66,28 +65,28 @@ export function SaveQueryModal({
   }, [open, isEditMode, editingQueryTitle, editingQueryDescription])
 
   const hasActiveFilters = () => {
-    return Object.values(currentFilters).some(filter => filter.length > 0) || 
-           currentSearchCriteria.length > 0 ||
-           searchTerm.trim() !== ""
+    return Object.values(currentFilters).some(filter => filter.length > 0) ||
+      currentSearchCriteria.length > 0 ||
+      searchTerm.trim() !== ""
   }
 
   const getActiveFilterSummary = () => {
     const activeFilters: string[] = []
-    
+
     Object.entries(currentFilters).forEach(([key, values]) => {
       if (values.length > 0) {
         activeFilters.push(`${key}: ${values.length} selected`)
       }
     })
-    
+
     if (currentSearchCriteria.length > 0) {
       activeFilters.push(`Advanced search: ${currentSearchCriteria.length} criteria`)
     }
-    
+
     if (searchTerm.trim()) {
       activeFilters.push(`Search term: "${searchTerm}"`)
     }
-    
+
     return activeFilters
   }
 
@@ -118,7 +117,7 @@ export function SaveQueryModal({
         // UPDATE MODE: Update existing query
         const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
         const queryIndex = existingQueries.findIndex((q: any) => q.id === editingQueryId)
-        
+
         if (queryIndex !== -1) {
           // Update the existing query
           existingQueries[queryIndex] = {
@@ -172,7 +171,7 @@ export function SaveQueryModal({
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
-        
+
         const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
         existingQueries.push(localQuery)
         localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
@@ -209,11 +208,11 @@ export function SaveQueryModal({
           console.warn("API save failed, but query saved locally:", apiError)
         }
       }
-      
+
       if (onSaveSuccess) {
         onSaveSuccess()
       }
-      
+
       handleClose()
     } catch (error) {
       console.error("Error saving query:", error)
@@ -229,7 +228,7 @@ export function SaveQueryModal({
         <DialogHeader>
           <DialogTitle>{isEditMode ? "Update Query" : "Save Current Query"}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* Active Filters Summary */}
           {hasActiveFilters() && (
@@ -291,8 +290,8 @@ export function SaveQueryModal({
             <Button variant="outline" onClick={handleClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave} 
+            <Button
+              onClick={handleSave}
               disabled={isLoading || !hasActiveFilters()}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

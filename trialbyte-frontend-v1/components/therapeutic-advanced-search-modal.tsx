@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -24,8 +24,10 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import CustomDateInput from "@/components/ui/custom-date-input"
 import { MultiTagInput } from "@/components/ui/multi-tag-input"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { SaveQueryModal } from "@/components/save-query-modal"
-import { TherapeuticFilterState } from "@/components/therapeutic-filter-modal"
+import { TherapeuticFilterState, TherapeuticSearchCriteria, DEFAULT_THERAPEUTIC_FILTERS } from "@/components/therapeutic-types"
+export type { TherapeuticSearchCriteria } // Re-export for compatibility
 import { toast } from "@/hooks/use-toast"
 
 // Define TherapeuticTrial interface locally
@@ -136,13 +138,7 @@ interface TherapeuticAdvancedSearchModalProps {
   onSaveQuerySuccess?: () => void
 }
 
-export interface TherapeuticSearchCriteria {
-  id: string
-  field: string
-  operator: string
-  value: string | string[] // Support both single string and array of strings
-  logic: "AND" | "OR"
-}
+
 
 const therapeuticSearchFields = [
   // Core dropdown fields from trial creation (Step 5-1)
@@ -160,40 +156,40 @@ const therapeuticSearchFields = [
   { value: "countries", label: "Countries" },
   { value: "region", label: "Region" },
   { value: "trial_record_status", label: "Trial Record Status" },
-  
+
   // Eligibility criteria dropdown fields (Step 5-3)
   { value: "gender", label: "Gender" },
   { value: "healthy_volunteers", label: "Healthy Volunteers" },
-  
+
   // Results dropdown fields (Step 5-5)
   { value: "trial_outcome", label: "Trial Outcome" },
   { value: "adverse_event_reported", label: "Adverse Event Reported" },
   { value: "adverse_event_type", label: "Adverse Event Type" },
-  
+
   // Additional data dropdown fields (Step 5-7)
   { value: "publication_type", label: "Publication Type" },
   { value: "registry_name", label: "Registry Name" },
   { value: "study_type", label: "Study Type" },
-  
+
   // Study design keywords (Step 5-2)
   { value: "study_design_keywords", label: "Study Design Keywords" },
-  
+
   // Text fields that are searchable
   { value: "title", label: "Title" },
   { value: "trial_identifier", label: "Trial Identifier" },
   { value: "reference_links", label: "Reference Links" },
   { value: "trial_tags", label: "Trial Tags" },
   { value: "study_design", label: "Study Design" },
-  
+
   // Numeric fields
   { value: "number_of_arms", label: "Number of Arms" },
   { value: "age_min", label: "Age Minimum" },
   { value: "age_max", label: "Age Maximum" },
-  
+
   // Date fields
   { value: "created_at", label: "Created Date" },
   { value: "updated_at", label: "Updated Date" },
-  
+
   // Logs fields
   { value: "last_modified_date", label: "Last Modified Date" },
   { value: "last_modified_user", label: "Last Modified User" }
@@ -502,12 +498,12 @@ const dateFields = [
   "last_modified_date"
 ]
 
-export function TherapeuticAdvancedSearchModal({ 
-  open, 
-  onOpenChange, 
-  onApplySearch, 
-  trials = [], 
-  currentFilters, 
+export function TherapeuticAdvancedSearchModal({
+  open,
+  onOpenChange,
+  onApplySearch,
+  trials = [],
+  currentFilters,
   initialCriteria,
   editingQueryId = null,
   editingQueryTitle = "",
@@ -560,14 +556,14 @@ export function TherapeuticAdvancedSearchModal({
   // Get unique values for a specific field from the therapeutic data
   const getFieldValues = (field: string): string[] => {
     const values = new Set<string>()
-    
+
     // Use passed trials data or fallback to fetched data
     const dataToUse = trials.length > 0 ? trials : therapeuticData;
-    
+
     dataToUse.forEach(trial => {
       // Handle different field paths
       let fieldValue = ''
-      
+
       if (field.includes('.')) {
         // Handle nested fields like 'overview.therapeutic_area'
         const [parent, child] = field.split('.')
@@ -642,12 +638,12 @@ export function TherapeuticAdvancedSearchModal({
           // Don't add dynamic values for last_modified_user - only use hardcoded "Admin"
         }
       }
-      
+
       if (fieldValue && fieldValue.trim()) {
         values.add(fieldValue.trim())
       }
     })
-    
+
     return Array.from(values).sort()
   }
 
@@ -657,11 +653,11 @@ export function TherapeuticAdvancedSearchModal({
     const isDateField = dateFields.includes(criterion.field)
     // Exclude title field from getting dynamic values - it should be a text input
     const dynamicValues = criterion.field === 'title' ? [] : getFieldValues(criterion.field)
-    
+
     // Special handling for trial_tags - use multi-tag input
     if (criterion.field === "trial_tags") {
-      const tags = Array.isArray(criterion.value) ? criterion.value : 
-                   criterion.value ? [criterion.value] : [];
+      const tags = Array.isArray(criterion.value) ? criterion.value :
+        criterion.value ? [criterion.value] : [];
       return (
         <MultiTagInput
           value={tags}
@@ -671,7 +667,7 @@ export function TherapeuticAdvancedSearchModal({
         />
       )
     }
-    
+
     // Date field with custom input
     if (isDateField) {
       return (
@@ -683,7 +679,7 @@ export function TherapeuticAdvancedSearchModal({
         />
       )
     }
-    
+
     // Dropdown for fields with specific options (hardcoded)
     if (fieldOptionsForField) {
       return (
@@ -704,28 +700,21 @@ export function TherapeuticAdvancedSearchModal({
         </Select>
       )
     }
-    
+
     // Dynamic dropdown for fields with data from database
     if (dynamicValues.length > 0) {
       return (
-        <Select
-          value={Array.isArray(criterion.value) ? criterion.value[0] || "" : criterion.value}
+        <SearchableSelect
+          value={Array.isArray(criterion.value) ? criterion.value[0] || "" : (criterion.value as string)}
           onValueChange={(value) => updateCriteria(criterion.id, "value", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select option" />
-          </SelectTrigger>
-          <SelectContent>
-            {dynamicValues.map((value) => (
-              <SelectItem key={value} value={value}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={dynamicValues.map(v => ({ value: v, label: v }))}
+          placeholder="Select option"
+          searchPlaceholder={`Search ${criterion.field.replace(/_/g, ' ')}...`}
+          className="w-full"
+        />
       )
     }
-    
+
     // Integer input for number_of_arms field
     if (criterion.field === "number_of_arms") {
       return (
@@ -750,7 +739,7 @@ export function TherapeuticAdvancedSearchModal({
         />
       )
     }
-    
+
     // Default to text input for fields without specific options or dynamic data
     return (
       <Input
@@ -769,7 +758,7 @@ export function TherapeuticAdvancedSearchModal({
       'gender', 'healthy_volunteers', 'trial_outcome', 'adverse_event_reported', 'adverse_event_type',
       'publication_type', 'registry_name', 'study_type', 'study_design_keywords'
     ];
-    
+
     // Set default operator based on field type
     let defaultOperator = "contains";
     if (dropdownFields.includes(criteria[criteria.length - 1]?.field)) {
@@ -777,7 +766,7 @@ export function TherapeuticAdvancedSearchModal({
     } else if (criteria[criteria.length - 1]?.field === "number_of_arms") {
       defaultOperator = "equals";
     }
-    
+
     const newCriteria: TherapeuticSearchCriteria = {
       id: Date.now().toString(),
       field: "title",
@@ -796,7 +785,7 @@ export function TherapeuticAdvancedSearchModal({
     setCriteria((prev) => prev.map((c) => {
       if (c.id === id) {
         const updated = { ...c, [field]: value };
-        
+
         // Set default operator based on field type
         if (field === "field") {
           const dropdownFields = [
@@ -806,7 +795,7 @@ export function TherapeuticAdvancedSearchModal({
             'gender', 'healthy_volunteers', 'trial_outcome', 'adverse_event_reported', 'adverse_event_type',
             'publication_type', 'registry_name', 'study_type', 'study_design_keywords'
           ];
-          
+
           if (dropdownFields.includes(value as string)) {
             updated.operator = "is";
             updated.value = "";
@@ -818,7 +807,7 @@ export function TherapeuticAdvancedSearchModal({
             updated.value = "";
           }
         }
-        
+
         return updated;
       }
       return c;
@@ -849,11 +838,11 @@ export function TherapeuticAdvancedSearchModal({
   // Load saved queries from localStorage
   const loadSavedQueries = async () => {
     setLoadingQueries(true)
-    
+
     try {
       // Try to fetch from API first
       let url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved/user/dashboard-queries`
-      
+
       if (searchTerm.trim()) {
         url += `?search=${encodeURIComponent(searchTerm.trim())}`
       }
@@ -868,7 +857,7 @@ export function TherapeuticAdvancedSearchModal({
 
       if (response.ok) {
         const data = await response.json()
-        
+
         // If API returns empty data, fallback to localStorage
         if (!data.data || data.data.length === 0) {
           const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
@@ -878,14 +867,14 @@ export function TherapeuticAdvancedSearchModal({
         }
         return
       }
-      
+
       // If API fails, fallback to localStorage
       const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
       setSavedQueries(localQueries)
-      
+
     } catch (error) {
       console.error("Error fetching saved queries:", error)
-      
+
       // Fallback to localStorage
       try {
         const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
@@ -938,34 +927,34 @@ export function TherapeuticAdvancedSearchModal({
         await loadSavedQueries()
         return
       }
-      
+
       // If API fails, use localStorage fallback
       const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
       const updatedQueries = localQueries.filter((q: any) => q.id !== queryId)
       localStorage.setItem('unifiedSavedQueries', JSON.stringify(updatedQueries))
-      
+
       toast({
         title: "Success",
         description: "Query deleted successfully",
       })
-      
+
       // Refresh the list
       await loadSavedQueries()
-      
+
     } catch (error) {
       console.error("Error deleting query:", error)
-      
+
       // Still try localStorage fallback
       try {
         const localQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
         const updatedQueries = localQueries.filter((q: any) => q.id !== queryId)
         localStorage.setItem('unifiedSavedQueries', JSON.stringify(updatedQueries))
-        
+
         toast({
           title: "Success",
           description: "Query deleted successfully",
         })
-        
+
         // Refresh the list
         await loadSavedQueries()
       } catch (localError) {
@@ -997,20 +986,20 @@ export function TherapeuticAdvancedSearchModal({
   // Get filter summary
   const getFilterSummary = (queryData: any) => {
     if (!queryData) return "No filters"
-    
+
     const filterCount = Object.values(queryData.filters || {})
       .reduce((count: number, filter: any) => count + (filter?.length || 0), 0)
     const criteriaCount = queryData.searchCriteria?.length || 0
     const hasSearch = queryData.searchTerm?.trim() ? 1 : 0
-    
+
     const total = filterCount + criteriaCount + hasSearch
     if (total === 0) return "No filters"
-    
+
     const parts = []
     if (filterCount > 0) parts.push(`${filterCount} filters`)
     if (criteriaCount > 0) parts.push(`${criteriaCount} criteria`)
     if (hasSearch) parts.push("search term")
-    
+
     return parts.join(", ")
   }
 
@@ -1086,7 +1075,7 @@ export function TherapeuticAdvancedSearchModal({
                             'publication_type', 'registry_name', 'study_type', 'study_design_keywords',
                             'last_modified_user'
                           ];
-                          
+
                           // For dropdown fields, suggest exact matching operators
                           if (dropdownFields.includes(criterion.field)) {
                             return [
@@ -1101,7 +1090,7 @@ export function TherapeuticAdvancedSearchModal({
                               </SelectItem>
                             ));
                           }
-                          
+
                           // For date fields, show date comparison operators
                           if (dateFields.includes(criterion.field)) {
                             return operators.filter(op => ["equals", "is", "is_not", "not_equals", "greater_than", "greater_than_equal", "less_than", "less_than_equal", "contains"].includes(op.value))
@@ -1111,7 +1100,7 @@ export function TherapeuticAdvancedSearchModal({
                                 </SelectItem>
                               ));
                           }
-                          
+
                           // For numeric fields, show numeric operators
                           if (criterion.field === "number_of_arms" || criterion.field === "age_min" || criterion.field === "age_max") {
                             return operators.filter(op => ["equals", "greater_than", "greater_than_equal", "less_than", "less_than_equal", "not_equals"].includes(op.value))
@@ -1121,7 +1110,7 @@ export function TherapeuticAdvancedSearchModal({
                                 </SelectItem>
                               ));
                           }
-                          
+
                           // For all other fields, show all operators
                           return operators.map((op) => (
                             <SelectItem key={op.value} value={op.value}>
@@ -1217,7 +1206,7 @@ export function TherapeuticAdvancedSearchModal({
           <DialogHeader>
             <DialogTitle>Saved Queries</DialogTitle>
           </DialogHeader>
-          
+
           <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
             {/* Search */}
             <div className="flex items-center space-x-2">
@@ -1337,23 +1326,7 @@ export function TherapeuticAdvancedSearchModal({
       <SaveQueryModal
         open={saveQueryModalOpen}
         onOpenChange={setSaveQueryModalOpen}
-        currentFilters={currentFilters || {
-          therapeuticAreas: [],
-          statuses: [],
-          diseaseTypes: [],
-          primaryDrugs: [],
-          trialPhases: [],
-          patientSegments: [],
-          lineOfTherapy: [],
-          countries: [],
-          sponsorsCollaborators: [],
-          sponsorFieldActivity: [],
-          associatedCro: [],
-          trialTags: [],
-          sex: [],
-          healthyVolunteers: [],
-          trialRecordStatus: []
-        }}
+        currentFilters={currentFilters || DEFAULT_THERAPEUTIC_FILTERS}
         currentSearchCriteria={criteria}
         searchTerm=""
         editingQueryId={editingQueryId}

@@ -510,30 +510,30 @@ const initialFormState: TherapeuticFormData = {
 // Action types for the reducer
 type FormAction =
   | {
-      type: "UPDATE_STEP";
-      step: keyof TherapeuticFormData;
-      data: Partial<TherapeuticFormData[keyof TherapeuticFormData]>;
-    }
+    type: "UPDATE_STEP";
+    step: keyof TherapeuticFormData;
+    data: Partial<TherapeuticFormData[keyof TherapeuticFormData]>;
+  }
   | {
-      type: "UPDATE_FIELD";
-      step: keyof TherapeuticFormData;
-      field: string;
-      value: any;
-    }
+    type: "UPDATE_FIELD";
+    step: keyof TherapeuticFormData;
+    field: string;
+    value: any;
+  }
   | { type: "ADD_ARRAY_ITEM"; step: keyof TherapeuticFormData; field: string }
   | {
-      type: "REMOVE_ARRAY_ITEM";
-      step: keyof TherapeuticFormData;
-      field: string;
-      index: number;
-    }
+    type: "REMOVE_ARRAY_ITEM";
+    step: keyof TherapeuticFormData;
+    field: string;
+    index: number;
+  }
   | {
-      type: "UPDATE_ARRAY_ITEM";
-      step: keyof TherapeuticFormData;
-      field: string;
-      index: number;
-      value: any;
-    }
+    type: "UPDATE_ARRAY_ITEM";
+    step: keyof TherapeuticFormData;
+    field: string;
+    index: number;
+    value: any;
+  }
   | { type: "RESET_FORM" }
   | { type: "LOAD_FORM"; data: TherapeuticFormData };
 
@@ -753,21 +753,21 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
   ) => {
     // Get the current value for change tracking
     const currentValue = (formData[step] as any)[field];
-    
+
     // Dispatch the update
     dispatch({ type: "UPDATE_FIELD", step, field, value });
-    
+
     // Enhanced audit logging
     if (field !== "changesLog" && field !== "creationInfo" && field !== "modificationInfo" && currentValue !== value) {
       const now = new Date();
       const today = now.toISOString().split('T')[0];
       const tabName = getTabName(step);
-      
+
       // Determine change type and action
       let changeType: 'field_change' | 'content_addition' | 'content_removal' | 'visibility_change' | 'creation' = 'field_change';
       let action = "changed";
       let details = "";
-      
+
       if (currentValue === "" || currentValue === undefined || currentValue === null) {
         changeType = 'content_addition';
         action = "added";
@@ -781,30 +781,30 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         action = "changed";
         details = `${tabName} updated`;
       }
-      
+
       // Check if we should consolidate with existing changes from today
       const existingChanges = (formData.step5_8 as any).changesLog || [];
-      const todayChanges = existingChanges.filter((change: any) => 
+      const todayChanges = existingChanges.filter((change: any) =>
         change.timestamp.startsWith(today) && change.user === "admin"
       );
-      
-      let shouldConsolidate = todayChanges.length > 0 && todayChanges.some((change: any) => 
+
+      let shouldConsolidate = todayChanges.length > 0 && todayChanges.some((change: any) =>
         change.step === step && change.changeType === changeType
       );
-      
+
       // Add to changes log
       setTimeout(() => {
         const currentArray = (formData.step5_8 as any).changesLog || [];
-        
+
         if (shouldConsolidate) {
           // Find the existing entry to consolidate with
-          const existingEntryIndex = currentArray.findIndex((change: any) => 
-            change.timestamp.startsWith(today) && 
-            change.user === "admin" && 
+          const existingEntryIndex = currentArray.findIndex((change: any) =>
+            change.timestamp.startsWith(today) &&
+            change.user === "admin" &&
             change.step === step &&
             change.changeType === changeType
           );
-          
+
           if (existingEntryIndex !== -1) {
             // Update existing entry timestamp (details remain the same since all messages are simplified)
             const updatedArray = [...currentArray];
@@ -814,7 +814,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
               details: `${tabName} updated`,
               timestamp: now.toISOString(), // Update to latest time
             };
-            
+
             dispatch({
               type: "UPDATE_FIELD",
               step: "step5_8",
@@ -836,7 +836,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             step,
             changeType,
           };
-          
+
           dispatch({
             type: "UPDATE_FIELD",
             step: "step5_8",
@@ -844,7 +844,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             value: [...currentArray, newLogEntry],
           });
         }
-        
+
         // Update modification info
         dispatch({
           type: "UPDATE_FIELD",
@@ -862,7 +862,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
 
   const addArrayItem = (step: keyof TherapeuticFormData, field: string) => {
     dispatch({ type: "ADD_ARRAY_ITEM", step, field });
-    
+
     // Log the array addition
     setTimeout(() => {
       const currentArray = (formData[step] as any)[field] as any[];
@@ -893,9 +893,9 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
   ) => {
     const currentArray = (formData[step] as any)[field] as any[];
     const removedItem = currentArray[index];
-    
+
     dispatch({ type: "REMOVE_ARRAY_ITEM", step, field, index });
-    
+
     // Log the array removal
     setTimeout(() => {
       const changesArray = (formData[step] as any).changesLog || [];
@@ -927,9 +927,9 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
   ) => {
     const currentArray = (formData[step] as any)[field] as any[];
     const oldValue = currentArray[index];
-    
+
     dispatch({ type: "UPDATE_ARRAY_ITEM", step, field, index, value });
-    
+
     // Log the array item update
     setTimeout(() => {
       const changesArray = (formData[step] as any).changesLog || [];
@@ -1077,12 +1077,12 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       field,
       value: updatedArray,
     });
-    
+
     // Log the visibility change with simplified details
     const action = item.isVisible ? "hidden" : "shown";
     const tabName = getTabName(step);
     const details = `${tabName} updated`;
-    
+
     setTimeout(() => {
       const currentLogArray = (formData.step5_8 as any).changesLog || [];
       const newLogEntry = {
@@ -1103,7 +1103,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         field: "changesLog",
         value: [...currentLogArray, newLogEntry],
       });
-      
+
       // Update modification info
       dispatch({
         type: "UPDATE_FIELD",
@@ -1408,7 +1408,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
   const saveTrial = async (): Promise<{ success: boolean; message: string; trialId?: string; trialIdentifier?: string }> => {
     try {
       const allFormData = getFormData();
-      
+
       console.log("🚀 ============ SAVING NEW TRIAL - START ============");
       console.log("📋 All Form Data Being Saved:", JSON.stringify(allFormData, null, 2));
       console.log("📊 Form Data Structure Check:", {
@@ -1421,59 +1421,59 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         step5_7_keys: Object.keys(allFormData.step5_7),
         step5_8_keys: Object.keys(allFormData.step5_8),
       });
-      
+
       // Check if API base URL is configured
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
       if (!apiBaseUrl) {
         throw new Error("API base URL is not configured. Please check your environment variables.");
       }
-      
+
       // Get user ID from localStorage or use default admin UUID
       const currentUserId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
-      
+
       console.log("🌐 API Base URL:", apiBaseUrl);
       console.log("👤 Current User ID:", currentUserId);
-      
+
       // Transform the form data to match the API structure
       const therapeuticPayload = {
         user_id: currentUserId, // Use valid UUID from localStorage or default admin UUID
         overview: {
-          therapeutic_area: Array.isArray(allFormData.step5_1.therapeutic_area) 
-            ? allFormData.step5_1.therapeutic_area.filter(Boolean).join(", ") 
+          therapeutic_area: Array.isArray(allFormData.step5_1.therapeutic_area)
+            ? allFormData.step5_1.therapeutic_area.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.therapeutic_area),
           trial_identifier: allFormData.step5_1.trial_identifier.filter(Boolean).length > 0 ? allFormData.step5_1.trial_identifier.filter(Boolean) : [],
           trial_phase: ensureString(allFormData.step5_1.trial_phase),
           status: ensureString(allFormData.step5_1.status),
-          primary_drugs: Array.isArray(allFormData.step5_1.primary_drugs) 
-            ? allFormData.step5_1.primary_drugs.filter(Boolean).join(", ") 
+          primary_drugs: Array.isArray(allFormData.step5_1.primary_drugs)
+            ? allFormData.step5_1.primary_drugs.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.primary_drugs),
-          other_drugs: Array.isArray(allFormData.step5_1.other_drugs) 
-            ? allFormData.step5_1.other_drugs.filter(Boolean).join(", ") 
+          other_drugs: Array.isArray(allFormData.step5_1.other_drugs)
+            ? allFormData.step5_1.other_drugs.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.other_drugs),
           title: ensureString(allFormData.step5_1.title),
-          disease_type: Array.isArray(allFormData.step5_1.disease_type) 
-            ? allFormData.step5_1.disease_type.filter(Boolean).join(", ") 
+          disease_type: Array.isArray(allFormData.step5_1.disease_type)
+            ? allFormData.step5_1.disease_type.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.disease_type),
-          patient_segment: Array.isArray(allFormData.step5_1.patient_segment) 
-            ? allFormData.step5_1.patient_segment.filter(Boolean).join(", ") 
+          patient_segment: Array.isArray(allFormData.step5_1.patient_segment)
+            ? allFormData.step5_1.patient_segment.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.patient_segment),
-          line_of_therapy: Array.isArray(allFormData.step5_1.line_of_therapy) 
-            ? allFormData.step5_1.line_of_therapy.filter(Boolean).join(", ") 
+          line_of_therapy: Array.isArray(allFormData.step5_1.line_of_therapy)
+            ? allFormData.step5_1.line_of_therapy.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.line_of_therapy),
           reference_links: allFormData.step5_1.reference_links.filter(Boolean).length > 0 ? allFormData.step5_1.reference_links.filter(Boolean) : [],
           trial_tags: ensureString(allFormData.step5_1.trial_tags),
-          sponsor_collaborators: Array.isArray(allFormData.step5_1.sponsor_collaborators) 
-            ? allFormData.step5_1.sponsor_collaborators.filter(Boolean).join(", ") 
+          sponsor_collaborators: Array.isArray(allFormData.step5_1.sponsor_collaborators)
+            ? allFormData.step5_1.sponsor_collaborators.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.sponsor_collaborators),
-          sponsor_field_activity: Array.isArray(allFormData.step5_1.sponsor_field_activity) 
-            ? allFormData.step5_1.sponsor_field_activity.filter(Boolean).join(", ") 
+          sponsor_field_activity: Array.isArray(allFormData.step5_1.sponsor_field_activity)
+            ? allFormData.step5_1.sponsor_field_activity.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.sponsor_field_activity),
           associated_cro: ensureString(allFormData.step5_1.associated_cro),
-          countries: Array.isArray(allFormData.step5_1.countries) 
-            ? allFormData.step5_1.countries.filter(Boolean).join(", ") 
+          countries: Array.isArray(allFormData.step5_1.countries)
+            ? allFormData.step5_1.countries.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.countries),
-          region: Array.isArray(allFormData.step5_1.region) 
-            ? allFormData.step5_1.region.filter(Boolean).join(", ") 
+          region: Array.isArray(allFormData.step5_1.region)
+            ? allFormData.step5_1.region.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.region),
           trial_record_status: ensureString(allFormData.step5_1.trial_record_status),
         },
@@ -1533,12 +1533,12 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
               isVisible: ref.isVisible
             }))
           };
-          
+
           console.log('📊 TIMING DATA BEING SAVED:', {
             rawFormData: allFormData.step5_4,
             formattedTimingData: timingData
           });
-          
+
           return timingData;
         })(),
         results: {
@@ -1549,23 +1549,23 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           trial_outcome_content: ensureString(allFormData.step5_5.trial_outcome_content) || null,
           trial_outcome_link: ensureString(allFormData.step5_5.trial_outcome_link) || null,
           trial_outcome_attachment: allFormData.step5_5.trial_outcome_attachment?.url || (allFormData.step5_5.trial_outcome_attachment ? "Yes" : null),
-          trial_results: allFormData.step5_5.trial_results.filter(Boolean).length > 0 
-            ? allFormData.step5_5.trial_results.filter(Boolean) 
+          trial_results: allFormData.step5_5.trial_results.filter(Boolean).length > 0
+            ? allFormData.step5_5.trial_results.filter(Boolean)
             : (allFormData.step5_7.secondary_endpoint_results.filter(Boolean).length > 0 ? allFormData.step5_7.secondary_endpoint_results.filter(Boolean) : null),
           adverse_event_reported: allFormData.step5_5.adverse_events_reported ? "Yes" : "No",
           adverse_event_type: ensureString(allFormData.step5_5.adverse_event_type) || (allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || null),
           treatment_for_adverse_events: ensureString(allFormData.step5_5.treatment_for_adverse_events) || ensureString(allFormData.step5_7.safety_results) || null,
           site_notes: allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).length > 0
             ? allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).map(note => ({
-                date: formatDate(note.date),
-                type: note.noteType,
-                content: note.content,
-                sourceLink: note.viewSource,
-                sourceType: note.sourceType,
-                attachments: (note.attachments || []).map((att: any) => 
-                  typeof att === 'string' ? att : (att.url || att.name || att)
-                )
-              }))
+              date: formatDate(note.date),
+              type: note.noteType,
+              content: note.content,
+              sourceLink: note.viewSource,
+              sourceType: note.sourceType,
+              attachments: (note.attachments || []).map((att: any) =>
+                typeof att === 'string' ? att : (att.url || att.name || att)
+              )
+            }))
             : null
         },
         sites: {
@@ -1578,7 +1578,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
               filtered_references: filteredReferences.length,
               references_data: filteredReferences
             });
-            
+
             if (filteredReferences.length > 0) {
               const mappedReferences = filteredReferences.map(ref => ({
                 id: ref.id,
@@ -1586,7 +1586,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
                 registryType: ref.registryType,
                 content: ref.content,
                 viewSource: ref.viewSource,
-                attachments: (ref.attachments || []).map((att: any) => 
+                attachments: (ref.attachments || []).map((att: any) =>
                   typeof att === 'string' ? att : (att.url || att.name || att)
                 ),
                 isVisible: ref.isVisible
@@ -1611,7 +1611,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             registryType: ref.registryType,
             content: ref.content,
             viewSource: ref.viewSource,
-            attachments: (ref.attachments || []).map((att: any) => 
+            attachments: (ref.attachments || []).map((att: any) =>
               typeof att === 'string' ? att : (att.url || att.name || att)
             ),
             isVisible: ref.isVisible
@@ -1625,16 +1625,16 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.date || item.type || item.title || item.url)),
         },
         logs: {
-          trial_changes_log: allFormData.step5_8.changesLog.length > 0 
-            ? allFormData.step5_8.changesLog.map(change => 
-                `${change.timestamp}: ${change.user} ${change.action} - ${change.details}`
-              ).join("; ") 
+          trial_changes_log: allFormData.step5_8.changesLog.length > 0
+            ? allFormData.step5_8.changesLog.map(change =>
+              `${change.timestamp}: ${change.user} ${change.action} - ${change.details}`
+            ).join("; ")
             : "Trial created",
           trial_added_date: new Date().toISOString(),
           last_modified_date: new Date().toISOString(),
           last_modified_user: currentUserId, // Use valid UUID instead of "admin"
           full_review_user: (allFormData.step5_8 as any).fullReviewUser || null, // Can be null, not "admin"
-          next_review_date: (allFormData.step5_8 as any).nextReviewDate 
+          next_review_date: (allFormData.step5_8 as any).nextReviewDate
             ? formatDate((allFormData.step5_8 as any).nextReviewDate)
             : null,
           internal_note: (allFormData.step5_8 as any).internalNote || null,
@@ -1649,8 +1649,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
               typeof note.content === "string"
                 ? note.content
                 : note.content && typeof note.content === "object"
-                ? (note.content as any).text || (note.content as any).content
-                : "";
+                  ? (note.content as any).text || (note.content as any).content
+                  : "";
             const hasContent = Boolean(content && String(content).trim());
             const hasSource =
               Boolean(note.sourceLink && String(note.sourceLink).trim()) ||
@@ -1665,14 +1665,14 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
               typeof note.content === "string"
                 ? note.content
                 : note.content && typeof note.content === "object"
-                ? (note.content as any).text || (note.content as any).content
-                : "";
+                  ? (note.content as any).text || (note.content as any).content
+                  : "";
             const attachments = Array.isArray(note.attachments)
               ? note.attachments.map((attachment: any) => ({
-                  name: attachment?.name || "",
-                  url: attachment?.url || "",
-                  type: attachment?.type || "application/octet-stream",
-                }))
+                name: attachment?.name || "",
+                url: attachment?.url || "",
+                type: attachment?.type || "application/octet-stream",
+              }))
               : [];
 
             return {
@@ -1708,10 +1708,10 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
 
           // New schema: Store all note data in the JSONB notes field
           const notesPayload = formattedNotes.length > 0 ? formattedNotes : [];
-          
-          console.log('[TherapeuticFormContext] Notes payload:', { 
+
+          console.log('[TherapeuticFormContext] Notes payload:', {
             notesCount: notesPayload.length,
-            notes: typeof notesPayload 
+            notes: typeof notesPayload
           });
 
           return {
@@ -1736,7 +1736,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       console.log("  - Notes:", therapeuticPayload.notes ? "✅ Present" : "❌ Missing");
       console.log("📊 Timing data specifically:", JSON.stringify(therapeuticPayload.timing, null, 2));
       console.log("📊 Other Sources data:", JSON.stringify(therapeuticPayload.other_sources, null, 2));
-      
+
       const response = await fetch(fullUrl, {
         method: "POST",
         headers: {
@@ -1745,7 +1745,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(therapeuticPayload),
         credentials: 'include',
       });
-      
+
       console.log("📨 Response Status:", response.status, response.statusText);
 
       if (!response.ok) {

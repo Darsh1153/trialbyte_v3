@@ -86,12 +86,12 @@ const logTherapeuticActivity = async (
   user_id
 ) => {
   let actualUserId = user_id;
-  
+
   if (!user_id) {
     console.warn("user_id is required for therapeutic activity logging");
     return;
   }
-  
+
   try {
     await logUserActivity({
       user_id: actualUserId,
@@ -464,13 +464,13 @@ const createWithAllData = async (req, res) => {
     const otherSourcesData = req.body.other_sources || other;
     if (otherSourcesData) {
       // Check if other_sources is an object with multiple arrays (new format)
-      if (otherSourcesData.pipeline_data || otherSourcesData.press_releases || 
-          otherSourcesData.publications || otherSourcesData.trial_registries || 
-          otherSourcesData.associated_studies) {
-        
+      if (otherSourcesData.pipeline_data || otherSourcesData.press_releases ||
+        otherSourcesData.publications || otherSourcesData.trial_registries ||
+        otherSourcesData.associated_studies) {
+
         // Process each type of other source
         const allOtherSources = [];
-        
+
         // Pipeline Data
         if (otherSourcesData.pipeline_data && Array.isArray(otherSourcesData.pipeline_data)) {
           for (const item of otherSourcesData.pipeline_data) {
@@ -481,14 +481,14 @@ const createWithAllData = async (req, res) => {
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({ 
-              trial_id, 
+            const created = await otherRepo.create({
+              trial_id,
               data: JSON.stringify(sourceData)
             });
             allOtherSources.push(created);
           }
         }
-        
+
         // Press Releases
         if (otherSourcesData.press_releases && Array.isArray(otherSourcesData.press_releases)) {
           for (const item of otherSourcesData.press_releases) {
@@ -500,14 +500,14 @@ const createWithAllData = async (req, res) => {
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({ 
-              trial_id, 
+            const created = await otherRepo.create({
+              trial_id,
               data: JSON.stringify(sourceData)
             });
             allOtherSources.push(created);
           }
         }
-        
+
         // Publications
         if (otherSourcesData.publications && Array.isArray(otherSourcesData.publications)) {
           for (const item of otherSourcesData.publications) {
@@ -519,14 +519,14 @@ const createWithAllData = async (req, res) => {
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({ 
-              trial_id, 
+            const created = await otherRepo.create({
+              trial_id,
               data: JSON.stringify(sourceData)
             });
             allOtherSources.push(created);
           }
         }
-        
+
         // Trial Registries
         if (otherSourcesData.trial_registries && Array.isArray(otherSourcesData.trial_registries)) {
           for (const item of otherSourcesData.trial_registries) {
@@ -538,14 +538,14 @@ const createWithAllData = async (req, res) => {
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({ 
-              trial_id, 
+            const created = await otherRepo.create({
+              trial_id,
               data: JSON.stringify(sourceData)
             });
             allOtherSources.push(created);
           }
         }
-        
+
         // Associated Studies
         if (otherSourcesData.associated_studies && Array.isArray(otherSourcesData.associated_studies)) {
           for (const item of otherSourcesData.associated_studies) {
@@ -557,14 +557,14 @@ const createWithAllData = async (req, res) => {
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({ 
-              trial_id, 
+            const created = await otherRepo.create({
+              trial_id,
               data: JSON.stringify(sourceData)
             });
             allOtherSources.push(created);
           }
         }
-        
+
         if (allOtherSources.length > 0) {
           await logTherapeuticActivity(
             "INSERT",
@@ -607,11 +607,11 @@ const createWithAllData = async (req, res) => {
     // Create notes data if provided
     if (notes) {
       console.log('[TherapeuticController] Creating notes with data:', { trial_id, notes: typeof notes });
-      
+
       // Normalize notes to JSONB format
       // The notes field should be a JSONB array/object containing all note data
       let notesData = notes.notes;
-      
+
       // If notes.notes is already a string (JSON), parse it
       if (typeof notesData === "string") {
         try {
@@ -621,7 +621,7 @@ const createWithAllData = async (req, res) => {
           notesData = notesData;
         }
       }
-      
+
       // If notes.notes is not provided but other note fields are, create structure
       if (!notesData && (notes.date_type || notes.link || notes.attachments)) {
         notesData = {
@@ -630,7 +630,7 @@ const createWithAllData = async (req, res) => {
           attachments: notes.attachments || [],
         };
       }
-      
+
       // Ensure notesData is an array or object
       if (!notesData) {
         notesData = [];
@@ -640,9 +640,9 @@ const createWithAllData = async (req, res) => {
         trial_id,
         notes: notesData, // Store all note data in JSONB field
       };
-      
+
       console.log('[TherapeuticController] Notes payload:', { trial_id, notes: typeof notesWithTrial.notes });
-      
+
       const createdNotes = await notesRepo.create(notesWithTrial);
       await logTherapeuticActivity(
         "INSERT",
@@ -673,8 +673,8 @@ const createWithAllData = async (req, res) => {
     return res.status(StatusCodes.CREATED).json({
       message: "Trial created successfully with all data",
       trial_id: createdOverview.trial_id || trial_id, // Use formatted TB-000XXX trial_id, fallback to UUID
-      trial_identifier: createdOverview.trial_identifier && createdOverview.trial_identifier.length > 0 
-        ? createdOverview.trial_identifier[0] 
+      trial_identifier: createdOverview.trial_identifier && createdOverview.trial_identifier.length > 0
+        ? createdOverview.trial_identifier[0]
         : null,
       data: createdData,
     });

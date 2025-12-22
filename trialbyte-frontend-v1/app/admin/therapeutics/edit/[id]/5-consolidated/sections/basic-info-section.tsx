@@ -37,7 +37,7 @@ export default function BasicInfoSection() {
     if (therapeuticAreas.length === 0) {
       return diseaseTypeOptions; // Return all options if no therapeutic area selected
     }
-    
+
     // For multiple therapeutic areas, return all disease types
     return diseaseTypeOptions;
   };
@@ -47,7 +47,7 @@ export default function BasicInfoSection() {
     if (therapeuticAreas.length === 0) {
       return patientSegmentOptions; // Return all options if no therapeutic area selected
     }
-    
+
     // For multiple therapeutic areas, return all patient segments
     return patientSegmentOptions;
   };

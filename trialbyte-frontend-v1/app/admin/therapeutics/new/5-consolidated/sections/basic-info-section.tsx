@@ -37,7 +37,7 @@ export default function BasicInfoSection() {
     if (therapeuticAreas.length === 0) {
       return diseaseTypeOptions; // Return all options if no therapeutic area selected
     }
-    
+
     // For multiple therapeutic areas, return all disease types
     // Or you could return intersection of disease types from all selected areas
     return diseaseTypeOptions;
@@ -48,7 +48,7 @@ export default function BasicInfoSection() {
     if (therapeuticAreas.length === 0) {
       return patientSegmentOptions; // Return all options if no therapeutic area selected
     }
-    
+
     // For multiple therapeutic areas, return all patient segments
     return patientSegmentOptions;
   };
@@ -539,7 +539,7 @@ export default function BasicInfoSection() {
               <div className="flex gap-2">
                 <Textarea
                   value=""
-                  onChange={() => {}}
+                  onChange={() => { }}
                   placeholder="Auto-generated (e.g., TB-000171)"
                   rows={1}
                   disabled={true}
