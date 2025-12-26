@@ -46,12 +46,12 @@ export default function SitesSection() {
     console.log("Adding reference to step5_6");
     addReference("step5_6", "references");
   };
-  
+
   const handleRemoveReference = (index: number) => {
     console.log("Removing reference from step5_6:", index);
     removeReference("step5_6", "references", index);
   };
-  
+
   const handleUpdateReference = (index: number, field: string, value: any) => {
     console.log(`Updating reference ${index}, field: ${field}`, value);
     updateReference("step5_6", "references", index, { [field]: value });
@@ -73,7 +73,7 @@ export default function SitesSection() {
       });
 
       console.log("File uploaded successfully:", res.url);
-      
+
       // Get current attachments and add the new one
       const currentNote = form.references[noteIndex];
       const currentAttachments = currentNote?.attachments || [];
@@ -83,9 +83,9 @@ export default function SitesSection() {
         size: file.size,
         type: file.type,
       };
-      
+
       handleUpdateReference(noteIndex, "attachments", [...currentAttachments, newAttachment]);
-      
+
       toast({
         title: "Success",
         description: "File uploaded successfully",
@@ -106,21 +106,21 @@ export default function SitesSection() {
   const handleRemoveNoteAttachment = async (noteIndex: number, attachmentIndex: number) => {
     const currentNote = form.references[noteIndex];
     const attachment = currentNote?.attachments[attachmentIndex];
-    
+
     // Check if attachment is an object with a url property
     if (attachment && typeof attachment === 'object' && 'url' in attachment) {
       try {
         await edgestore.trialOutcomeAttachments.delete({
           url: attachment.url,
         });
-        
+
         const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
         handleUpdateReference(noteIndex, "attachments", updatedAttachments);
-        
+
         toast({
           title: "Success",
           description: "File removed successfully",
-      });
+        });
       } catch (error) {
         console.error("Error removing file:", error);
         toast({
@@ -143,8 +143,8 @@ export default function SitesSection() {
         <Label>Total No of Sites</Label>
         <Input
           type="number"
-          value={form.study_start_date || ""}
-          onChange={(e) => updateField("step5_6", "study_start_date", e.target.value)}
+          value={form.total_sites || ""}
+          onChange={(e) => updateField("step5_6", "total_sites", e.target.value)}
           className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 w-32"
         />
       </div>
@@ -164,7 +164,7 @@ export default function SitesSection() {
             Add Note
           </Button>
         </div>
-        
+
         <div className="space-y-6">
           {(form.references || []).map((reference: any, index: number) => (
             <Card key={reference.id} className="border border-gray-200">
@@ -294,11 +294,11 @@ export default function SitesSection() {
                       {uploadingNoteAttachment[index] ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                      <Upload className="h-4 w-4" />
+                        <Upload className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
-                  
+
                   {/* Display uploaded files */}
                   {reference.attachments && reference.attachments.length > 0 && (
                     <div className="mt-2 space-y-1">
@@ -306,7 +306,7 @@ export default function SitesSection() {
                         const fileName = typeof attachment === 'string' ? attachment : attachment.name;
                         const fileUrl = typeof attachment === 'object' ? attachment.url : null;
                         const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
-                        
+
                         return (
                           <div key={attIndex} className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
                             {isImage ? (

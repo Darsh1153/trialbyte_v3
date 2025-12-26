@@ -22,7 +22,7 @@ export default function TimingSection() {
   } = useTherapeuticForm();
   const { toast } = useToast();
   const form = formData.step5_4;
-  
+
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorData, setCalculatorData] = useState({
     date: "",
@@ -44,17 +44,24 @@ export default function TimingSection() {
     outputDate: ""
   });
 
+  // State for Difference Calculator (Calculation)
+  const [diffCalculatorData, setDiffCalculatorData] = useState({
+    startDate: "",
+    endDate: "",
+    resultMonths: ""
+  });
+
   console.log("TimingSection (New Trial) - Current form data:", form);
 
   // Auto-calculation utility functions
   const calculateDateDifference = (date1: string, date2: string): number => {
     if (!date1 || !date2) return 0;
-    
+
     const d1 = new Date(date1);
     const d2 = new Date(date2);
-    
+
     if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
-    
+
     const diffTime = Math.abs(d2.getTime() - d1.getTime());
     const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44); // Average days per month
     console.log(`Date difference calculation: ${date1} to ${date2} = ${diffMonths.toFixed(2)} months`);
@@ -69,7 +76,7 @@ export default function TimingSection() {
   // Auto-calculation logic based on confidence levels
   const performAutoCalculations = (row: string, column: string, value: string) => {
     console.log(`Auto-calculation triggered: row=${row}, column=${column}, value=${value}`);
-    
+
     // Get all current values for calculations
     const getValue = (r: string, c: string) => {
       const key = `${r.toLowerCase()}_${c.replace(/\s+/g, "_").toLowerCase()}`;
@@ -80,12 +87,12 @@ export default function TimingSection() {
     if (column === "Start Date" || column === "Enrollment Closed Date") {
       const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
       const enrollmentClosedDate = column === "Enrollment Closed Date" ? value : getValue(row, "Enrollment Closed Date");
-      
+
       if (startDate && enrollmentClosedDate) {
         // Validate that start date is not greater than enrollment closed date
         const start = new Date(startDate);
         const enrollment = new Date(enrollmentClosedDate);
-        
+
         if (start > enrollment) {
           toast({
             title: "Date Validation Error",
@@ -94,7 +101,7 @@ export default function TimingSection() {
           });
           return;
         }
-        
+
         const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
         console.log(`Calculated Inclusion Period for ${row}: ${inclusionPeriod.toFixed(2)}`);
         updateTableValue(row, "Inclusion Period", inclusionPeriod.toFixed(2));
@@ -105,12 +112,12 @@ export default function TimingSection() {
     if (column === "Trial End Date" || column === "Result Published Date") {
       const trialEndDate = column === "Trial End Date" ? value : getValue(row, "Trial End Date");
       const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
-      
+
       if (trialEndDate && resultPublishedDate) {
         // Validate that trial end date is not greater than result published date
         const trialEnd = new Date(trialEndDate);
         const resultPublished = new Date(resultPublishedDate);
-        
+
         if (trialEnd > resultPublished) {
           toast({
             title: "Date Validation Error",
@@ -119,7 +126,7 @@ export default function TimingSection() {
           });
           return;
         }
-        
+
         const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
         console.log(`Calculated Result Duration for ${row}: ${resultDuration.toFixed(2)}`);
         updateTableValue(row, "Result Duration", resultDuration.toFixed(2));
@@ -130,7 +137,7 @@ export default function TimingSection() {
     if (column === "Start Date" || column === "Trial End Date") {
       const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
       const trialEndDate = column === "Trial End Date" ? value : getValue(row, "Trial End Date");
-      
+
       if (startDate && trialEndDate) {
         const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
         console.log(`Calculated Overall Duration to Complete: ${overallDurationComplete.toFixed(2)}`);
@@ -142,7 +149,7 @@ export default function TimingSection() {
     if (column === "Start Date" || column === "Result Published Date") {
       const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
       const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
-      
+
       if (startDate && resultPublishedDate) {
         const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
         console.log(`Calculated Overall Duration to Publish: ${overallDurationPublish.toFixed(2)}`);
@@ -154,7 +161,7 @@ export default function TimingSection() {
     if (column === "Trial End Date" && row.toLowerCase() === "estimated") {
       const trialEndDate = value;
       const primaryOutcomeDuration = getValue("actual", "Primary Outcome Duration");
-      
+
       if (trialEndDate && primaryOutcomeDuration) {
         const end = new Date(trialEndDate);
         if (!isNaN(end.getTime())) {
@@ -163,7 +170,7 @@ export default function TimingSection() {
           const enrollmentClosedDate = start.toISOString().split('T')[0];
           console.log(`Back-calculated Enrollment Closed Date: ${enrollmentClosedDate}`);
           updateTableValue("estimated", "Enrollment Closed Date", enrollmentClosedDate);
-          
+
           // Calculate inclusion period for estimated row
           const startDate = getValue("estimated", "Start Date");
           if (startDate) {
@@ -179,7 +186,7 @@ export default function TimingSection() {
     const key = `${row.toLowerCase()}_${col.replace(/\s+/g, "_").toLowerCase()}`;
     console.log(`Updating table value: ${key} = ${value}`);
     updateField("step5_4", key as any, value);
-    
+
     // Trigger auto-calculations after updating the value
     performAutoCalculations(row, col, value);
   };
@@ -206,9 +213,9 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
+    setCalculatorData(prev => ({
+      ...prev,
+      outputDate: formattedDate
     }));
     console.log("Date forward calculated:", formattedDate);
   };
@@ -234,9 +241,9 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
+    setCalculatorData(prev => ({
+      ...prev,
+      outputDate: formattedDate
     }));
     console.log("Date backward calculated:", formattedDate);
   };
@@ -299,9 +306,9 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setEnhancedCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
+    setEnhancedCalculatorData(prev => ({
+      ...prev,
+      outputDate: formattedDate
     }));
     console.log("Enhanced date forward calculated:", formattedDate);
   };
@@ -327,9 +334,9 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setEnhancedCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
+    setEnhancedCalculatorData(prev => ({
+      ...prev,
+      outputDate: formattedDate
     }));
     console.log("Enhanced date backward calculated:", formattedDate);
   };
@@ -340,6 +347,43 @@ export default function TimingSection() {
       duration: "",
       frequency: "months",
       outputDate: ""
+    });
+  };
+
+  // Difference Calculator functions
+  const calculateDifferenceInMonths = () => {
+    console.log("Calculating date difference:", diffCalculatorData);
+    if (!diffCalculatorData.startDate || !diffCalculatorData.endDate) return;
+
+    const start = new Date(diffCalculatorData.startDate);
+    const end = new Date(diffCalculatorData.endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      toast({
+        title: "Invalid Dates",
+        description: "Please enter valid start and end dates.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Calculate difference in milliseconds
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    // Convert to months (using average days per month: 30.44)
+    const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44);
+
+    setDiffCalculatorData(prev => ({
+      ...prev,
+      resultMonths: diffMonths.toFixed(2)
+    }));
+    console.log("Difference calculated:", diffMonths.toFixed(2));
+  };
+
+  const clearDiffCalculator = () => {
+    setDiffCalculatorData({
+      startDate: "",
+      endDate: "",
+      resultMonths: ""
     });
   };
 
@@ -370,7 +414,7 @@ export default function TimingSection() {
           {showCalculator ? "Hide Calculator" : "Show Calculator"}
         </Button>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
@@ -426,13 +470,13 @@ export default function TimingSection() {
                 {/* Date Input */}
                 <div className="space-y-2">
                   <Label>Date</Label>
-                    <CustomDateInput
+                  <CustomDateInput
                     value={calculatorData.date}
                     onChange={(value) => setCalculatorData(prev => ({ ...prev, date: value }))}
                     placeholder="Select date"
-                      className="w-full"
-                    />
-                  </div>
+                    className="w-full"
+                  />
+                </div>
                 {/* Duration Input */}
                 <div className="space-y-2">
                   <Label>Duration</Label>
@@ -441,9 +485,9 @@ export default function TimingSection() {
                     value={calculatorData.duration}
                     onChange={(e) => setCalculatorData(prev => ({ ...prev, duration: e.target.value }))}
                     placeholder="Enter duration"
-                      className="w-full"
-                    />
-                  </div>
+                    className="w-full"
+                  />
+                </div>
                 {/* Frequency Select */}
                 <div className="space-y-2">
                   <Label>Frequency</Label>
@@ -460,7 +504,7 @@ export default function TimingSection() {
                       <SelectItem value="months">Months</SelectItem>
                     </SelectContent>
                   </Select>
-                  </div>
+                </div>
                 {/* Output Date */}
                 <div className="space-y-2">
                   <Label>Output Date</Label>
@@ -513,7 +557,7 @@ export default function TimingSection() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         <div className="flex items-center gap-2">
           <Label className="whitespace-nowrap">Overall duration to Complete</Label>
-                    <Input
+          <Input
             type="number"
             className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             placeholder="Months"
@@ -521,10 +565,10 @@ export default function TimingSection() {
             onChange={(e) => updateField("step5_4", "overall_duration_complete", e.target.value)}
           />
           <span className="text-sm text-gray-500">(months)</span>
-                  </div>
+        </div>
         <div className="flex items-center gap-2">
           <Label className="whitespace-nowrap">Overall duration to publish result</Label>
-                    <Input
+          <Input
             type="number"
             className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
             placeholder="Months"
@@ -540,14 +584,14 @@ export default function TimingSection() {
           <div className="flex items-center gap-2 mb-4">
             <Calculator className="h-5 w-5 text-green-600" />
             <h4 className="text-lg font-semibold text-green-800">Duration to Months Converter</h4>
-                  </div>
+          </div>
           <div className="space-y-4">
             {/* Converter Input Fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               {/* Duration Input */}
               <div className="space-y-2">
                 <Label>Enter Duration</Label>
-                    <Input
+                <Input
                   type="number"
                   value={durationConverterData.duration}
                   onChange={(e) => setDurationConverterData(prev => ({ ...prev, duration: e.target.value }))}
@@ -570,16 +614,16 @@ export default function TimingSection() {
                     <SelectItem value="weeks">Weeks</SelectItem>
                   </SelectContent>
                 </Select>
-                  </div>
+              </div>
               {/* Output Months */}
               <div className="space-y-2">
                 <Label>Output (in Months)</Label>
-                    <Input
+                <Input
                   value={durationConverterData.outputMonths}
-                      readOnly
-                      className="w-full bg-gray-100"
+                  readOnly
+                  className="w-full bg-gray-100"
                   placeholder="Calculated months"
-                    />
+                />
               </div>
             </div>
             {/* Calculate Button */}
@@ -705,6 +749,71 @@ export default function TimingSection() {
         </CardContent>
       </Card>
 
+      {/* Calculation (Difference Calculator) */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Calculator className="h-5 w-5 text-orange-600" />
+            <h4 className="text-lg font-semibold text-orange-800">Calculation</h4>
+          </div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+              {/* Start Date */}
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <CustomDateInput
+                  value={diffCalculatorData.startDate}
+                  onChange={(value) => setDiffCalculatorData(prev => ({ ...prev, startDate: value }))}
+                  placeholder="Select start date"
+                  className="w-full"
+                />
+              </div>
+              {/* End Date */}
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <CustomDateInput
+                  value={diffCalculatorData.endDate}
+                  onChange={(value) => setDiffCalculatorData(prev => ({ ...prev, endDate: value }))}
+                  placeholder="Select end date"
+                  className="w-full"
+                />
+              </div>
+              {/* Output */}
+              <div className="space-y-2">
+                <Label>Output (in decimal in months)</Label>
+                <Input
+                  value={diffCalculatorData.resultMonths}
+                  readOnly
+                  className="w-full bg-gray-100"
+                  placeholder="Calculated months"
+                />
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-center gap-4">
+              <Button
+                type="button"
+                onClick={calculateDifferenceInMonths}
+                className="bg-orange-600 hover:bg-orange-700 text-white min-w-[120px]"
+                disabled={!diffCalculatorData.startDate || !diffCalculatorData.endDate}
+              >
+                Calculate
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={clearDiffCalculator}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear All
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* References Section */}
       <div className="space-y-4 pt-6 border-t">
         <div className="flex items-center justify-between">
@@ -723,7 +832,7 @@ export default function TimingSection() {
             Add Reference
           </Button>
         </div>
-        
+
         <div className="space-y-6">
           {(form.references || []).map((reference: any, index: number) => (
             <Card key={reference.id} className="border border-gray-200">

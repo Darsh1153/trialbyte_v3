@@ -17,6 +17,7 @@ import { useTherapeuticForm } from "../../context/therapeutic-form-context";
 import { Textarea } from "@/components/ui/textarea";
 import { useDrugNames } from "@/hooks/use-drug-names";
 import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
+import { useEffect } from "react";
 
 export default function BasicInfoSection() {
   const {
@@ -26,15 +27,33 @@ export default function BasicInfoSection() {
     removeArrayItem,
     updateArrayItem,
   } = useTherapeuticForm();
-  const { getPrimaryDrugsOptions } = useDrugNames();
+  const { getPrimaryDrugsOptions, refreshFromAPI, drugNames, isLoading } = useDrugNames();
   const form = formData.step5_1;
+
+  // Refresh drug names from API when component mounts to ensure latest data
+  useEffect(() => {
+    refreshFromAPI();
+  }, [refreshFromAPI]);
+
+  // Log when drug names are loaded
+  useEffect(() => {
+    if (!isLoading && drugNames.length > 0) {
+      console.log('Drug names loaded in BasicInfoSection:', drugNames.length, 'drugs');
+    } else if (!isLoading && drugNames.length === 0) {
+      console.warn('No drug names loaded. Make sure drugs exist in the database.');
+    }
+  }, [drugNames, isLoading]);
 
   console.log("BasicInfoSection (New Trial) - Current form data:", form);
 
+  const selectedTherapeuticAreas = Array.isArray(form.therapeutic_area)
+    ? form.therapeutic_area
+    : (form.therapeutic_area ? [form.therapeutic_area] : []);
+  const isTherapeuticAreaSelected = selectedTherapeuticAreas.length > 0;
+
   // Helper functions for hierarchical dropdowns
   const getDiseaseTypeOptions = (): SearchableSelectOption[] => {
-    const therapeuticAreas = Array.isArray(form.therapeutic_area) ? form.therapeutic_area : (form.therapeutic_area ? [form.therapeutic_area] : []);
-    if (therapeuticAreas.length === 0) {
+    if (selectedTherapeuticAreas.length === 0) {
       return diseaseTypeOptions; // Return all options if no therapeutic area selected
     }
 
@@ -44,8 +63,7 @@ export default function BasicInfoSection() {
   };
 
   const getPatientSegmentOptions = (): SearchableSelectOption[] => {
-    const therapeuticAreas = Array.isArray(form.therapeutic_area) ? form.therapeutic_area : (form.therapeutic_area ? [form.therapeutic_area] : []);
-    if (therapeuticAreas.length === 0) {
+    if (selectedTherapeuticAreas.length === 0) {
       return patientSegmentOptions; // Return all options if no therapeutic area selected
     }
 
@@ -257,19 +275,33 @@ export default function BasicInfoSection() {
     ]
   });
 
-  const primaryDrugsOptions: SearchableSelectOption[] = [
-    ...getPrimaryDrugsOptions().map(drug => ({
-      value: drug.value,
-      label: drug.label
-    }))
-  ];
+  // Get drug options - this will update when drugNames change in the hook
+  // Use drugNames directly to ensure reactivity
+  const primaryDrugsOptions: SearchableSelectOption[] = drugNames.map(drug => ({
+    value: drug.value,
+    label: drug.label
+  }));
 
-  const otherDrugsOptions: SearchableSelectOption[] = [
-    ...getPrimaryDrugsOptions().map(drug => ({
-      value: drug.value,
-      label: drug.label
-    }))
-  ];
+  const otherDrugsOptions: SearchableSelectOption[] = drugNames.map(drug => ({
+    value: drug.value,
+    label: drug.label
+  }));
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Primary drugs options updated:', primaryDrugsOptions.length, 'options');
+    console.log('Is loading:', isLoading);
+    console.log('Drug names in hook:', drugNames.length);
+    if (primaryDrugsOptions.length > 0) {
+      console.log('Sample drug options:', primaryDrugsOptions.slice(0, 5));
+    } else {
+      if (!isLoading) {
+        console.warn('No primary drug options available after loading completed. Check API response and drug data structure.');
+      } else {
+        console.log('Drugs are still loading from API...');
+      }
+    }
+  }, [primaryDrugsOptions, isLoading, drugNames.length]);
 
   const { options: diseaseTypeOptions } = useDynamicDropdown({
     categoryName: 'disease_type',
@@ -482,11 +514,11 @@ export default function BasicInfoSection() {
   const updateReferenceLink = (index: number, value: string) => updateArrayItem("step5_1", "reference_links", index, value);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" >
       <h3 className="text-lg font-semibold">Trial Overview</h3>
 
       {/* Row 1: therapeutic area / trial identifier / phase */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3" >
         <div className="space-y-2">
           <Label>Therapeutic Area</Label>
           <MultiSelectSearchable
@@ -568,10 +600,10 @@ export default function BasicInfoSection() {
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
-      </div>
+      </div >
 
       {/* Row 2: status / primary drugs / other drugs */}
-      <div className="grid gap-4 md:grid-cols-3">
+      < div className="grid gap-4 md:grid-cols-3" >
         <div className="space-y-2">
           <Label>Status</Label>
           <SearchableSelect
@@ -586,51 +618,80 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Primary Drugs</Label>
-          <MultiSelectSearchable
-            options={primaryDrugsOptions}
-            value={Array.isArray(form.primary_drugs) ? form.primary_drugs : (form.primary_drugs ? [form.primary_drugs] : [])}
-            onValueChange={(v) => updateField("step5_1", "primary_drugs", v)}
-            placeholder="Select primary drug"
-            searchPlaceholder="Search primary drugs..."
-            emptyMessage="No primary drug found."
-            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-          />
+          {isLoading ? (
+            <div className="text-sm text-gray-500 py-2">Loading drugs from API...</div>
+          ) : (
+            <MultiSelectSearchable
+              key={`primary-drugs-${primaryDrugsOptions.length}`}
+              options={primaryDrugsOptions}
+              value={Array.isArray(form.primary_drugs) ? form.primary_drugs : (form.primary_drugs ? [form.primary_drugs] : [])}
+              onValueChange={(v) => {
+                console.log('Primary drug selected:', v);
+                updateField("step5_1", "primary_drugs", v);
+              }}
+              placeholder={primaryDrugsOptions.length === 0 ? "No drugs available. Add drugs in the drug module first." : "Select primary drug"}
+              searchPlaceholder="Search primary drugs..."
+              emptyMessage={primaryDrugsOptions.length === 0 ? "No drugs found. Please add drugs in the drug module." : "No primary drug found."}
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              disabled={isLoading}
+            />
+          )}
+          {!isLoading && primaryDrugsOptions.length === 0 && (
+            <p className="text-xs text-amber-600 mt-1">
+              No drugs found. Make sure you have created drugs in the Drug module with drug_name, generic_name, or other_name fields populated.
+            </p>
+          )}
         </div>
         <div className="space-y-2">
           <Label>Other Drugs</Label>
-          <MultiSelectSearchable
-            options={otherDrugsOptions}
-            value={Array.isArray(form.other_drugs) ? form.other_drugs : (form.other_drugs ? [form.other_drugs] : [])}
-            onValueChange={(v) => updateField("step5_1", "other_drugs", v)}
-            placeholder="Select other drug"
-            searchPlaceholder="Search other drugs..."
-            emptyMessage="No other drug found."
-            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-          />
+          {isLoading ? (
+            <div className="text-sm text-gray-500 py-2">Loading drugs from API...</div>
+          ) : (
+            <MultiSelectSearchable
+              key={`other-drugs-${otherDrugsOptions.length}`}
+              options={otherDrugsOptions}
+              value={Array.isArray(form.other_drugs) ? form.other_drugs : (form.other_drugs ? [form.other_drugs] : [])}
+              onValueChange={(v) => {
+                console.log('Other drug selected:', v);
+                updateField("step5_1", "other_drugs", v);
+              }}
+              placeholder={otherDrugsOptions.length === 0 ? "No drugs available. Add drugs in the drug module first." : "Select other drug"}
+              searchPlaceholder="Search other drugs..."
+              emptyMessage={otherDrugsOptions.length === 0 ? "No drugs found. Please add drugs in the drug module." : "No other drug found."}
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              disabled={isLoading}
+            />
+          )}
+          {!isLoading && otherDrugsOptions.length === 0 && (
+            <p className="text-xs text-amber-600 mt-1">
+              No drugs found. Make sure you have created drugs in the Drug module with drug_name, generic_name, or other_name fields populated.
+            </p>
+          )}
         </div>
-      </div>
+      </div >
 
       {/* Title */}
-      <div className="space-y-2">
+      < div className="space-y-2" >
         <Label>Title</Label>
         <Textarea
           value={form.title}
           onChange={(e) => updateField("step5_1", "title", e.target.value)}
           className="resize-y min-h-[40px] border-gray-600 focus:border-gray-800 focus:ring-gray-800"
         />
-      </div>
+      </div >
 
       {/* Row 3: disease type / patient segment / line of therapy */}
-      <div className="grid gap-4 md:grid-cols-3">
+      < div className="grid gap-4 md:grid-cols-3" >
         <div className="space-y-2">
           <Label>Disease Type</Label>
           <MultiSelectSearchable
             options={getDiseaseTypeOptions()}
             value={Array.isArray(form.disease_type) ? form.disease_type : (form.disease_type ? [form.disease_type] : [])}
             onValueChange={handleDiseaseTypeChange}
-            placeholder="Select disease type"
+            placeholder={!isTherapeuticAreaSelected ? "Select Therapeutic Area first" : "Select disease type"}
             searchPlaceholder="Search disease types..."
             emptyMessage="No disease type found."
+            disabled={!isTherapeuticAreaSelected}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -640,9 +701,10 @@ export default function BasicInfoSection() {
             options={getPatientSegmentOptions()}
             value={Array.isArray(form.patient_segment) ? form.patient_segment : (form.patient_segment ? [form.patient_segment] : [])}
             onValueChange={(v) => updateField("step5_1", "patient_segment", v)}
-            placeholder="Select segment"
+            placeholder={!isTherapeuticAreaSelected ? "Select Therapeutic Area first" : "Select segment"}
             searchPlaceholder="Search patient segments..."
             emptyMessage="No patient segment found."
+            disabled={!isTherapeuticAreaSelected}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -658,10 +720,10 @@ export default function BasicInfoSection() {
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
-      </div>
+      </div >
 
       {/* Row 4: reference links / trial tags */}
-      <div className="grid gap-4 md:grid-cols-3">
+      < div className="grid gap-4 md:grid-cols-3" >
         <div className="space-y-2 md:col-span-2">
           <Label>Reference Links</Label>
           <div className="space-y-2">
@@ -707,10 +769,10 @@ export default function BasicInfoSection() {
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
-      </div>
+      </div >
 
       {/* Row 5: sponsor fields */}
-      <div className="grid gap-4 md:grid-cols-3">
+      < div className="grid gap-4 md:grid-cols-3" >
         <div className="space-y-2">
           <Label>Sponsor & Collaborators</Label>
           <MultiSelectSearchable
@@ -747,10 +809,10 @@ export default function BasicInfoSection() {
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
-      </div>
+      </div >
 
       {/* Row 6: countries / region / record status */}
-      <div className="grid gap-4 md:grid-cols-3">
+      < div className="grid gap-4 md:grid-cols-3" >
         <div className="space-y-2">
           <Label>Countries</Label>
           <MultiSelectSearchable
@@ -787,7 +849,7 @@ export default function BasicInfoSection() {
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

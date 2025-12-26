@@ -279,6 +279,9 @@ export default function AdminTherapeuticsPage() {
   // User name mapping cache
   const [userNameMap, setUserNameMap] = useState<Record<string, string>>({});
 
+  // Drug name mapping: maps each drug name to all related names (drug_name, generic_name, other_name) from the same drug entry
+  const [drugNameMapping, setDrugNameMapping] = useState<Map<string, Set<string>>>(new Map());
+
   // Populate user name mapping cache from trials data
   const populateUserNameMap = async (trialsData: TherapeuticTrial[]) => {
     const userIds = new Set<string>();
@@ -481,6 +484,86 @@ export default function AdminTherapeuticsPage() {
     }
   };
 
+  // Fetch drugs and build drug name mapping
+  const fetchDrugsAndBuildMapping = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to fetch drugs for mapping");
+        return;
+      }
+
+      const data = await response.json();
+      const drugs = data.drugs || [];
+
+      // Build mapping: each drug name (drug_name, generic_name, other_name) maps to a set of all related names
+      const mapping = new Map<string, Set<string>>();
+
+      drugs.forEach((drug: any) => {
+        const overview = drug.overview || {};
+        const drugName = (overview.drug_name || "").trim();
+        const genericName = (overview.generic_name || "").trim();
+        const otherName = (overview.other_name || "").trim();
+
+        // Collect all non-empty names for this drug
+        const allNames = new Set<string>();
+        if (drugName) allNames.add(drugName);
+        if (genericName) allNames.add(genericName);
+        if (otherName) allNames.add(otherName);
+
+        // Only process if we have at least one name
+        if (allNames.size > 0) {
+          // Map each name to the set of all related names
+          allNames.forEach(name => {
+            if (!mapping.has(name)) {
+              mapping.set(name, new Set<string>());
+            }
+            // Add all names from this drug to the mapping for each name
+            allNames.forEach(relatedName => {
+              mapping.get(name)!.add(relatedName);
+            });
+          });
+        }
+      });
+
+      setDrugNameMapping(mapping);
+      console.log("Drug name mapping built. Total entries:", mapping.size);
+      
+      // Log all entries for debugging
+      if (mapping.size > 0) {
+        console.log("All drug mapping entries:");
+        mapping.forEach((relatedSet, drugName) => {
+          const relatedArray = Array.from(relatedSet);
+          console.log(`  "${drugName}" -> [${relatedArray.join(", ")}]`);
+          
+          // Specifically log entries containing "value 100", "value 101", or "value 102"
+          if (drugName.toLowerCase().includes('value 100') || 
+              drugName.toLowerCase().includes('value 101') || 
+              drugName.toLowerCase().includes('value 102') ||
+              relatedArray.some(name => name.toLowerCase().includes('value 100') || 
+                                        name.toLowerCase().includes('value 101') || 
+                                        name.toLowerCase().includes('value 102'))) {
+            console.log(`  *** Found value 100/101/102 entry: "${drugName}" -> [${relatedArray.join(", ")}]`);
+          }
+        });
+      } else {
+        console.warn("Drug name mapping is empty! No drugs found or drugs have no names.");
+      }
+    } catch (error) {
+      console.error("Error fetching drugs for mapping:", error);
+    }
+  };
+
   // Clear cache function
   const clearCache = () => {
     try {
@@ -665,8 +748,15 @@ export default function AdminTherapeuticsPage() {
   };
 
   // Handle advanced search
-  const handleAdvancedSearch = (criteria: TherapeuticSearchCriteria[]) => {
+  const handleAdvancedSearch = async (criteria: TherapeuticSearchCriteria[]) => {
     console.log('Advanced search criteria:', criteria);
+
+    // Always rebuild drug mapping if search involves drug fields to ensure it is up-to-date
+    const hasDrugField = criteria.some(c => c.field === 'primary_drugs' || c.field === 'other_drugs');
+    if (hasDrugField) {
+      console.log('Search involves drug fields, rebuilding drug mapping...');
+      await fetchDrugsAndBuildMapping();
+    }
 
     const startTime = Date.now();
 
@@ -803,9 +893,14 @@ export default function AdminTherapeuticsPage() {
     setEditingQueryTitle(queryData.queryTitle || "");
     setEditingQueryDescription(queryData.queryDescription || "");
 
-    // Load search criteria if available
+    // Determine content presence
+    const hasAdvancedCriteria = queryData.searchCriteria && Array.isArray(queryData.searchCriteria) && queryData.searchCriteria.length > 0;
+
+    // Load search criteria
     if (queryData.searchCriteria && Array.isArray(queryData.searchCriteria)) {
       setAdvancedSearchCriteria(queryData.searchCriteria);
+    } else {
+      setAdvancedSearchCriteria([]);
     }
 
     // Load filters if available
@@ -816,10 +911,20 @@ export default function AdminTherapeuticsPage() {
     // Load search term if available
     if (queryData.searchTerm) {
       setSearchTerm(queryData.searchTerm);
+    } else {
+      setSearchTerm("");
     }
 
-    // Open the Advanced Search modal with the loaded data
-    setIsAdvancedSearchOpen(true);
+    // Open the appropriate modal
+    // If it has advanced criteria, it must be an advanced search
+    if (hasAdvancedCriteria) {
+      setIsAdvancedSearchOpen(true);
+      setFilterModalOpen(false);
+    } else {
+      // Otherwise, assume it's a filter-based query (or basic search) and open Filter Modal
+      setFilterModalOpen(true);
+      setIsAdvancedSearchOpen(false);
+    }
   };
 
   // Handle save query success
@@ -939,10 +1044,14 @@ export default function AdminTherapeuticsPage() {
           fieldValue = trial.overview.status || "";
           break;
         case "primary_drugs":
-          fieldValue = trial.overview.primary_drugs || "";
+          // For drug searches, we need to check if the search value matches any related drug names
+          const primaryDrugValue = trial.overview.primary_drugs || "";
+          fieldValue = primaryDrugValue;
           break;
         case "other_drugs":
-          fieldValue = trial.overview.other_drugs || "";
+          // For drug searches, we need to check if the search value matches any related drug names
+          const otherDrugValue = trial.overview.other_drugs || "";
+          fieldValue = otherDrugValue;
           break;
         case "disease_type":
           fieldValue = trial.overview.disease_type || "";
@@ -1115,6 +1224,12 @@ export default function AdminTherapeuticsPage() {
       // Apply the operator
       const targetValue = fieldValue.toLowerCase();
 
+      // Extract search value early (handle both string and array values)
+      // This must be done before any special handling that uses searchValue
+      const rawSearchValue = Array.isArray(value) ? value[0] || "" : (typeof value === 'string' ? value : String(value || ""));
+      const searchValue = rawSearchValue.trim();
+      const searchValueLower = searchValue.toLowerCase();
+
       // Special handling for dropdown fields that should use exact matching
       const dropdownFields = [
         'trial_phase', 'status', 'therapeutic_area', 'disease_type',
@@ -1125,10 +1240,8 @@ export default function AdminTherapeuticsPage() {
       // For dropdown fields, if the operator is "contains" but we're searching for exact values,
       // we should use exact matching instead
       if (dropdownFields.includes(field) && (operator === "contains" || operator === "is")) {
-        const searchValue = typeof value === 'string' ? value.toLowerCase() : '';
-
         // Check if the search value matches exactly or if it's a partial match within the field
-        if (targetValue === searchValue) {
+        if (targetValue === searchValueLower) {
           return true;
         }
 
@@ -1171,7 +1284,7 @@ export default function AdminTherapeuticsPage() {
         }
 
         // For other dropdown fields, use exact matching
-        return targetValue === searchValue;
+        return targetValue === searchValueLower;
       }
 
       // Special handling for trial_tags with multiple values
@@ -1199,8 +1312,6 @@ export default function AdminTherapeuticsPage() {
 
         return allTagsPresent;
       }
-
-      const searchValue = typeof value === 'string' ? value.toLowerCase() : '';
 
       // Special handling for date fields
       const dateFields = ['created_at', 'updated_at', 'last_modified_date', 'start_date_estimated', 'trial_end_date_estimated'];
@@ -1249,13 +1360,13 @@ export default function AdminTherapeuticsPage() {
           console.log('Date parsing failed, using string comparison');
           switch (operator) {
             case "contains":
-              return targetValue.includes(searchValue);
+              return targetValue.includes(searchValueLower);
             case "equals":
             case "is":
-              return targetValue === searchValue;
+              return targetValue === searchValueLower;
             case "not_equals":
             case "is_not":
-              return targetValue !== searchValue;
+              return targetValue !== searchValueLower;
             default:
               return false;
           }
@@ -1290,21 +1401,186 @@ export default function AdminTherapeuticsPage() {
         return comparisonResult;
       }
 
+      // Special handling for drug fields (primary_drugs, other_drugs) - check related drug names
+      // IMPORTANT: For drug fields, ONLY use the drug mapping logic - don't fall through to default
+      if (field === "primary_drugs" || field === "other_drugs") {
+        // If search value is empty or undefined, don't match anything
+        if (!searchValue || searchValue === "") {
+          console.log('Search value is empty for drug field - no match:', {
+            field,
+            searchValue,
+            rawValue: value,
+            trialId: trial.trial_id
+          });
+          return false;
+        }
+        
+        // If mapping is empty, return false (don't match anything)
+        if (drugNameMapping.size === 0) {
+          console.log('Drug mapping is empty - no matches for drug field search:', {
+            field,
+            searchValue,
+            trialId: trial.trial_id
+          });
+          return false;
+        }
+        
+        // searchValueLower is already defined at the top
+        const trialDrugValue = fieldValue.toLowerCase().trim();
+        
+        // If trial has no drug value, don't match
+        if (!trialDrugValue || trialDrugValue === "") {
+          return false;
+        }
+        
+        // Get all related drug names for the search value (case-insensitive)
+        const relatedNames = new Set<string>();
+        
+        // Iterate through the drug mapping to find all related names
+        // The mapping has original case keys, so we need to do case-insensitive lookup
+        drugNameMapping.forEach((relatedSet, drugName) => {
+          const drugNameLower = drugName.toLowerCase().trim();
+          
+          // If the search value matches this drug name (case-insensitive)
+          if (drugNameLower === searchValueLower) {
+            // Add all related names from this drug entry (convert to lowercase)
+            relatedSet.forEach(name => {
+              const nameLower = name.toLowerCase().trim();
+              if (nameLower) {
+                relatedNames.add(nameLower);
+              }
+            });
+            // Also add the drug name itself
+            if (drugNameLower) {
+              relatedNames.add(drugNameLower);
+            }
+          }
+        });
+        
+        // Also check if any name in the related sets matches the search value
+        drugNameMapping.forEach((relatedSet, drugName) => {
+          relatedSet.forEach(name => {
+            const nameLower = name.toLowerCase().trim();
+            if (nameLower === searchValueLower) {
+              // This name matches the search, so add all names from this drug entry
+              relatedSet.forEach(relatedName => {
+                const relatedNameLower = relatedName.toLowerCase().trim();
+                if (relatedNameLower) {
+                  relatedNames.add(relatedNameLower);
+                }
+              });
+              // Also add the key drug name
+              const drugNameLower = drugName.toLowerCase().trim();
+              if (drugNameLower) {
+                relatedNames.add(drugNameLower);
+              }
+            }
+          });
+        });
+        
+        // If we found related names, check if the trial's drug value matches any of them
+        if (relatedNames.size > 0) {
+          // Normalize trial drug value for comparison
+          const trialValueTrimmed = trialDrugValue.trim();
+          
+          // Check if trial value exactly matches any related name (case-insensitive)
+          const matchesRelatedName = Array.from(relatedNames).some(relatedName => {
+            const relatedNameTrimmed = relatedName.trim();
+            // Exact match only - no partial matching
+            const matches = trialValueTrimmed === relatedNameTrimmed;
+            if (matches) {
+              console.log(`  ✓ Match found: trial value "${trialDrugValue}" matches related name "${relatedName}"`);
+            }
+            return matches;
+          });
+          
+          // Debug logging
+          console.log('Drug search debug:', {
+            field,
+            searchValue,
+            searchValueLower,
+            trialDrugValue,
+            trialValueTrimmed,
+            relatedNames: Array.from(relatedNames),
+            matchesRelatedName,
+            operator,
+            drugNameMappingSize: drugNameMapping.size,
+            trialId: trial.trial_id,
+            willMatch: matchesRelatedName
+          });
+          
+          // Extra logging for value 100/101/102 searches
+          if (searchValueLower.includes('value 100') || searchValueLower.includes('value 101') || searchValueLower.includes('value 102')) {
+            console.log('*** Value 100/101/102 search details:', {
+              searchValue,
+              searchValueLower,
+              relatedNames: Array.from(relatedNames),
+              trialDrugValue,
+              trialValueTrimmed,
+              matches: matchesRelatedName,
+              trialId: trial.trial_id
+            });
+          }
+          
+          switch (operator) {
+            case "contains":
+            case "is":
+              // For "is" and "contains", only match if trial value exactly equals any related name
+              // This ensures all related records (value 100, value 101, value 102) are shown
+              return matchesRelatedName;
+            case "is_not":
+              return !matchesRelatedName;
+            case "equals":
+              // For equals, only match if trial value exactly equals any related name
+              return matchesRelatedName;
+            case "not_equals":
+              return !matchesRelatedName;
+            default:
+              return matchesRelatedName;
+          }
+        } else {
+          // If no related names found, this trial should NOT match for drug field searches
+          // Log for debugging
+          console.log('No related drug names found for search - trial will NOT match:', {
+            searchValue,
+            searchValueLower,
+            trialDrugValue,
+            drugNameMappingKeys: Array.from(drugNameMapping.keys()).slice(0, 20), // Show first 20 keys
+            drugNameMappingSize: drugNameMapping.size,
+            trialId: trial.trial_id
+          });
+          
+          // For value 100/101/102, show more details
+          if (searchValueLower.includes('value 100') || searchValueLower.includes('value 101') || searchValueLower.includes('value 102')) {
+            console.warn('*** Value 100/101/102 not found in mapping!', {
+              searchValue,
+              trialDrugValue,
+              allMappingKeys: Array.from(drugNameMapping.keys()),
+              message: 'Check if drug entry has these values in drug_name, generic_name, or other_name fields'
+            });
+          }
+          
+          // Return false - don't match if no related names found
+          // This ensures only trials with related drug names are shown
+          return false;
+        }
+      }
+
       switch (operator) {
         case "contains":
-          return targetValue.includes(searchValue);
+          return targetValue.includes(searchValueLower);
         case "is":
-          return targetValue === searchValue;
+          return targetValue === searchValueLower;
         case "is_not":
-          return targetValue !== searchValue;
+          return targetValue !== searchValueLower;
         case "starts_with":
-          return targetValue.startsWith(searchValue);
+          return targetValue.startsWith(searchValueLower);
         case "ends_with":
-          return targetValue.endsWith(searchValue);
+          return targetValue.endsWith(searchValueLower);
         case "equals":
-          return targetValue === searchValue;
+          return targetValue === searchValueLower;
         case "not_equals":
-          return targetValue !== searchValue;
+          return targetValue !== searchValueLower;
         case "greater_than":
           return parseFloat(fieldValue) > parseFloat(value as string);
         case "greater_than_equal":
@@ -1327,6 +1603,53 @@ export default function AdminTherapeuticsPage() {
       } else if (logic === "OR") {
         finalResult = finalResult || results[i];
       }
+    }
+
+    // Log summary for drug field searches
+    const drugCriteria = criteria.filter(c => c.field === "primary_drugs" || c.field === "other_drugs");
+    if (drugCriteria.length > 0 && drugNameMapping.size > 0) {
+      drugCriteria.forEach(criterion => {
+        const criterionValue = Array.isArray(criterion.value) ? criterion.value[0] || "" : (criterion.value || "");
+        const searchValueLower = criterionValue.toLowerCase().trim();
+        if (searchValueLower) {
+          // Find related names for this search
+          const relatedNames = new Set<string>();
+          drugNameMapping.forEach((relatedSet, drugName) => {
+            const drugNameLower = drugName.toLowerCase().trim();
+            if (drugNameLower === searchValueLower) {
+              relatedSet.forEach(name => {
+                const nameLower = name.toLowerCase().trim();
+                if (nameLower) relatedNames.add(nameLower);
+              });
+              if (drugNameLower) relatedNames.add(drugNameLower);
+            }
+          });
+          drugNameMapping.forEach((relatedSet, drugName) => {
+            relatedSet.forEach(name => {
+              const nameLower = name.toLowerCase().trim();
+              if (nameLower === searchValueLower) {
+                relatedSet.forEach(relatedName => {
+                  const relatedNameLower = relatedName.toLowerCase().trim();
+                  if (relatedNameLower) relatedNames.add(relatedNameLower);
+                });
+                const drugNameLower = drugName.toLowerCase().trim();
+                if (drugNameLower) relatedNames.add(drugNameLower);
+              }
+            });
+          });
+          
+          if (relatedNames.size > 0) {
+            console.log(`🔍 Drug Search Summary for "${criterionValue}":`, {
+              searchValue: criterionValue,
+              relatedNames: Array.from(relatedNames),
+              expectedMatches: `Trials with primary_drugs matching any of: ${Array.from(relatedNames).join(", ")}`,
+              trialId: trial.trial_id,
+              trialPrimaryDrug: trial.overview?.primary_drugs || "N/A",
+              willMatch: finalResult
+            });
+          }
+        }
+      });
     }
 
     return finalResult;
@@ -1543,16 +1866,87 @@ export default function AdminTherapeuticsPage() {
     // Advanced filtering logic for all available filter fields
     const matchesFilters = (() => {
       // Helper: Check if value matches any filter value (exact match for dropdowns)
-      const checkExact = (filterValues: string[], value: string | undefined | null) =>
-        filterValues.length === 0 || (!!value && filterValues.includes(value));
+      const checkExact = (filterValues: string[], value: string | undefined | null) => {
+        if (filterValues.length === 0) return true;
+        if (!value) return false;
+
+        // Try direct match first
+        if (filterValues.includes(value)) return true;
+
+        // Normalize value (handles Phase 1 -> Phase I etc.)
+        const normalizedValue = normalizePhaseValue(value);
+        if (filterValues.includes(normalizedValue)) return true;
+
+        // Try case-insensitive match
+        const lowerValue = normalizedValue.toLowerCase();
+        if (filterValues.some(f => f.toLowerCase() === lowerValue)) return true;
+
+        // Try snake_case match (handles "Phase I" -> "phase_i", "United States" -> "united_states")
+        // Also handle "Development In Progress (DIP)" -> "development_in_progress" by stripping parens
+        const cleanValue = lowerValue.replace(/\(.*\)/g, '').trim();
+        const snakeValue = cleanValue.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        if (filterValues.includes(snakeValue)) return true;
+
+        // Fallback: full snake value including parens content
+        const fullSnakeValue = lowerValue.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        if (filterValues.includes(fullSnakeValue)) return true;
+
+        return false;
+      };
 
       // Helper: Check if value contains any filter value (partial match for text/multi-select)
-      const checkPartial = (filterValues: string[], value: string | undefined | null) =>
-        filterValues.length === 0 || (!!value && filterValues.some(f => value.toLowerCase().includes(f.toLowerCase())));
+      const checkPartial = (filterValues: string[], value: string | undefined | null) => {
+        if (filterValues.length === 0) return true;
+        if (!value) return false;
 
-      // Helper: Check numeric values (as strings in filter)
-      const checkNumeric = (filterValues: string[], value: number | undefined | null) =>
-        filterValues.length === 0 || (value !== undefined && value !== null && filterValues.includes(value.toString()));
+        const lowerValue = value.toLowerCase();
+
+        // Check normal partial match
+        if (filterValues.some(f => lowerValue.includes(f.toLowerCase()))) return true;
+
+        // Check snake_case partial match
+        const snakeValue = lowerValue.replace(/[^a-z0-9]+/g, '_');
+        if (filterValues.some(f => snakeValue.includes(f.toLowerCase()))) return true;
+
+        return false;
+      };
+
+      // Helper: Check numeric values (supports ranges like "10-50", "1000+", "<10")
+      const checkNumeric = (filterValues: string[], value: number | undefined | null) => {
+        if (filterValues.length === 0) return true;
+        if (value === undefined || value === null) return false;
+
+        return filterValues.some(filter => {
+          // Exact match
+          if (filter === value.toString()) return true;
+
+          // Range match "10-50"
+          if (filter.includes('-')) {
+            const [min, max] = filter.split('-').map(str => parseInt(str.trim()));
+            return !isNaN(min) && !isNaN(max) && value >= min && value <= max;
+          }
+
+          // "1000+"
+          if (filter.endsWith('+')) {
+            const min = parseInt(filter.replace('+', '').trim());
+            return !isNaN(min) && value >= min;
+          }
+
+          // "<10"
+          if (filter.startsWith('<')) {
+            const max = parseInt(filter.replace('<', '').trim());
+            return !isNaN(max) && value < max;
+          }
+
+          // ">10"
+          if (filter.startsWith('>')) {
+            const min = parseInt(filter.replace('>', '').trim());
+            return !isNaN(min) && value > min;
+          }
+
+          return false;
+        });
+      };
 
       // Overview Fields
       if (!checkExact(appliedFilters.therapeuticAreas, trial.overview?.therapeutic_area)) return false;
@@ -1649,7 +2043,25 @@ export default function AdminTherapeuticsPage() {
       if (!checkPartial(appliedFilters.siteNotes, sites?.notes)) return false;
       if (!checkPartial(appliedFilters.siteCountries, trial.overview?.countries)) return false; // Map to overview countries
       if (!checkPartial(appliedFilters.siteRegions, trial.overview?.region)) return false; // Map to overview region
-      if (!checkNumeric(appliedFilters.studySites, sites?.total)) return false;
+      // Special handling for studySites (single_site, multi_site, international)
+      if (appliedFilters.studySites.length > 0) {
+        let match = false;
+        const total = sites?.total;
+
+        if (total !== undefined && total !== null) {
+          if (appliedFilters.studySites.includes("single_site") && total === 1) match = true;
+          if (appliedFilters.studySites.includes("multi_site") && total > 1) match = true;
+        }
+
+        // International check - check if countries indicates multiple countries
+        if (appliedFilters.studySites.includes("international")) {
+          const countries = trial.overview?.countries || "";
+          // Heuristic: comma implies multiple countries, or explicit "International" string
+          if (countries.includes(',') || countries.toLowerCase().includes("international")) match = true;
+        }
+
+        if (!match) return false;
+      }
 
 
       // Explicit mapping for fields missing/mapped
@@ -1704,6 +2116,58 @@ export default function AdminTherapeuticsPage() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedTrials = filteredTrials.slice(startIndex, endIndex);
 
+  // Log summary when advanced search with drug fields is active
+  useEffect(() => {
+    const drugCriteria = advancedSearchCriteria.filter(c => c.field === "primary_drugs" || c.field === "other_drugs");
+    if (drugCriteria.length > 0 && drugNameMapping.size > 0) {
+      drugCriteria.forEach(criterion => {
+        const criterionValue = Array.isArray(criterion.value) ? criterion.value[0] || "" : (criterion.value || "");
+        if (criterionValue) {
+          const searchValueLower = criterionValue.toLowerCase().trim();
+          const relatedNames = new Set<string>();
+          drugNameMapping.forEach((relatedSet, drugName) => {
+            const drugNameLower = drugName.toLowerCase().trim();
+            if (drugNameLower === searchValueLower) {
+              relatedSet.forEach(name => {
+                const nameLower = name.toLowerCase().trim();
+                if (nameLower) relatedNames.add(nameLower);
+              });
+              if (drugNameLower) relatedNames.add(drugNameLower);
+            }
+          });
+          drugNameMapping.forEach((relatedSet, drugName) => {
+            relatedSet.forEach(name => {
+              const nameLower = name.toLowerCase().trim();
+              if (nameLower === searchValueLower) {
+                relatedSet.forEach(relatedName => {
+                  const relatedNameLower = relatedName.toLowerCase().trim();
+                  if (relatedNameLower) relatedNames.add(relatedNameLower);
+                });
+                const drugNameLower = drugName.toLowerCase().trim();
+                if (drugNameLower) relatedNames.add(drugNameLower);
+              }
+            });
+          });
+          
+          const matchingTrials = filteredTrials.filter(trial => {
+            const trialDrug = (trial.overview?.primary_drugs || "").toLowerCase().trim();
+            return Array.from(relatedNames).some(name => name === trialDrug);
+          });
+          
+          console.log(`📊 Drug Search Summary for "${criterionValue}":`, {
+            searchValue: criterionValue,
+            relatedNames: Array.from(relatedNames),
+            totalTrials: trials.length,
+            filteredTrials: filteredTrials.length,
+            matchingTrials: matchingTrials.length,
+            matchingTrialIds: matchingTrials.map(t => t.trial_id),
+            expectedMatches: `Should show only trials with primary_drugs matching: ${Array.from(relatedNames).join(", ")}`
+          });
+        }
+      });
+    }
+  }, [filteredTrials, advancedSearchCriteria, drugNameMapping, trials]);
+
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -1734,6 +2198,7 @@ export default function AdminTherapeuticsPage() {
 
   useEffect(() => {
     fetchTrials();
+    fetchDrugsAndBuildMapping(); // Fetch drugs and build name mapping
 
     // Load column settings from localStorage
     const savedSettings = localStorage.getItem('adminTrialColumnSettings');
@@ -1754,6 +2219,7 @@ export default function AdminTherapeuticsPage() {
       if (!document.hidden) {
         console.log('Page became visible, refreshing data...');
         fetchTrials(true); // Force refresh to get latest data
+        fetchDrugsAndBuildMapping(); // Rebuild drug mapping
       }
     };
 
@@ -1763,6 +2229,7 @@ export default function AdminTherapeuticsPage() {
     const handleFocus = () => {
       console.log('Window gained focus, refreshing data...');
       fetchTrials(true);
+      fetchDrugsAndBuildMapping(); // Rebuild drug mapping
     };
 
     window.addEventListener('focus', handleFocus);
@@ -1771,6 +2238,7 @@ export default function AdminTherapeuticsPage() {
     const handleRefreshFromEdit = () => {
       console.log('Refresh triggered from edit page, refreshing data...');
       fetchTrials(true);
+      fetchDrugsAndBuildMapping(); // Rebuild drug mapping
     };
 
     window.addEventListener('refreshFromEdit', handleRefreshFromEdit);
@@ -2602,22 +3070,6 @@ export default function AdminTherapeuticsPage() {
                         <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteTrial(trial.trial_id)}
-                          disabled={deletingTrials[trial.trial_id]}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          {deletingTrials[trial.trial_id] ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Deleting...
-                            </>
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -2675,19 +3127,6 @@ export default function AdminTherapeuticsPage() {
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteTrial(trial.trial_id)}
-                        disabled={deletingTrials[trial.trial_id]}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        {deletingTrials[trial.trial_id] ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -2698,78 +3137,80 @@ export default function AdminTherapeuticsPage() {
       </div>
 
       {/* Pagination Controls */}
-      {totalItems > 0 && (
-        <div className="flex items-center justify-between px-4 py-4 border-t">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="items-per-page" className="text-sm font-medium">
-                Results per page:
-              </Label>
-              <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
+      {
+        totalItems > 0 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="items-per-page" className="text-sm font-medium">
+                  Results per page:
+                </Label>
+                <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
-            </div>
+
+            {totalPages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={currentPage === pageNum}
+                          className="cursor-pointer"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
-
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        onClick={() => handlePageChange(pageNum)}
-                        isActive={currentPage === pageNum}
-                        className="cursor-pointer"
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
-
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </div>
-      )}
+        )
+      }
 
       {/* Advanced Search Modal */}
       <TherapeuticAdvancedSearchModal
@@ -2829,6 +3270,6 @@ export default function AdminTherapeuticsPage() {
         columnSettings={columnSettings}
         onColumnSettingsChange={handleColumnSettingsChange}
       />
-    </div>
+    </div >
   );
 }

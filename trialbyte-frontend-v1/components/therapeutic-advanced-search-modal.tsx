@@ -29,6 +29,7 @@ import { SaveQueryModal } from "@/components/save-query-modal"
 import { TherapeuticFilterState, TherapeuticSearchCriteria, DEFAULT_THERAPEUTIC_FILTERS } from "@/components/therapeutic-types"
 export type { TherapeuticSearchCriteria } // Re-export for compatibility
 import { toast } from "@/hooks/use-toast"
+import { useDrugNames } from "@/hooks/use-drug-names"
 
 // Define TherapeuticTrial interface locally
 interface TherapeuticTrial {
@@ -526,17 +527,20 @@ export function TherapeuticAdvancedSearchModal({
   const [loadingQueries, setLoadingQueries] = useState(false)
   const [therapeuticData, setTherapeuticData] = useState<TherapeuticTrial[]>([])
   const [loading, setLoading] = useState(false)
+  const { getPrimaryDrugsOptions, refreshFromAPI } = useDrugNames()
 
   // Fetch therapeutic data when modal opens
   useEffect(() => {
     if (open) {
       fetchTherapeuticData()
+      // Refresh drug names from API to ensure we have the latest data
+      refreshFromAPI()
       // Load initial criteria if provided
       if (initialCriteria && initialCriteria.length > 0) {
         setCriteria(initialCriteria)
       }
     }
-  }, [open, initialCriteria])
+  }, [open, initialCriteria, refreshFromAPI])
 
   const fetchTherapeuticData = async () => {
     try {
@@ -653,6 +657,56 @@ export function TherapeuticAdvancedSearchModal({
     const isDateField = dateFields.includes(criterion.field)
     // Exclude title field from getting dynamic values - it should be a text input
     const dynamicValues = criterion.field === 'title' ? [] : getFieldValues(criterion.field)
+
+    // Special handling for primary_drugs and other_drugs - use SearchableSelect with drug names from hook
+    if (criterion.field === "primary_drugs" || criterion.field === "other_drugs") {
+      const drugOptions = getPrimaryDrugsOptions().map(drug => ({
+        value: drug.value,
+        label: drug.label
+      }))
+      
+      // Get the current value and normalize it
+      const currentValue = Array.isArray(criterion.value) ? criterion.value[0] || "" : (criterion.value as string || "");
+      const normalizedValue = currentValue.trim();
+      
+      // Debug logging
+      console.log('Drug options for', criterion.field, ':', drugOptions.length, 'options');
+      console.log('Current value:', normalizedValue);
+      console.log('Value in options?', drugOptions.some(opt => opt.value === normalizedValue || opt.value.toLowerCase() === normalizedValue.toLowerCase()));
+      
+      // If no options, show a message
+      if (drugOptions.length === 0) {
+        console.warn('No drug options available. Make sure drugs are loaded from the API.');
+      }
+      
+      // Find matching value (case-insensitive fallback)
+      let matchingValue = normalizedValue;
+      if (normalizedValue && !drugOptions.some(opt => opt.value === normalizedValue)) {
+        // Try case-insensitive match
+        const caseInsensitiveMatch = drugOptions.find(opt => 
+          opt.value.toLowerCase() === normalizedValue.toLowerCase()
+        );
+        if (caseInsensitiveMatch) {
+          matchingValue = caseInsensitiveMatch.value;
+          console.log('Found case-insensitive match:', matchingValue);
+        }
+      }
+      
+      return (
+        <SearchableSelect
+          value={matchingValue}
+          onValueChange={(value) => {
+            console.log('Drug selected:', value);
+            updateCriteria(criterion.id, "value", value);
+          }}
+          options={drugOptions}
+          placeholder={criterion.field === "primary_drugs" ? "Select primary drug" : "Select other drug"}
+          searchPlaceholder={criterion.field === "primary_drugs" ? "Search primary drugs..." : "Search other drugs..."}
+          emptyMessage={criterion.field === "primary_drugs" ? "No primary drug found." : "No other drug found."}
+          className="w-full"
+        />
+      )
+    }
 
     // Special handling for trial_tags - use multi-tag input
     if (criterion.field === "trial_tags") {

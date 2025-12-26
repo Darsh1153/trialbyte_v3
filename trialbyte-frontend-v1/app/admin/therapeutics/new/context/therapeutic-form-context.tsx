@@ -145,6 +145,7 @@ export interface TherapeuticFormData {
 
   // Step 5-6: Timeline & Milestones
   step5_6: {
+    total_sites: string;
     study_start_date: string;
     first_patient_in: string;
     last_patient_in: string;
@@ -403,6 +404,7 @@ const initialFormState: TherapeuticFormData = {
     adverse_events_reported: false,
   },
   step5_6: {
+    total_sites: "",
     study_start_date: "",
     first_patient_in: "",
     last_patient_in: "",

@@ -1077,6 +1077,13 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
     studyType: []
   })
 
+  // Update filters when currentFilters prop changes or modal opens
+  useEffect(() => {
+    if (open) {
+      setFilters(currentFilters)
+    }
+  }, [currentFilters, open])
+
   // Update filter categories when trials data changes
   useEffect(() => {
     console.log('TherapeuticFilterModal: Trials data changed, updating filter categories', trials.length)
@@ -1250,36 +1257,14 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
     ageMin: "Age Min",
     ageMax: "Age Max",
     subjectType: "Subject Type",
-    ecogPerformanceStatus: "ECOG Performance Status",
-    priorTreatments: "Prior Treatments",
-    biomarkerRequirements: "Biomarker Requirements",
     estimatedEnrollment: "Estimated Enrollment",
     actualEnrollment: "Actual Enrollment",
-    enrollmentStatus: "Enrollment Status",
-    recruitmentPeriod: "Recruitment Period",
-    studyCompletionDate: "Study Completion Date",
-    primaryCompletionDate: "Primary Completion Date",
-    populationDescription: "Population Description",
     studySites: "Study Sites",
-    principalInvestigators: "Principal Investigators",
     siteStatus: "Site Status",
     siteCountries: "Site Countries",
     siteRegions: "Site Regions",
-    siteContactInfo: "Site Contact Info",
     trialResults: "Trial Results",
-    trialOutcomeContent: "Trial Outcome Content",
-    resultsAvailable: "Results Available",
-    endpointsMet: "Endpoints Met",
     adverseEventsReported: "Adverse Events Reported",
-    studyStartDate: "Study Start Date",
-    firstPatientIn: "First Patient In",
-    lastPatientIn: "Last Patient In",
-    studyEndDate: "Study End Date",
-    interimAnalysisDates: "Interim Analysis Dates",
-    finalAnalysisDate: "Final Analysis Date",
-    regulatorySubmissionDate: "Regulatory Submission Date",
-    purposeOfTrial: "Purpose of Trial",
-    summary: "Summary",
     primaryOutcomeMeasures: "Primary Outcome Measures",
     otherOutcomeMeasures: "Other Outcome Measures",
     studyDesignKeywords: "Study Design Keywords",
@@ -1303,7 +1288,29 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
     siteNotes: "Site Notes",
     publicationType: "Publication Type",
     registryName: "Registry Name",
-    studyType: "Study Type"
+    studyType: "Study Type",
+    ecogPerformanceStatus: "",
+    priorTreatments: "",
+    biomarkerRequirements: "",
+    enrollmentStatus: "",
+    recruitmentPeriod: "",
+    studyCompletionDate: "",
+    primaryCompletionDate: "",
+    populationDescription: "",
+    principalInvestigators: "",
+    siteContactInfo: "",
+    trialOutcomeContent: "",
+    resultsAvailable: "",
+    endpointsMet: "",
+    studyStartDate: "",
+    firstPatientIn: "",
+    lastPatientIn: "",
+    studyEndDate: "",
+    interimAnalysisDates: "",
+    finalAnalysisDate: "",
+    regulatorySubmissionDate: "",
+    purposeOfTrial: "",
+    summary: ""
   }
 
   return (
@@ -1319,19 +1326,21 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
           {/* Left sidebar with filter categories */}
           <div className="w-64 border-r bg-gray-50 p-4">
             <div className="space-y-2 max-h-full overflow-y-auto pr-2">
-              {Object.keys(categoryLabels).map((key) => {
-                const category = key as keyof TherapeuticFilterState
-                return (
-                  <button
-                    key={category}
-                    onClick={() => setActiveCategory(category)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm ${activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
-                      }`}
-                  >
-                    {categoryLabels[category]}
-                  </button>
-                )
-              })}
+              {Object.keys(categoryLabels)
+                .filter(key => categoryLabels[key as keyof TherapeuticFilterState])
+                .map((key) => {
+                  const category = key as keyof TherapeuticFilterState
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => setActiveCategory(category)}
+                      className={`w-full text-left px-3 py-2 rounded text-sm ${activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                        }`}
+                    >
+                      {categoryLabels[category]}
+                    </button>
+                  )
+                })}
             </div>
           </div>
 
