@@ -1052,19 +1052,19 @@ export default function ClinicalTrialDashboard() {
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
-                    {columnSettings.trialStatus && (
+                    {columnSettings.trialRecordStatus && (
                       <TableHead className="text-white">
                         <span>Trial Status</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
-                    {columnSettings.sponsor && (
+                    {columnSettings.sponsorsCollaborators && (
                       <TableHead className="text-white">
                         <span>Sponsor</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
-                    {columnSettings.phase && (
+                    {columnSettings.trialPhase && (
                       <TableHead className="text-white">
                         <span>Phase</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
@@ -1113,19 +1113,19 @@ export default function ClinicalTrialDashboard() {
                       {columnSettings.primaryDrug && (
                         <TableCell>{trial.overview.primary_drugs}</TableCell>
                       )}
-                      {columnSettings.trialStatus && (
+                      {columnSettings.trialRecordStatus && (
                         <TableCell>
                           <Badge className={getStatusColor(trial.overview.status)}>
                             {trial.overview.status}
                           </Badge>
                         </TableCell>
                       )}
-                      {columnSettings.sponsor && (
+                      {columnSettings.sponsorsCollaborators && (
                         <TableCell className="max-w-[150px] truncate">
                           {trial.overview.sponsor_collaborators || "N/A"}
                         </TableCell>
                       )}
-                      {columnSettings.phase && (
+                      {columnSettings.trialPhase && (
                         <TableCell>{trial.overview.trial_phase}</TableCell>
                       )}
                       <TableCell>

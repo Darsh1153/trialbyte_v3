@@ -4,6 +4,7 @@ export interface SearchableSelectOption {
 }
 
 export interface TherapeuticFilterState {
+    // Basic Info Section
     therapeuticAreas: string[]
     statuses: string[]
     diseaseTypes: string[]
@@ -16,43 +17,20 @@ export interface TherapeuticFilterState {
     sponsorFieldActivity: string[]
     associatedCro: string[]
     trialTags: string[]
-    sex: string[]
-    healthyVolunteers: string[]
-    trialRecordStatus: string[]
-    // Additional fields from trial creation form
     otherDrugs: string[]
     regions: string[]
-    ageMin: string[]
-    ageMax: string[]
+    trialRecordStatus: string[]
+    // Eligibility Section
+    inclusionCriteria: string[]
+    exclusionCriteria: string[]
+    ageFrom: string[]
+    ageTo: string[]
     subjectType: string[]
-    ecogPerformanceStatus: string[]
-    priorTreatments: string[]
-    biomarkerRequirements: string[]
-    estimatedEnrollment: string[]
-    actualEnrollment: string[]
-    enrollmentStatus: string[]
-    recruitmentPeriod: string[]
-    studyCompletionDate: string[]
-    primaryCompletionDate: string[]
-    populationDescription: string[]
-    studySites: string[]
-    principalInvestigators: string[]
-    siteStatus: string[]
-    siteCountries: string[]
-    siteRegions: string[]
-    siteContactInfo: string[]
-    trialResults: string[]
-    trialOutcomeContent: string[]
-    resultsAvailable: string[]
-    endpointsMet: string[]
-    adverseEventsReported: string[]
-    studyStartDate: string[]
-    firstPatientIn: string[]
-    lastPatientIn: string[]
-    studyEndDate: string[]
-    interimAnalysisDates: string[]
-    finalAnalysisDate: string[]
-    regulatorySubmissionDate: string[]
+    sex: string[]
+    healthyVolunteers: string[]
+    targetNoVolunteers: string[]
+    actualEnrolledVolunteers: string[]
+    // Study Design Section
     purposeOfTrial: string[]
     summary: string[]
     primaryOutcomeMeasures: string[]
@@ -61,28 +39,26 @@ export interface TherapeuticFilterState {
     studyDesign: string[]
     treatmentRegimen: string[]
     numberOfArms: string[]
-    inclusionCriteria: string[]
-    exclusionCriteria: string[]
-    ageFrom: string[]
-    ageTo: string[]
-    gender: string[]
-    targetNoVolunteers: string[]
-    actualEnrolledVolunteers: string[]
+    // Timing Section
     startDateEstimated: string[]
     trialEndDateEstimated: string[]
+    // Results Section
+    resultsAvailable: string[]
+    endpointsMet: string[]
+    adverseEventsReported: string[]
     trialOutcome: string[]
+    trialOutcomeContent: string[]
     adverseEventReported: string[]
     adverseEventType: string[]
     treatmentForAdverseEvents: string[]
+    // Sites Section
     totalSites: string[]
     siteNotes: string[]
-    publicationType: string[]
-    registryName: string[]
-    studyType: string[]
 }
 
 // Default empty filter state
 export const DEFAULT_THERAPEUTIC_FILTERS: TherapeuticFilterState = {
+    // Basic Info Section
     therapeuticAreas: [],
     statuses: [],
     diseaseTypes: [],
@@ -95,42 +71,20 @@ export const DEFAULT_THERAPEUTIC_FILTERS: TherapeuticFilterState = {
     sponsorFieldActivity: [],
     associatedCro: [],
     trialTags: [],
-    sex: [],
-    healthyVolunteers: [],
-    trialRecordStatus: [],
     otherDrugs: [],
     regions: [],
-    ageMin: [],
-    ageMax: [],
+    trialRecordStatus: [],
+    // Eligibility Section
+    inclusionCriteria: [],
+    exclusionCriteria: [],
+    ageFrom: [],
+    ageTo: [],
     subjectType: [],
-    ecogPerformanceStatus: [],
-    priorTreatments: [],
-    biomarkerRequirements: [],
-    estimatedEnrollment: [],
-    actualEnrollment: [],
-    enrollmentStatus: [],
-    recruitmentPeriod: [],
-    studyCompletionDate: [],
-    primaryCompletionDate: [],
-    populationDescription: [],
-    studySites: [],
-    principalInvestigators: [],
-    siteStatus: [],
-    siteCountries: [],
-    siteRegions: [],
-    siteContactInfo: [],
-    trialResults: [],
-    trialOutcomeContent: [],
-    resultsAvailable: [],
-    endpointsMet: [],
-    adverseEventsReported: [],
-    studyStartDate: [],
-    firstPatientIn: [],
-    lastPatientIn: [],
-    studyEndDate: [],
-    interimAnalysisDates: [],
-    finalAnalysisDate: [],
-    regulatorySubmissionDate: [],
+    sex: [],
+    healthyVolunteers: [],
+    targetNoVolunteers: [],
+    actualEnrolledVolunteers: [],
+    // Study Design Section
     purposeOfTrial: [],
     summary: [],
     primaryOutcomeMeasures: [],
@@ -139,24 +93,21 @@ export const DEFAULT_THERAPEUTIC_FILTERS: TherapeuticFilterState = {
     studyDesign: [],
     treatmentRegimen: [],
     numberOfArms: [],
-    inclusionCriteria: [],
-    exclusionCriteria: [],
-    ageFrom: [],
-    ageTo: [],
-    gender: [],
-    targetNoVolunteers: [],
-    actualEnrolledVolunteers: [],
+    // Timing Section
     startDateEstimated: [],
     trialEndDateEstimated: [],
+    // Results Section
+    resultsAvailable: [],
+    endpointsMet: [],
+    adverseEventsReported: [],
     trialOutcome: [],
+    trialOutcomeContent: [],
     adverseEventReported: [],
     adverseEventType: [],
     treatmentForAdverseEvents: [],
+    // Sites Section
     totalSites: [],
     siteNotes: [],
-    publicationType: [],
-    registryName: [],
-    studyType: [],
 }
 
 export interface TherapeuticSearchCriteria {

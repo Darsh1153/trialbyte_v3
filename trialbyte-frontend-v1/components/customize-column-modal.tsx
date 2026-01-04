@@ -13,7 +13,7 @@ import { X, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface ColumnSettings {
-  // Core fields
+  // Core fields from Basic Info Section
   trialId: boolean;
   title: boolean;
   therapeuticArea: boolean;
@@ -24,46 +24,23 @@ export interface ColumnSettings {
   lineOfTherapy: boolean;
   countries: boolean;
   sponsorsCollaborators: boolean;
-  sponsor: boolean;
   fieldOfActivity: boolean;
   associatedCro: boolean;
   trialTags: boolean;
-  sex: boolean;
-  healthyVolunteers: boolean;
-  trialRecordStatus: boolean;
   otherDrugs: boolean;
   regions: boolean;
-  ageMin: boolean;
-  ageMax: boolean;
+  trialRecordStatus: boolean;
+  // Eligibility Section
+  inclusionCriteria: boolean;
+  exclusionCriteria: boolean;
+  ageFrom: boolean;
+  ageTo: boolean;
   subjectType: boolean;
-  ecogPerformanceStatus: boolean;
-  priorTreatments: boolean;
-  biomarkerRequirements: boolean;
-  estimatedEnrollment: boolean;
-  actualEnrollment: boolean;
-  enrollmentStatus: boolean;
-  recruitmentPeriod: boolean;
-  studyCompletionDate: boolean;
-  primaryCompletionDate: boolean;
-  populationDescription: boolean;
-  studySites: boolean;
-  principalInvestigators: boolean;
-  siteStatus: boolean;
-  siteCountries: boolean;
-  siteRegions: boolean;
-  siteContactInfo: boolean;
-  trialResults: boolean;
-  trialOutcomeContent: boolean;
-  resultsAvailable: boolean;
-  endpointsMet: boolean;
-  adverseEventsReported: boolean;
-  studyStartDate: boolean;
-  firstPatientIn: boolean;
-  lastPatientIn: boolean;
-  studyEndDate: boolean;
-  interimAnalysisDates: boolean;
-  finalAnalysisDate: boolean;
-  regulatorySubmissionDate: boolean;
+  sex: boolean;
+  healthyVolunteers: boolean;
+  targetNoVolunteers: boolean;
+  actualEnrolledVolunteers: boolean;
+  // Study Design Section
   purposeOfTrial: boolean;
   summary: boolean;
   primaryOutcomeMeasures: boolean;
@@ -72,24 +49,21 @@ export interface ColumnSettings {
   studyDesign: boolean;
   treatmentRegimen: boolean;
   numberOfArms: boolean;
-  inclusionCriteria: boolean;
-  exclusionCriteria: boolean;
-  ageFrom: boolean;
-  ageTo: boolean;
-  gender: boolean;
-  targetNoVolunteers: boolean;
-  actualEnrolledVolunteers: boolean;
+  // Timing Section
   startDateEstimated: boolean;
   trialEndDateEstimated: boolean;
+  // Results Section
+  resultsAvailable: boolean;
+  endpointsMet: boolean;
+  adverseEventsReported: boolean;
   trialOutcome: boolean;
+  trialOutcomeContent: boolean;
   adverseEventReported: boolean;
   adverseEventType: boolean;
   treatmentForAdverseEvents: boolean;
+  // Sites Section
   totalSites: boolean;
   siteNotes: boolean;
-  publicationType: boolean;
-  registryName: boolean;
-  studyType: boolean;
 }
 
 interface CustomizeColumnModalProps {
@@ -100,6 +74,7 @@ interface CustomizeColumnModalProps {
 }
 
 const DEFAULT_COLUMN_SETTINGS: ColumnSettings = {
+  // Core fields from Basic Info Section - shown by default
   trialId: true,
   title: true,
   therapeuticArea: true,
@@ -110,46 +85,23 @@ const DEFAULT_COLUMN_SETTINGS: ColumnSettings = {
   lineOfTherapy: true,
   countries: true,
   sponsorsCollaborators: true,
-  sponsor: true,
   fieldOfActivity: true,
   associatedCro: true,
   trialTags: false,
-  sex: false,
-  healthyVolunteers: false,
-  trialRecordStatus: false,
   otherDrugs: false,
   regions: false,
-  ageMin: false,
-  ageMax: false,
+  trialRecordStatus: false,
+  // Eligibility Section
+  inclusionCriteria: false,
+  exclusionCriteria: false,
+  ageFrom: false,
+  ageTo: false,
   subjectType: false,
-  ecogPerformanceStatus: false,
-  priorTreatments: false,
-  biomarkerRequirements: false,
-  estimatedEnrollment: false,
-  actualEnrollment: false,
-  enrollmentStatus: false,
-  recruitmentPeriod: false,
-  studyCompletionDate: false,
-  primaryCompletionDate: false,
-  populationDescription: false,
-  studySites: false,
-  principalInvestigators: false,
-  siteStatus: false,
-  siteCountries: false,
-  siteRegions: false,
-  siteContactInfo: false,
-  trialResults: false,
-  trialOutcomeContent: false,
-  resultsAvailable: false,
-  endpointsMet: false,
-  adverseEventsReported: false,
-  studyStartDate: false,
-  firstPatientIn: false,
-  lastPatientIn: false,
-  studyEndDate: false,
-  interimAnalysisDates: false,
-  finalAnalysisDate: false,
-  regulatorySubmissionDate: false,
+  sex: false,
+  healthyVolunteers: false,
+  targetNoVolunteers: false,
+  actualEnrolledVolunteers: false,
+  // Study Design Section
   purposeOfTrial: false,
   summary: false,
   primaryOutcomeMeasures: false,
@@ -158,79 +110,54 @@ const DEFAULT_COLUMN_SETTINGS: ColumnSettings = {
   studyDesign: false,
   treatmentRegimen: false,
   numberOfArms: false,
-  inclusionCriteria: false,
-  exclusionCriteria: false,
-  ageFrom: false,
-  ageTo: false,
-  gender: false,
-  targetNoVolunteers: false,
-  actualEnrolledVolunteers: false,
+  // Timing Section
   startDateEstimated: false,
   trialEndDateEstimated: false,
+  // Results Section
+  resultsAvailable: false,
+  endpointsMet: false,
+  adverseEventsReported: false,
   trialOutcome: false,
+  trialOutcomeContent: false,
   adverseEventReported: false,
   adverseEventType: false,
   treatmentForAdverseEvents: false,
+  // Sites Section
   totalSites: false,
   siteNotes: false,
-  publicationType: false,
-  registryName: false,
-  studyType: false,
 };
 
 const MAX_COLUMNS = 15;
 
 export const COLUMN_OPTIONS = [
+  // Basic Info Section
   { key: 'trialId' as keyof ColumnSettings, label: 'Trial ID' },
   { key: 'title' as keyof ColumnSettings, label: 'Title' },
   { key: 'therapeuticArea' as keyof ColumnSettings, label: 'Therapeutic Area' },
   { key: 'diseaseType' as keyof ColumnSettings, label: 'Disease Type' },
   { key: 'primaryDrug' as keyof ColumnSettings, label: 'Primary Drugs' },
-  { key: 'trialPhase' as keyof ColumnSettings, label: 'Trial Phases' },
+  { key: 'trialPhase' as keyof ColumnSettings, label: 'Trial Phase' },
   { key: 'patientSegment' as keyof ColumnSettings, label: 'Patient Segment' },
   { key: 'lineOfTherapy' as keyof ColumnSettings, label: 'Line of Therapy' },
   { key: 'countries' as keyof ColumnSettings, label: 'Countries' },
   { key: 'sponsorsCollaborators' as keyof ColumnSettings, label: 'Sponsors & Collaborators' },
-  { key: 'sponsor' as keyof ColumnSettings, label: 'Sponsor' },
   { key: 'fieldOfActivity' as keyof ColumnSettings, label: 'Field of Activity' },
   { key: 'associatedCro' as keyof ColumnSettings, label: 'Associated CRO' },
   { key: 'trialTags' as keyof ColumnSettings, label: 'Trial Tags' },
-  { key: 'sex' as keyof ColumnSettings, label: 'Sex' },
-  { key: 'healthyVolunteers' as keyof ColumnSettings, label: 'Healthy Volunteers' },
-  { key: 'trialRecordStatus' as keyof ColumnSettings, label: 'Trial Record Status' },
   { key: 'otherDrugs' as keyof ColumnSettings, label: 'Other Drugs' },
   { key: 'regions' as keyof ColumnSettings, label: 'Regions' },
-  { key: 'ageMin' as keyof ColumnSettings, label: 'Age Min' },
-  { key: 'ageMax' as keyof ColumnSettings, label: 'Age Max' },
+  { key: 'trialRecordStatus' as keyof ColumnSettings, label: 'Trial Record Status' },
+  // Eligibility Section
+  { key: 'inclusionCriteria' as keyof ColumnSettings, label: 'Inclusion Criteria' },
+  { key: 'exclusionCriteria' as keyof ColumnSettings, label: 'Exclusion Criteria' },
+  { key: 'ageFrom' as keyof ColumnSettings, label: 'Age From' },
+  { key: 'ageTo' as keyof ColumnSettings, label: 'Age To' },
   { key: 'subjectType' as keyof ColumnSettings, label: 'Subject Type' },
-  { key: 'ecogPerformanceStatus' as keyof ColumnSettings, label: 'ECOG Performance Status' },
-  { key: 'priorTreatments' as keyof ColumnSettings, label: 'Prior Treatments' },
-  { key: 'biomarkerRequirements' as keyof ColumnSettings, label: 'Biomarker Requirements' },
-  { key: 'estimatedEnrollment' as keyof ColumnSettings, label: 'Estimated Enrollment' },
-  { key: 'actualEnrollment' as keyof ColumnSettings, label: 'Actual Enrollment' },
-  { key: 'enrollmentStatus' as keyof ColumnSettings, label: 'Enrollment Status' },
-  { key: 'recruitmentPeriod' as keyof ColumnSettings, label: 'Recruitment Period' },
-  { key: 'studyCompletionDate' as keyof ColumnSettings, label: 'Study Completion Date' },
-  { key: 'primaryCompletionDate' as keyof ColumnSettings, label: 'Primary Completion Date' },
-  { key: 'populationDescription' as keyof ColumnSettings, label: 'Population Description' },
-  { key: 'studySites' as keyof ColumnSettings, label: 'Study Sites' },
-  { key: 'principalInvestigators' as keyof ColumnSettings, label: 'Principal Investigators' },
-  { key: 'siteStatus' as keyof ColumnSettings, label: 'Site Status' },
-  { key: 'siteCountries' as keyof ColumnSettings, label: 'Site Countries' },
-  { key: 'siteRegions' as keyof ColumnSettings, label: 'Site Regions' },
-  { key: 'siteContactInfo' as keyof ColumnSettings, label: 'Site Contact Info' },
-  { key: 'trialResults' as keyof ColumnSettings, label: 'Trial Results' },
-  { key: 'trialOutcomeContent' as keyof ColumnSettings, label: 'Trial Outcome Content' },
-  { key: 'resultsAvailable' as keyof ColumnSettings, label: 'Results Available' },
-  { key: 'endpointsMet' as keyof ColumnSettings, label: 'Endpoints Met' },
-  { key: 'adverseEventsReported' as keyof ColumnSettings, label: 'Adverse Events Reported' },
-  { key: 'studyStartDate' as keyof ColumnSettings, label: 'Study Start Date' },
-  { key: 'firstPatientIn' as keyof ColumnSettings, label: 'First Patient In' },
-  { key: 'lastPatientIn' as keyof ColumnSettings, label: 'Last Patient In' },
-  { key: 'studyEndDate' as keyof ColumnSettings, label: 'Study End Date' },
-  { key: 'interimAnalysisDates' as keyof ColumnSettings, label: 'Interim Analysis Dates' },
-  { key: 'finalAnalysisDate' as keyof ColumnSettings, label: 'Final Analysis Date' },
-  { key: 'regulatorySubmissionDate' as keyof ColumnSettings, label: 'Regulatory Submission Date' },
+  { key: 'sex' as keyof ColumnSettings, label: 'Sex' },
+  { key: 'healthyVolunteers' as keyof ColumnSettings, label: 'Healthy Volunteers' },
+  { key: 'targetNoVolunteers' as keyof ColumnSettings, label: 'Target No. of Volunteers' },
+  { key: 'actualEnrolledVolunteers' as keyof ColumnSettings, label: 'Actual Enrolled Volunteers' },
+  // Study Design Section
   { key: 'purposeOfTrial' as keyof ColumnSettings, label: 'Purpose of Trial' },
   { key: 'summary' as keyof ColumnSettings, label: 'Summary' },
   { key: 'primaryOutcomeMeasures' as keyof ColumnSettings, label: 'Primary Outcome Measures' },
@@ -239,24 +166,21 @@ export const COLUMN_OPTIONS = [
   { key: 'studyDesign' as keyof ColumnSettings, label: 'Study Design' },
   { key: 'treatmentRegimen' as keyof ColumnSettings, label: 'Treatment Regimen' },
   { key: 'numberOfArms' as keyof ColumnSettings, label: 'Number of Arms' },
-  { key: 'inclusionCriteria' as keyof ColumnSettings, label: 'Inclusion Criteria' },
-  { key: 'exclusionCriteria' as keyof ColumnSettings, label: 'Exclusion Criteria' },
-  { key: 'ageFrom' as keyof ColumnSettings, label: 'Age From' },
-  { key: 'ageTo' as keyof ColumnSettings, label: 'Age To' },
-  { key: 'gender' as keyof ColumnSettings, label: 'Gender' },
-  { key: 'targetNoVolunteers' as keyof ColumnSettings, label: 'Target No Volunteers' },
-  { key: 'actualEnrolledVolunteers' as keyof ColumnSettings, label: 'Actual Enrolled Volunteers' },
-  { key: 'startDateEstimated' as keyof ColumnSettings, label: 'Start Date Estimated' },
-  { key: 'trialEndDateEstimated' as keyof ColumnSettings, label: 'Trial End Date Estimated' },
+  // Timing Section
+  { key: 'startDateEstimated' as keyof ColumnSettings, label: 'Start Date (Estimated)' },
+  { key: 'trialEndDateEstimated' as keyof ColumnSettings, label: 'Trial End Date (Estimated)' },
+  // Results Section
+  { key: 'resultsAvailable' as keyof ColumnSettings, label: 'Results Available' },
+  { key: 'endpointsMet' as keyof ColumnSettings, label: 'Endpoints Met' },
+  { key: 'adverseEventsReported' as keyof ColumnSettings, label: 'Adverse Events Reported' },
   { key: 'trialOutcome' as keyof ColumnSettings, label: 'Trial Outcome' },
+  { key: 'trialOutcomeContent' as keyof ColumnSettings, label: 'Trial Outcome Content' },
   { key: 'adverseEventReported' as keyof ColumnSettings, label: 'Adverse Event Reported' },
   { key: 'adverseEventType' as keyof ColumnSettings, label: 'Adverse Event Type' },
   { key: 'treatmentForAdverseEvents' as keyof ColumnSettings, label: 'Treatment for Adverse Events' },
+  // Sites Section
   { key: 'totalSites' as keyof ColumnSettings, label: 'Total Sites' },
   { key: 'siteNotes' as keyof ColumnSettings, label: 'Site Notes' },
-  { key: 'publicationType' as keyof ColumnSettings, label: 'Publication Type' },
-  { key: 'registryName' as keyof ColumnSettings, label: 'Registry Name' },
-  { key: 'studyType' as keyof ColumnSettings, label: 'Study Type' },
 ];
 
 export function CustomizeColumnModal({

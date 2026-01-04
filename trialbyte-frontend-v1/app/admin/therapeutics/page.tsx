@@ -173,6 +173,7 @@ export default function AdminTherapeuticsPage() {
   const [advancedSearchCriteria, setAdvancedSearchCriteria] = useState<TherapeuticSearchCriteria[]>([]);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<TherapeuticFilterState>({
+    // Basic Info Section
     therapeuticAreas: [],
     statuses: [],
     diseaseTypes: [],
@@ -185,43 +186,20 @@ export default function AdminTherapeuticsPage() {
     sponsorFieldActivity: [],
     associatedCro: [],
     trialTags: [],
-    sex: [],
-    healthyVolunteers: [],
-    trialRecordStatus: [],
-    // Additional fields from trial creation form
     otherDrugs: [],
     regions: [],
-    ageMin: [],
-    ageMax: [],
+    trialRecordStatus: [],
+    // Eligibility Section
+    inclusionCriteria: [],
+    exclusionCriteria: [],
+    ageFrom: [],
+    ageTo: [],
     subjectType: [],
-    ecogPerformanceStatus: [],
-    priorTreatments: [],
-    biomarkerRequirements: [],
-    estimatedEnrollment: [],
-    actualEnrollment: [],
-    enrollmentStatus: [],
-    recruitmentPeriod: [],
-    studyCompletionDate: [],
-    primaryCompletionDate: [],
-    populationDescription: [],
-    studySites: [],
-    principalInvestigators: [],
-    siteStatus: [],
-    siteCountries: [],
-    siteRegions: [],
-    siteContactInfo: [],
-    trialResults: [],
-    trialOutcomeContent: [],
-    resultsAvailable: [],
-    endpointsMet: [],
-    adverseEventsReported: [],
-    studyStartDate: [],
-    firstPatientIn: [],
-    lastPatientIn: [],
-    studyEndDate: [],
-    interimAnalysisDates: [],
-    finalAnalysisDate: [],
-    regulatorySubmissionDate: [],
+    sex: [],
+    healthyVolunteers: [],
+    targetNoVolunteers: [],
+    actualEnrolledVolunteers: [],
+    // Study Design Section
     purposeOfTrial: [],
     summary: [],
     primaryOutcomeMeasures: [],
@@ -230,24 +208,21 @@ export default function AdminTherapeuticsPage() {
     studyDesign: [],
     treatmentRegimen: [],
     numberOfArms: [],
-    inclusionCriteria: [],
-    exclusionCriteria: [],
-    ageFrom: [],
-    ageTo: [],
-    gender: [],
-    targetNoVolunteers: [],
-    actualEnrolledVolunteers: [],
+    // Timing Section
     startDateEstimated: [],
     trialEndDateEstimated: [],
+    // Results Section
+    resultsAvailable: [],
+    endpointsMet: [],
+    adverseEventsReported: [],
     trialOutcome: [],
+    trialOutcomeContent: [],
     adverseEventReported: [],
     adverseEventType: [],
     treatmentForAdverseEvents: [],
+    // Sites Section
     totalSites: [],
     siteNotes: [],
-    publicationType: [],
-    registryName: [],
-    studyType: []
   });
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
@@ -1866,8 +1841,8 @@ export default function AdminTherapeuticsPage() {
     // Advanced filtering logic for all available filter fields
     const matchesFilters = (() => {
       // Helper: Check if value matches any filter value (exact match for dropdowns)
-      const checkExact = (filterValues: string[], value: string | undefined | null) => {
-        if (filterValues.length === 0) return true;
+      const checkExact = (filterValues: string[] | undefined, value: string | undefined | null) => {
+        if (!filterValues || filterValues.length === 0) return true;
         if (!value) return false;
 
         // Try direct match first
@@ -1895,8 +1870,8 @@ export default function AdminTherapeuticsPage() {
       };
 
       // Helper: Check if value contains any filter value (partial match for text/multi-select)
-      const checkPartial = (filterValues: string[], value: string | undefined | null) => {
-        if (filterValues.length === 0) return true;
+      const checkPartial = (filterValues: string[] | undefined, value: string | undefined | null) => {
+        if (!filterValues || filterValues.length === 0) return true;
         if (!value) return false;
 
         const lowerValue = value.toLowerCase();
@@ -1912,8 +1887,8 @@ export default function AdminTherapeuticsPage() {
       };
 
       // Helper: Check numeric values (supports ranges like "10-50", "1000+", "<10")
-      const checkNumeric = (filterValues: string[], value: number | undefined | null) => {
-        if (filterValues.length === 0) return true;
+      const checkNumeric = (filterValues: string[] | undefined, value: number | undefined | null) => {
+        if (!filterValues || filterValues.length === 0) return true;
         if (value === undefined || value === null) return false;
 
         return filterValues.some(filter => {
@@ -1967,24 +1942,17 @@ export default function AdminTherapeuticsPage() {
       if (!checkPartial(appliedFilters.sponsorFieldActivity, trial.overview?.sponsor_field_activity)) return false;
       if (!checkPartial(appliedFilters.associatedCro, trial.overview?.associated_cro)) return false;
 
-      // Criteria Fields
+      // Criteria Fields (Eligibility Section)
       const criteria = trial.criteria?.[0];
       if (!checkExact(appliedFilters.sex, criteria?.sex)) return false;
       if (!checkExact(appliedFilters.healthyVolunteers, criteria?.healthy_volunteers)) return false;
-      if (!checkExact(appliedFilters.ageMin, criteria?.age_from)) return false;
-      if (!checkExact(appliedFilters.ageMax, criteria?.age_to)) return false;
       if (!checkExact(appliedFilters.subjectType, criteria?.subject_type)) return false;
       if (!checkPartial(appliedFilters.inclusionCriteria, criteria?.inclusion_criteria)) return false;
       if (!checkPartial(appliedFilters.exclusionCriteria, criteria?.exclusion_criteria)) return false;
-      if (!checkExact(appliedFilters.gender, criteria?.sex)) return false;
-      if (!checkNumeric(appliedFilters.targetNoVolunteers, criteria?.target_no_volunteers)) return false;
-      if (!checkNumeric(appliedFilters.actualEnrolledVolunteers, criteria?.actual_enrolled_volunteers)) return false;
-
-      // Aliases handling for criteria
       if (!checkExact(appliedFilters.ageFrom, criteria?.age_from)) return false;
       if (!checkExact(appliedFilters.ageTo, criteria?.age_to)) return false;
-      if (!checkNumeric(appliedFilters.estimatedEnrollment, criteria?.target_no_volunteers)) return false;
-      if (!checkNumeric(appliedFilters.actualEnrollment, criteria?.actual_enrolled_volunteers)) return false;
+      if (!checkNumeric(appliedFilters.targetNoVolunteers, criteria?.target_no_volunteers)) return false;
+      if (!checkNumeric(appliedFilters.actualEnrolledVolunteers, criteria?.actual_enrolled_volunteers)) return false;
 
 
       // Outcomes Fields
@@ -2000,15 +1968,8 @@ export default function AdminTherapeuticsPage() {
 
       // Timing Fields
       const timing = trial.timing?.[0];
-      if (!checkExact(appliedFilters.studyStartDate, timing?.start_date_estimated)) return false;
-      if (!checkExact(appliedFilters.studyEndDate, timing?.trial_end_date_estimated)) return false;
-      if (!checkExact(appliedFilters.trialEndDateEstimated, timing?.trial_end_date_estimated)) return false;
       if (!checkExact(appliedFilters.startDateEstimated, timing?.start_date_estimated)) return false;
-
-      // Aliases for timing
-      if (!checkExact(appliedFilters.studyCompletionDate, timing?.trial_end_date_estimated)) return false;
-      if (!checkExact(appliedFilters.primaryCompletionDate, timing?.trial_end_date_estimated)) return false;
-      if (!checkExact(appliedFilters.firstPatientIn, timing?.start_date_estimated)) return false;
+      if (!checkExact(appliedFilters.trialEndDateEstimated, timing?.trial_end_date_estimated)) return false;
 
 
       // Results Fields
@@ -2021,7 +1982,7 @@ export default function AdminTherapeuticsPage() {
       if (!checkPartial(appliedFilters.treatmentForAdverseEvents, results?.treatment_for_adverse_events)) return false;
 
       // Results available check (special logic)
-      if (appliedFilters.resultsAvailable.length > 0) {
+      if (appliedFilters.resultsAvailable && appliedFilters.resultsAvailable.length > 0) {
         const hasResults = (trial.results && trial.results.length > 0 && !!trial.results[0].trial_outcome);
         const wantedYes = appliedFilters.resultsAvailable.includes("Yes");
         const wantedNo = appliedFilters.resultsAvailable.includes("No");
@@ -2030,56 +1991,10 @@ export default function AdminTherapeuticsPage() {
         if (wantedNo && !wantedYes && hasResults) return false;
       }
 
-      // Trial Results Array Check
-      if (appliedFilters.trialResults.length > 0) {
-        if (!results?.trial_results || !results.trial_results.some(r => appliedFilters.trialResults.includes(r))) {
-          return false;
-        }
-      }
-
       // Sites Fields
       const sites = trial.sites?.[0];
       if (!checkNumeric(appliedFilters.totalSites, sites?.total)) return false;
       if (!checkPartial(appliedFilters.siteNotes, sites?.notes)) return false;
-      if (!checkPartial(appliedFilters.siteCountries, trial.overview?.countries)) return false; // Map to overview countries
-      if (!checkPartial(appliedFilters.siteRegions, trial.overview?.region)) return false; // Map to overview region
-      // Special handling for studySites (single_site, multi_site, international)
-      if (appliedFilters.studySites.length > 0) {
-        let match = false;
-        const total = sites?.total;
-
-        if (total !== undefined && total !== null) {
-          if (appliedFilters.studySites.includes("single_site") && total === 1) match = true;
-          if (appliedFilters.studySites.includes("multi_site") && total > 1) match = true;
-        }
-
-        // International check - check if countries indicates multiple countries
-        if (appliedFilters.studySites.includes("international")) {
-          const countries = trial.overview?.countries || "";
-          // Heuristic: comma implies multiple countries, or explicit "International" string
-          if (countries.includes(',') || countries.toLowerCase().includes("international")) match = true;
-        }
-
-        if (!match) return false;
-      }
-
-
-      // Explicit mapping for fields missing/mapped
-      if (!checkPartial(appliedFilters.populationDescription, trial.overview?.patient_segment)) return false;
-      if (!checkExact(appliedFilters.enrollmentStatus, trial.overview?.status)) return false;
-      if (!checkExact(appliedFilters.siteStatus, trial.overview?.status)) return false;
-
-      // Fields not present in data model (Pass if filter is empty, essentially ignored)
-      // These are placeholders to prevent the filter from blocking results if used,
-      // assuming if they are used they might be expecting data that isn't connected yet.
-      // Ideally these should filter on something, but without data model support, skipping logic is safest.
-      // const ignoredFields = [
-      //   'ecogPerformanceStatus', 'priorTreatments', 'biomarkerRequirements', 'recruitmentPeriod',
-      //   'principalInvestigators', 'siteContactInfo', 'endpointsMet', 'lastPatientIn',
-      //   'interimAnalysisDates', 'finalAnalysisDate', 'regulatorySubmissionDate', 'publicationType',
-      //   'registryName', 'studyType'
-      // ];
-      // We implicitly ignore them by not adding failure conditions for them.
 
       return true;
     })();
@@ -2743,6 +2658,7 @@ export default function AdminTherapeuticsPage() {
                 </TableHead>
                 <TableHead>Trial ID</TableHead>
                 <TableHead>Title</TableHead>
+                {/* Basic Info Section */}
                 {columnSettings.therapeuticArea && <TableHead>Therapeutic Area</TableHead>}
                 {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
                 {columnSettings.primaryDrug && <TableHead>Primary Drug</TableHead>}
@@ -2751,46 +2667,23 @@ export default function AdminTherapeuticsPage() {
                 {columnSettings.lineOfTherapy && <TableHead>Line of Therapy</TableHead>}
                 {columnSettings.countries && <TableHead>Countries</TableHead>}
                 {columnSettings.sponsorsCollaborators && <TableHead>Sponsors & Collaborators</TableHead>}
-                {columnSettings.sponsor && <TableHead>Sponsor</TableHead>}
                 {columnSettings.fieldOfActivity && <TableHead>Field of Activity</TableHead>}
                 {columnSettings.associatedCro && <TableHead>Associated CRO</TableHead>}
                 {columnSettings.trialTags && <TableHead>Trial Tags</TableHead>}
-                {columnSettings.sex && <TableHead>Sex</TableHead>}
-                {columnSettings.healthyVolunteers && <TableHead>Healthy Volunteers</TableHead>}
-                {columnSettings.trialRecordStatus && <TableHead>Trial Record Status</TableHead>}
                 {columnSettings.otherDrugs && <TableHead>Other Drugs</TableHead>}
                 {columnSettings.regions && <TableHead>Regions</TableHead>}
-                {columnSettings.ageMin && <TableHead>Age Min</TableHead>}
-                {columnSettings.ageMax && <TableHead>Age Max</TableHead>}
+                {columnSettings.trialRecordStatus && <TableHead>Trial Record Status</TableHead>}
+                {/* Eligibility Section */}
+                {columnSettings.inclusionCriteria && <TableHead>Inclusion Criteria</TableHead>}
+                {columnSettings.exclusionCriteria && <TableHead>Exclusion Criteria</TableHead>}
+                {columnSettings.ageFrom && <TableHead>Age From</TableHead>}
+                {columnSettings.ageTo && <TableHead>Age To</TableHead>}
                 {columnSettings.subjectType && <TableHead>Subject Type</TableHead>}
-                {columnSettings.ecogPerformanceStatus && <TableHead>ECOG Status</TableHead>}
-                {columnSettings.priorTreatments && <TableHead>Prior Treatments</TableHead>}
-                {columnSettings.biomarkerRequirements && <TableHead>Biomarker Requirements</TableHead>}
-                {columnSettings.estimatedEnrollment && <TableHead>Est. Enrollment</TableHead>}
-                {columnSettings.actualEnrollment && <TableHead>Actual Enrollment</TableHead>}
-                {columnSettings.enrollmentStatus && <TableHead>Enrollment Status</TableHead>}
-                {columnSettings.recruitmentPeriod && <TableHead>Recruitment Period</TableHead>}
-                {columnSettings.studyCompletionDate && <TableHead>Study Completion</TableHead>}
-                {columnSettings.primaryCompletionDate && <TableHead>Primary Completion</TableHead>}
-                {columnSettings.populationDescription && <TableHead>Population</TableHead>}
-                {columnSettings.studySites && <TableHead>Study Sites</TableHead>}
-                {columnSettings.principalInvestigators && <TableHead>Principal Investigators</TableHead>}
-                {columnSettings.siteStatus && <TableHead>Site Status</TableHead>}
-                {columnSettings.siteCountries && <TableHead>Site Countries</TableHead>}
-                {columnSettings.siteRegions && <TableHead>Site Regions</TableHead>}
-                {columnSettings.siteContactInfo && <TableHead>Site Contact Info</TableHead>}
-                {columnSettings.trialResults && <TableHead>Trial Results</TableHead>}
-                {columnSettings.trialOutcomeContent && <TableHead>Trial Outcome Content</TableHead>}
-                {columnSettings.resultsAvailable && <TableHead>Results Available</TableHead>}
-                {columnSettings.endpointsMet && <TableHead>Endpoints Met</TableHead>}
-                {columnSettings.adverseEventsReported && <TableHead>Adverse Events</TableHead>}
-                {columnSettings.studyStartDate && <TableHead>Study Start Date</TableHead>}
-                {columnSettings.firstPatientIn && <TableHead>First Patient In</TableHead>}
-                {columnSettings.lastPatientIn && <TableHead>Last Patient In</TableHead>}
-                {columnSettings.studyEndDate && <TableHead>Study End Date</TableHead>}
-                {columnSettings.interimAnalysisDates && <TableHead>Interim Analysis</TableHead>}
-                {columnSettings.finalAnalysisDate && <TableHead>Final Analysis</TableHead>}
-                {columnSettings.regulatorySubmissionDate && <TableHead>Regulatory Submission</TableHead>}
+                {columnSettings.sex && <TableHead>Sex</TableHead>}
+                {columnSettings.healthyVolunteers && <TableHead>Healthy Volunteers</TableHead>}
+                {columnSettings.targetNoVolunteers && <TableHead>Target Volunteers</TableHead>}
+                {columnSettings.actualEnrolledVolunteers && <TableHead>Actual Volunteers</TableHead>}
+                {/* Study Design Section */}
                 {columnSettings.purposeOfTrial && <TableHead>Purpose of Trial</TableHead>}
                 {columnSettings.summary && <TableHead>Summary</TableHead>}
                 {columnSettings.primaryOutcomeMeasures && <TableHead>Primary Outcome</TableHead>}
@@ -2799,24 +2692,21 @@ export default function AdminTherapeuticsPage() {
                 {columnSettings.studyDesign && <TableHead>Study Design</TableHead>}
                 {columnSettings.treatmentRegimen && <TableHead>Treatment Regimen</TableHead>}
                 {columnSettings.numberOfArms && <TableHead>Number of Arms</TableHead>}
-                {columnSettings.inclusionCriteria && <TableHead>Inclusion Criteria</TableHead>}
-                {columnSettings.exclusionCriteria && <TableHead>Exclusion Criteria</TableHead>}
-                {columnSettings.ageFrom && <TableHead>Age From</TableHead>}
-                {columnSettings.ageTo && <TableHead>Age To</TableHead>}
-                {columnSettings.gender && <TableHead>Gender</TableHead>}
-                {columnSettings.targetNoVolunteers && <TableHead>Target Volunteers</TableHead>}
-                {columnSettings.actualEnrolledVolunteers && <TableHead>Actual Volunteers</TableHead>}
+                {/* Timing Section */}
                 {columnSettings.startDateEstimated && <TableHead>Start Date Est.</TableHead>}
                 {columnSettings.trialEndDateEstimated && <TableHead>End Date Est.</TableHead>}
+                {/* Results Section */}
+                {columnSettings.resultsAvailable && <TableHead>Results Available</TableHead>}
+                {columnSettings.endpointsMet && <TableHead>Endpoints Met</TableHead>}
+                {columnSettings.adverseEventsReported && <TableHead>Adverse Events</TableHead>}
                 {columnSettings.trialOutcome && <TableHead>Trial Outcome</TableHead>}
+                {columnSettings.trialOutcomeContent && <TableHead>Trial Outcome Content</TableHead>}
                 {columnSettings.adverseEventReported && <TableHead>Adverse Event</TableHead>}
                 {columnSettings.adverseEventType && <TableHead>Adverse Event Type</TableHead>}
                 {columnSettings.treatmentForAdverseEvents && <TableHead>Treatment for AE</TableHead>}
+                {/* Sites Section */}
                 {columnSettings.totalSites && <TableHead>Total Sites</TableHead>}
                 {columnSettings.siteNotes && <TableHead>Site Notes</TableHead>}
-                {columnSettings.publicationType && <TableHead>Publication Type</TableHead>}
-                {columnSettings.registryName && <TableHead>Registry Name</TableHead>}
-                {columnSettings.studyType && <TableHead>Study Type</TableHead>}
                 <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -2836,6 +2726,7 @@ export default function AdminTherapeuticsPage() {
                   <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
                     {trial.overview.title || "Untitled"}
                   </TableCell>
+                  {/* Basic Info Section */}
                   {columnSettings.therapeuticArea && (
                     <TableCell className="max-w-[150px] truncate">{trial.overview.therapeutic_area || "N/A"}</TableCell>
                   )}
@@ -2860,9 +2751,6 @@ export default function AdminTherapeuticsPage() {
                   {columnSettings.sponsorsCollaborators && (
                     <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
                   )}
-                  {columnSettings.sponsor && (
-                    <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
-                  )}
                   {columnSettings.fieldOfActivity && (
                     <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_field_activity || "N/A"}</TableCell>
                   )}
@@ -2872,116 +2760,44 @@ export default function AdminTherapeuticsPage() {
                   {columnSettings.trialTags && (
                     <TableCell className="max-w-[150px] truncate">{trial.overview.trial_tags || "N/A"}</TableCell>
                   )}
-                  {columnSettings.sex && (
-                    <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.healthyVolunteers && (
-                    <TableCell>{trial.criteria[0]?.healthy_volunteers || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.trialRecordStatus && (
-                    <TableCell className="max-w-[120px] truncate">{trial.overview.trial_record_status || "N/A"}</TableCell>
-                  )}
                   {columnSettings.otherDrugs && (
                     <TableCell className="max-w-[150px] truncate">{trial.overview.other_drugs || "N/A"}</TableCell>
                   )}
                   {columnSettings.regions && (
                     <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
                   )}
-                  {columnSettings.ageMin && (
+                  {columnSettings.trialRecordStatus && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.trial_record_status || "N/A"}</TableCell>
+                  )}
+                  {/* Eligibility Section */}
+                  {columnSettings.inclusionCriteria && (
+                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.inclusion_criteria || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.exclusionCriteria && (
+                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.exclusion_criteria || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageFrom && (
                     <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
                   )}
-                  {columnSettings.ageMax && (
+                  {columnSettings.ageTo && (
                     <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
                   )}
                   {columnSettings.subjectType && (
                     <TableCell>{trial.criteria[0]?.subject_type || "N/A"}</TableCell>
                   )}
-                  {columnSettings.ecogPerformanceStatus && (
-                    <TableCell>N/A</TableCell>
+                  {columnSettings.sex && (
+                    <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
                   )}
-                  {columnSettings.priorTreatments && (
-                    <TableCell>N/A</TableCell>
+                  {columnSettings.healthyVolunteers && (
+                    <TableCell>{trial.criteria[0]?.healthy_volunteers || "N/A"}</TableCell>
                   )}
-                  {columnSettings.biomarkerRequirements && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.estimatedEnrollment && (
+                  {columnSettings.targetNoVolunteers && (
                     <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
                   )}
-                  {columnSettings.actualEnrollment && (
+                  {columnSettings.actualEnrolledVolunteers && (
                     <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
                   )}
-                  {columnSettings.enrollmentStatus && (
-                    <TableCell>{trial.overview.status || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.recruitmentPeriod && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.studyCompletionDate && (
-                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.primaryCompletionDate && (
-                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.populationDescription && (
-                    <TableCell className="max-w-[150px] truncate">{trial.overview.patient_segment || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.studySites && (
-                    <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.principalInvestigators && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.siteStatus && (
-                    <TableCell>{trial.overview.status || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.siteCountries && (
-                    <TableCell className="max-w-[120px] truncate">{trial.overview.countries || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.siteRegions && (
-                    <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.siteContactInfo && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.trialResults && (
-                    <TableCell className="max-w-[150px] truncate">
-                      {trial.results[0]?.trial_results?.join(", ") || "N/A"}
-                    </TableCell>
-                  )}
-                  {columnSettings.trialOutcomeContent && (
-                    <TableCell className="max-w-[150px] truncate">{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.resultsAvailable && (
-                    <TableCell>{trial.results?.length > 0 ? "Yes" : "No"}</TableCell>
-                  )}
-                  {columnSettings.endpointsMet && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.adverseEventsReported && (
-                    <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.studyStartDate && (
-                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.firstPatientIn && (
-                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.lastPatientIn && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.studyEndDate && (
-                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.interimAnalysisDates && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.finalAnalysisDate && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.regulatorySubmissionDate && (
-                    <TableCell>N/A</TableCell>
-                  )}
+                  {/* Study Design Section */}
                   {columnSettings.purposeOfTrial && (
                     <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.purpose_of_trial || "N/A"}</TableCell>
                   )}
@@ -3006,35 +2822,28 @@ export default function AdminTherapeuticsPage() {
                   {columnSettings.numberOfArms && (
                     <TableCell>{trial.outcomes[0]?.number_of_arms || "N/A"}</TableCell>
                   )}
-                  {columnSettings.inclusionCriteria && (
-                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.inclusion_criteria || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.exclusionCriteria && (
-                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.exclusion_criteria || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.ageFrom && (
-                    <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.ageTo && (
-                    <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.gender && (
-                    <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.targetNoVolunteers && (
-                    <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.actualEnrolledVolunteers && (
-                    <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
-                  )}
+                  {/* Timing Section */}
                   {columnSettings.startDateEstimated && (
                     <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
                   )}
                   {columnSettings.trialEndDateEstimated && (
                     <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
                   )}
+                  {/* Results Section */}
+                  {columnSettings.resultsAvailable && (
+                    <TableCell>{trial.results?.length > 0 ? "Yes" : "No"}</TableCell>
+                  )}
+                  {columnSettings.endpointsMet && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.adverseEventsReported && (
+                    <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
+                  )}
                   {columnSettings.trialOutcome && (
                     <TableCell>{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialOutcomeContent && (
+                    <TableCell className="max-w-[150px] truncate">{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
                   )}
                   {columnSettings.adverseEventReported && (
                     <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
@@ -3045,20 +2854,12 @@ export default function AdminTherapeuticsPage() {
                   {columnSettings.treatmentForAdverseEvents && (
                     <TableCell className="max-w-[150px] truncate">{trial.results[0]?.treatment_for_adverse_events || "N/A"}</TableCell>
                   )}
+                  {/* Sites Section */}
                   {columnSettings.totalSites && (
                     <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
                   )}
                   {columnSettings.siteNotes && (
                     <TableCell className="max-w-[150px] truncate">{trial.sites[0]?.notes || "N/A"}</TableCell>
-                  )}
-                  {columnSettings.publicationType && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.registryName && (
-                    <TableCell>N/A</TableCell>
-                  )}
-                  {columnSettings.studyType && (
-                    <TableCell>N/A</TableCell>
                   )}
                   <TableCell className="text-sm">{formatDate(trial.overview.created_at)}</TableCell>
                   <TableCell className="text-right">
