@@ -204,9 +204,14 @@ export default function TimingSection() {
     if (calculatorData.frequency === "days") {
       resultDate.setDate(resultDate.getDate() + duration);
     } else if (calculatorData.frequency === "weeks") {
-      resultDate.setDate(resultDate.getDate() + (duration * 7));
+      resultDate.setDate(resultDate.getDate() + duration * 7);
     } else if (calculatorData.frequency === "months") {
-      resultDate.setMonth(resultDate.getMonth() + duration);
+      // Handle decimal months: add whole months first, then fractional part as days
+      const wholeMonths = Math.floor(duration);
+      const fractionalMonths = duration - wholeMonths;
+      resultDate.setMonth(resultDate.getMonth() + wholeMonths);
+      const fractionalDays = Math.round(fractionalMonths * 30.44);
+      resultDate.setDate(resultDate.getDate() + fractionalDays);
     }
     // Format as MM-DD-YYYY
     const month = String(resultDate.getMonth() + 1).padStart(2, '0');
@@ -232,9 +237,14 @@ export default function TimingSection() {
     if (calculatorData.frequency === "days") {
       resultDate.setDate(resultDate.getDate() - duration);
     } else if (calculatorData.frequency === "weeks") {
-      resultDate.setDate(resultDate.getDate() - (duration * 7));
+      resultDate.setDate(resultDate.getDate() - duration * 7);
     } else if (calculatorData.frequency === "months") {
-      resultDate.setMonth(resultDate.getMonth() - duration);
+      // Handle decimal months: subtract whole months first, then fractional part as days
+      const wholeMonths = Math.floor(duration);
+      const fractionalMonths = duration - wholeMonths;
+      resultDate.setMonth(resultDate.getMonth() - wholeMonths);
+      const fractionalDays = Math.round(fractionalMonths * 30.44);
+      resultDate.setDate(resultDate.getDate() - fractionalDays);
     }
     // Format as MM-DD-YYYY
     const month = String(resultDate.getMonth() + 1).padStart(2, '0');
@@ -299,7 +309,14 @@ export default function TimingSection() {
     } else if (enhancedCalculatorData.frequency === "weeks") {
       resultDate.setDate(resultDate.getDate() + (duration * 7));
     } else if (enhancedCalculatorData.frequency === "months") {
-      resultDate.setMonth(resultDate.getMonth() + duration);
+      // Handle decimal months: add whole months first, then fractional part as days
+      const wholeMonths = Math.floor(duration);
+      const fractionalMonths = duration - wholeMonths;
+      // Add whole months
+      resultDate.setMonth(resultDate.getMonth() + wholeMonths);
+      // Add fractional part as days (using average days per month: 30.44)
+      const fractionalDays = Math.round(fractionalMonths * 30.44);
+      resultDate.setDate(resultDate.getDate() + fractionalDays);
     }
     // Format as MM-DD-YYYY
     const month = String(resultDate.getMonth() + 1).padStart(2, '0');
@@ -327,7 +344,14 @@ export default function TimingSection() {
     } else if (enhancedCalculatorData.frequency === "weeks") {
       resultDate.setDate(resultDate.getDate() - (duration * 7));
     } else if (enhancedCalculatorData.frequency === "months") {
-      resultDate.setMonth(resultDate.getMonth() - duration);
+      // Handle decimal months: subtract whole months first, then fractional part as days
+      const wholeMonths = Math.floor(duration);
+      const fractionalMonths = duration - wholeMonths;
+      // Subtract whole months
+      resultDate.setMonth(resultDate.getMonth() - wholeMonths);
+      // Subtract fractional part as days (using average days per month: 30.44)
+      const fractionalDays = Math.round(fractionalMonths * 30.44);
+      resultDate.setDate(resultDate.getDate() - fractionalDays);
     }
     // Format as MM-DD-YYYY
     const month = String(resultDate.getMonth() + 1).padStart(2, '0');

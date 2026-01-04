@@ -214,29 +214,77 @@ export default function AdditionalInfoSection() {
 
   // Handle file removal
   const handleFileRemove = async (itemIndex: number, fileUrl: string) => {
-    if (!fileUrl) return;
-
-    try {
-      await edgestore.trialOutcomeAttachments.delete({
-        url: fileUrl,
-      });
-
+    if (!fileUrl) {
+      // If no URL, just remove from UI
       updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: null,
         url: null
+      });
+      return;
+    }
+
+    // Validate URL format
+    let validUrl = fileUrl.trim();
+    if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+      console.warn("Invalid URL format, removing from UI only:", validUrl);
+      updateComplexArrayItem("step5_7", activeTab, itemIndex, {
+        file: null,
+        url: null
+      });
+      return;
+    }
+
+    // Optimistically update UI first for better UX
+    updateComplexArrayItem("step5_7", activeTab, itemIndex, {
+      file: null,
+      url: null
+    });
+
+    try {
+      await edgestore.trialOutcomeAttachments.delete({
+        url: validUrl,
       });
 
       toast({
         title: "Success",
         description: "File removed successfully",
       });
-    } catch (error) {
-      console.error("Error removing file:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove file. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error("Error removing file from Edge Store:", error);
+      
+      // Check if error is because file doesn't exist (404 or similar)
+      const errorMessage = error?.message || String(error) || '';
+      const errorString = errorMessage.toLowerCase();
+      
+      const isNotFoundError = errorString.includes('404') || 
+                             errorString.includes('not found') || 
+                             errorString.includes('does not exist') ||
+                             errorString.includes('no such key') ||
+                             errorString.includes('file not found');
+      
+      // Check for internal server errors that might be transient or already resolved
+      const isServerError = errorString.includes('internal server error') ||
+                           errorString.includes('500') ||
+                           errorString.includes('server error');
+      
+      if (isNotFoundError) {
+        // File doesn't exist - that's fine, we already removed it from UI
+        // Don't show a warning, just silently succeed
+        return;
+      } else if (isServerError) {
+        // Server error - file might still be deleted, or it's a transient issue
+        // Since we already removed from UI, just log it without alarming the user
+        console.warn("Edge Store server error during deletion (file may still be deleted):", error);
+        return;
+      } else {
+        // Other errors - log but don't alarm user since UI is already updated
+        console.warn("Edge Store deletion error (file removed from form):", error);
+        // Optionally show a subtle notification, but not as an error
+        toast({
+          title: "File removed",
+          description: "File has been removed from the form.",
+        });
+      }
     }
   };
 
@@ -335,7 +383,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -391,7 +439,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, meta.url)}
+                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -481,7 +529,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -537,7 +585,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, meta.url)}
+                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -646,7 +694,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -702,7 +750,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, meta.url)}
+                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -811,7 +859,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -867,7 +915,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, meta.url)}
+                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -976,7 +1024,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1032,7 +1080,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, meta.url)}
+                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />

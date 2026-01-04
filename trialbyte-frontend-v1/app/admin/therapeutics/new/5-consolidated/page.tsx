@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,20 @@ export default function NewTherapeuticsConsolidated() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("basic_info");
+
+  // Warn user before accidentally closing or reloading the window during creation
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      // Show browser-native confirmation dialog
+      event.preventDefault();
+      event.returnValue = "Are you sure you want to close the window? Unsaved changes will be lost.";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   const sections = [
     { key: "basic_info", label: "Trial Overview", component: BasicInfoSection },

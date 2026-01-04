@@ -172,15 +172,29 @@ const therapeuticSearchFields = [
   { value: "registry_name", label: "Registry Name" },
   { value: "study_type", label: "Study Type" },
 
-  // Study design keywords (Step 5-2)
+  // Study design keywords (Step 5-2) - dropdown
   { value: "study_design_keywords", label: "Study Design Keywords" },
 
-  // Text fields that are searchable
+  // Text fields that are searchable (Step 5-1)
   { value: "title", label: "Title" },
   { value: "trial_identifier", label: "Trial Identifier" },
   { value: "reference_links", label: "Reference Links" },
   { value: "trial_tags", label: "Trial Tags" },
   { value: "study_design", label: "Study Design" },
+
+  // Text fields from Step 5-2: Trial Purpose & Design
+  { value: "purpose_of_trial", label: "Purpose of Trial" },
+  { value: "summary", label: "Summary" },
+  { value: "primaryOutcomeMeasures", label: "Primary Outcome Measures" },
+  { value: "otherOutcomeMeasures", label: "Other Outcome Measures" },
+  { value: "treatment_regimen", label: "Treatment Regimen" },
+
+  // Text fields from Step 5-3: Eligibility Criteria
+  { value: "inclusion_criteria", label: "Inclusion Criteria" },
+  { value: "exclusion_criteria", label: "Exclusion Criteria" },
+
+  // Text fields from Step 5-8: Notes
+  { value: "notes", label: "Notes" },
 
   // Numeric fields
   { value: "number_of_arms", label: "Number of Arms" },
@@ -619,6 +633,19 @@ export function TherapeuticAdvancedSearchModal({
           case 'trial_record_status':
             fieldValue = trial.overview?.trial_record_status || ''
             break
+          // Handle Step 5-2 fields (outcome measures)
+          case 'purpose_of_trial':
+            fieldValue = trial.outcomes?.[0]?.purpose_of_trial || ''
+            break
+          case 'summary':
+            fieldValue = trial.outcomes?.[0]?.summary || ''
+            break
+          case 'treatment_regimen':
+            fieldValue = trial.outcomes?.[0]?.treatment_regimen || ''
+            break
+          case 'study_design':
+            fieldValue = trial.outcomes?.[0]?.study_design || ''
+            break
           // Handle array fields
           case 'trial_identifier':
             if (trial.overview?.trial_identifier) {
@@ -639,11 +666,72 @@ export function TherapeuticAdvancedSearchModal({
               })
             }
             break
+          // Handle Step 5-2 fields (outcome measures)
+          case 'primaryOutcomeMeasures':
+            if (trial.outcomes) {
+              trial.outcomes.forEach(outcome => {
+                if (outcome.primary_outcome_measure && outcome.primary_outcome_measure.trim()) {
+                  values.add(outcome.primary_outcome_measure.trim())
+                }
+              })
+            }
+            break
+          case 'otherOutcomeMeasures':
+            if (trial.outcomes) {
+              trial.outcomes.forEach(outcome => {
+                if (outcome.other_outcome_measure && outcome.other_outcome_measure.trim()) {
+                  values.add(outcome.other_outcome_measure.trim())
+                }
+              })
+            }
+            break
+          case 'study_design_keywords':
+            if (trial.outcomes) {
+              trial.outcomes.forEach(outcome => {
+                if (outcome.study_design_keywords && outcome.study_design_keywords.trim()) {
+                  values.add(outcome.study_design_keywords.trim())
+                }
+              })
+            }
+            break
+          // Handle Step 5-3 fields (eligibility criteria)
+          case 'inclusion_criteria':
+            if (trial.criteria) {
+              trial.criteria.forEach(criterion => {
+                if (criterion.inclusion_criteria && criterion.inclusion_criteria.trim()) {
+                  values.add(criterion.inclusion_criteria.trim())
+                }
+              })
+            }
+            break
+          case 'exclusion_criteria':
+            if (trial.criteria) {
+              trial.criteria.forEach(criterion => {
+                if (criterion.exclusion_criteria && criterion.exclusion_criteria.trim()) {
+                  values.add(criterion.exclusion_criteria.trim())
+                }
+              })
+            }
+            break
+          // Handle Step 5-8 fields (notes)
+          case 'notes':
+            if (trial.notes && Array.isArray(trial.notes)) {
+              trial.notes.forEach(note => {
+                if (note && note.notes && note.notes.trim()) {
+                  values.add(note.notes.trim())
+                }
+              })
+            }
+            break
           // Don't add dynamic values for last_modified_user - only use hardcoded "Admin"
+          // Don't add dynamic values for text fields: purpose_of_trial, summary, treatment_regimen
         }
       }
 
-      if (fieldValue && fieldValue.trim()) {
+      // Only add fieldValue if it's not a text field that should be excluded from dropdowns
+      const textOnlyFields = ['purpose_of_trial', 'summary', 'treatment_regimen', 'primaryOutcomeMeasures',
+        'otherOutcomeMeasures', 'inclusion_criteria', 'exclusion_criteria', 'notes'];
+      if (fieldValue && fieldValue.trim() && !textOnlyFields.includes(field)) {
         values.add(fieldValue.trim())
       }
     })
@@ -655,8 +743,11 @@ export function TherapeuticAdvancedSearchModal({
   const renderValueInput = (criterion: TherapeuticSearchCriteria) => {
     const fieldOptionsForField = fieldOptions[criterion.field]
     const isDateField = dateFields.includes(criterion.field)
-    // Exclude title field from getting dynamic values - it should be a text input
-    const dynamicValues = criterion.field === 'title' ? [] : getFieldValues(criterion.field)
+    // Exclude text-only fields from getting dynamic values - they should be text inputs
+    const textOnlyFields = ['title', 'trial_identifier', 'purpose_of_trial', 'summary', 'treatment_regimen',
+      'primaryOutcomeMeasures', 'otherOutcomeMeasures', 'inclusion_criteria',
+      'exclusion_criteria', 'notes', 'study_design', 'reference_links']
+    const dynamicValues = textOnlyFields.includes(criterion.field) ? [] : getFieldValues(criterion.field)
 
     // Special handling for primary_drugs and other_drugs - use SearchableSelect with drug names from hook
     if (criterion.field === "primary_drugs" || criterion.field === "other_drugs") {
@@ -664,26 +755,26 @@ export function TherapeuticAdvancedSearchModal({
         value: drug.value,
         label: drug.label
       }))
-      
+
       // Get the current value and normalize it
       const currentValue = Array.isArray(criterion.value) ? criterion.value[0] || "" : (criterion.value as string || "");
       const normalizedValue = currentValue.trim();
-      
+
       // Debug logging
       console.log('Drug options for', criterion.field, ':', drugOptions.length, 'options');
       console.log('Current value:', normalizedValue);
       console.log('Value in options?', drugOptions.some(opt => opt.value === normalizedValue || opt.value.toLowerCase() === normalizedValue.toLowerCase()));
-      
+
       // If no options, show a message
       if (drugOptions.length === 0) {
         console.warn('No drug options available. Make sure drugs are loaded from the API.');
       }
-      
+
       // Find matching value (case-insensitive fallback)
       let matchingValue = normalizedValue;
       if (normalizedValue && !drugOptions.some(opt => opt.value === normalizedValue)) {
         // Try case-insensitive match
-        const caseInsensitiveMatch = drugOptions.find(opt => 
+        const caseInsensitiveMatch = drugOptions.find(opt =>
           opt.value.toLowerCase() === normalizedValue.toLowerCase()
         );
         if (caseInsensitiveMatch) {
@@ -691,7 +782,7 @@ export function TherapeuticAdvancedSearchModal({
           console.log('Found case-insensitive match:', matchingValue);
         }
       }
-      
+
       return (
         <SearchableSelect
           value={matchingValue}

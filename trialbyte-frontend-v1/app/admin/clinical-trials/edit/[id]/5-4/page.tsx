@@ -715,7 +715,7 @@ export default function EditTherapeuticsStep5_4() {
                           id={`ref-attachments-${index}`}
                           type="file"
                           multiple
-                          accept="image/*,.pdf,.doc,.docx,.txt"
+                          accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => handleFileUpload(index, e.target.files)}
                           className="flex-1 border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                         />

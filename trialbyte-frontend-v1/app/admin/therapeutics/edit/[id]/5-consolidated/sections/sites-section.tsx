@@ -6,10 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, Eye, EyeOff, Upload, FileText, Image, Link as LinkIcon } from "lucide-react";
+import { Plus, X, Eye, EyeOff, Upload, FileText, Image, Link as LinkIcon, Loader2 } from "lucide-react";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { useToast } from "@/hooks/use-toast";
+import { useEdgeStore } from "@/lib/edgestore";
+import { useState } from "react";
 
 export default function SitesSection() {
   const {
@@ -20,6 +22,8 @@ export default function SitesSection() {
     updateReference,
   } = useEditTherapeuticForm();
   const { toast } = useToast();
+  const { edgestore } = useEdgeStore();
+  const [uploadingNoteAttachment, setUploadingNoteAttachment] = useState<{ [key: number]: boolean }>({});
   const form = formData.step5_6;
 
   console.log("📋 SitesSection (Edit) - Current form data:", form);
@@ -29,7 +33,7 @@ export default function SitesSection() {
     references: form.references,
   });
   
-  // Log each reference individually
+  // Log each reference individually with detailed attachment info
   if (form.references && form.references.length > 0) {
     form.references.forEach((ref: any, index: number) => {
       console.log(`  Reference ${index}:`, {
@@ -38,9 +42,22 @@ export default function SitesSection() {
         registryType: ref.registryType,
         content: ref.content?.substring(0, 50),
         viewSource: ref.viewSource,
+        attachments: ref.attachments,
         attachments_count: ref.attachments?.length || 0,
+        attachments_type: typeof ref.attachments,
+        attachments_isArray: Array.isArray(ref.attachments),
         isVisible: ref.isVisible,
       });
+      if (ref.attachments && ref.attachments.length > 0) {
+        ref.attachments.forEach((att: any, attIdx: number) => {
+          console.log(`    Attachment ${attIdx}:`, {
+            raw: att,
+            type: typeof att,
+            name: typeof att === 'object' ? att.name : att,
+            url: typeof att === 'object' ? att.url : null,
+          });
+        });
+      }
     });
   }
 
@@ -145,24 +162,103 @@ export default function SitesSection() {
     return defaultMeta;
   };
 
-  // Handle file upload for attachments
-  const handleFileUpload = (index: number, files: FileList | null) => {
-    if (files) {
-      const fileData = Array.from(files).map(file => ({
+  // Handle file upload for note attachments using Edge Store
+  const handleNoteAttachmentUpload = async (file: File, noteIndex: number) => {
+    if (!file) return;
+
+    try {
+      setUploadingNoteAttachment(prev => ({ ...prev, [noteIndex]: true }));
+      console.log(`Uploading file to Edge Store for site note ${noteIndex}:`, file.name);
+
+      const res = await edgestore.trialOutcomeAttachments.upload({
+        file,
+        onProgressChange: (progress) => {
+          console.log(`Upload progress for site note ${noteIndex}:`, progress);
+        },
+      });
+
+      console.log("File uploaded successfully:", res.url);
+
+      // Get current attachments and add the new one
+      const currentNote = form.references[noteIndex];
+      const currentAttachments = currentNote?.attachments || [];
+      const newAttachment = {
+        url: res.url,
         name: file.name,
         size: file.size,
         type: file.type,
-        url: URL.createObjectURL(file),
-        lastModified: file.lastModified
-      }));
-      
-      const currentAttachments = form.references[index]?.attachments || [];
-      handleUpdateReference(index, "attachments", [...currentAttachments, ...fileData]);
-      
+      };
+
+      handleUpdateReference(noteIndex, "attachments", [...currentAttachments, newAttachment]);
+
       toast({
-        title: "Files uploaded",
-        description: `${files.length} file(s) uploaded successfully`,
+        title: "Success",
+        description: "File uploaded successfully",
       });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingNoteAttachment(prev => ({ ...prev, [noteIndex]: false }));
+    }
+  };
+
+  // Handle removing a specific attachment from a note
+  const handleRemoveNoteAttachment = async (noteIndex: number, attachmentIndex: number) => {
+    const currentNote = form.references[noteIndex];
+    const attachment = currentNote?.attachments[attachmentIndex];
+
+    // Check if attachment is an object with a url property
+    if (attachment && typeof attachment === 'object' && 'url' in attachment) {
+      const fileUrl = attachment.url;
+      
+      // Optimistically update UI first
+      const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
+      handleUpdateReference(noteIndex, "attachments", updatedAttachments);
+
+      try {
+        await edgestore.trialOutcomeAttachments.delete({
+          url: fileUrl?.trim() || '',
+        });
+
+        toast({
+          title: "Success",
+          description: "File removed successfully",
+        });
+      } catch (error: any) {
+        console.error("Error removing file from Edge Store:", error);
+        
+        const errorMessage = error?.message || String(error) || '';
+        const errorString = errorMessage.toLowerCase();
+        
+        const isNotFoundError = errorString.includes('404') || 
+                               errorString.includes('not found') || 
+                               errorString.includes('does not exist') ||
+                               errorString.includes('no such key');
+        
+        const isServerError = errorString.includes('internal server error') ||
+                             errorString.includes('500') ||
+                             errorString.includes('server error');
+        
+        if (isNotFoundError || isServerError) {
+          // Already removed from UI, silently succeed
+          return;
+        } else {
+          console.warn("Edge Store deletion error (file removed from form):", error);
+          toast({
+            title: "File removed",
+            description: "File has been removed from the form.",
+          });
+        }
+      }
+    } else {
+      // If it's just a string (old format), just remove it from the array
+      const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
+      handleUpdateReference(noteIndex, "attachments", updatedAttachments);
     }
   };
 
@@ -293,61 +389,123 @@ export default function SitesSection() {
                 {/* Attachments */}
                 <div className="space-y-2">
                   <Label htmlFor={`ref-attachments-${index}`}>Attachments</Label>
-                  <div className="flex items-center gap-4">
+                  <div className="flex gap-2">
                     <Input
                       id={`ref-attachments-${index}`}
                       type="file"
-                      multiple
-                      accept="image/*,.pdf,.doc,.docx,.txt"
-                      onChange={(e) => handleFileUpload(index, e.target.files)}
+                      accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleNoteAttachmentUpload(file, index);
+                          // Reset input
+                          e.target.value = '';
+                        }
+                      }}
+                      disabled={uploadingNoteAttachment[index]}
                       className="flex-1 border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                     />
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
+                      size="icon"
+                      disabled={uploadingNoteAttachment[index]}
                     >
-                      <Upload className="h-4 w-4" />
-                      Upload
+                      {uploadingNoteAttachment[index] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   
                   {/* Display uploaded files */}
-                  {reference.attachments && reference.attachments.length > 0 && (
+                  {(() => {
+                    let attachments = reference.attachments;
+                    
+                    // Normalize attachments if needed
+                    if (!attachments) {
+                      return false;
+                    }
+                    
+                    // If it's a string, try to parse it or convert to array
+                    if (typeof attachments === 'string') {
+                      const trimmed = attachments.trim();
+                      if (!trimmed) {
+                        return false;
+                      }
+                      // Try to parse as JSON
+                      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+                        try {
+                          attachments = JSON.parse(trimmed);
+                        } catch {
+                          attachments = [trimmed];
+                        }
+                      } else {
+                        attachments = [trimmed];
+                      }
+                    }
+                    
+                    // Ensure it's an array
+                    if (!Array.isArray(attachments)) {
+                      attachments = [attachments];
+                    }
+                    
+                    // Filter out null/undefined/empty items
+                    attachments = attachments.filter((att: any) => att !== null && att !== undefined && att !== '');
+                    
+                    const hasAttachments = attachments.length > 0;
+                    console.log(`🔍 Checking attachments for reference ${index}:`, {
+                      original: reference.attachments,
+                      normalized: attachments,
+                      hasAttachments,
+                      count: attachments.length
+                    });
+                    
+                    // Store normalized attachments for rendering
+                    (reference as any)._normalizedAttachments = attachments;
+                    
+                    return hasAttachments;
+                  })() && (
                     <div className="mt-2 space-y-1">
-                      {reference.attachments.map((attachment: any, attIndex: number) => {
-                        const meta = getAttachmentDisplayMeta(attachment);
-                        
+                      {((reference as any)._normalizedAttachments || reference.attachments || []).map((attachment: any, attIndex: number) => {
+                        console.log(`📎 Displaying attachment ${attIndex} for reference ${index}:`, attachment);
+                        const fileName = typeof attachment === 'string' 
+                          ? attachment 
+                          : (attachment?.name || 'Attachment');
+                        const fileUrl = typeof attachment === 'string'
+                          ? (attachment.startsWith('http') ? attachment : null)
+                          : (attachment?.url || null);
+                        const isImage = fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+
+                        console.log(`📎 Processed attachment ${attIndex}:`, { fileName, fileUrl, isImage });
+
                         return (
                           <div key={attIndex} className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
-                            {meta.isImage ? (
+                            {isImage ? (
                               <Image className="h-4 w-4 text-blue-600" />
                             ) : (
                               <FileText className="h-4 w-4 text-gray-600" />
                             )}
-                            <span className="flex-1 truncate">{meta.name}</span>
-                            {meta.url ? (
-                              <a
-                                href={meta.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                            <span className="flex-1 truncate">{fileName}</span>
+                            {fileUrl && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  window.open(fileUrl, '_blank');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                               >
-                                <LinkIcon className="h-3 w-3" />
                                 View
-                              </a>
-                            ) : (
-                              <span className="text-xs text-gray-400">No preview</span>
+                              </Button>
                             )}
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                const updatedAttachments = reference.attachments.filter((_: any, i: number) => i !== attIndex);
-                                handleUpdateReference(index, "attachments", updatedAttachments);
-                              }}
+                              onClick={() => handleRemoveNoteAttachment(index, attIndex)}
                               className="text-red-500 hover:text-red-700 p-0 h-auto"
                             >
                               <X className="h-3 w-3" />

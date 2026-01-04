@@ -115,29 +115,55 @@ export default function AdditionalInfoSection() {
 
   // Handle file removal
   const handleFileRemove = async (itemIndex: number, fileUrl: string) => {
-    if (!fileUrl) return;
-
-    try {
-      await edgestore.trialOutcomeAttachments.delete({
-        url: fileUrl,
-      });
-      
+    if (!fileUrl) {
       updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
         file: null,
         url: null 
+      });
+      return;
+    }
+
+    // Optimistically update UI first for better UX
+    updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+      file: null,
+      url: null 
+    });
+
+    try {
+      await edgestore.trialOutcomeAttachments.delete({
+        url: fileUrl.trim(),
       });
 
       toast({
         title: "Success",
         description: "File removed successfully",
       });
-    } catch (error) {
-      console.error("Error removing file:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove file. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error("Error removing file from Edge Store:", error);
+      
+      const errorMessage = error?.message || String(error) || '';
+      const errorString = errorMessage.toLowerCase();
+      
+      const isNotFoundError = errorString.includes('404') || 
+                             errorString.includes('not found') || 
+                             errorString.includes('does not exist') ||
+                             errorString.includes('no such key');
+      
+      const isServerError = errorString.includes('internal server error') ||
+                           errorString.includes('500') ||
+                           errorString.includes('server error');
+      
+      if (isNotFoundError || isServerError) {
+        // File doesn't exist or server error - already removed from UI, silently succeed
+        return;
+      } else {
+        // Other errors - log but don't alarm user
+        console.warn("Edge Store deletion error (file removed from form):", error);
+        toast({
+          title: "File removed",
+          description: "File has been removed from the form.",
+        });
+      }
     }
   };
 
@@ -258,7 +284,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -402,7 +428,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -565,7 +591,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -728,7 +754,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -891,7 +917,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {

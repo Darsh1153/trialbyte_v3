@@ -93,28 +93,52 @@ export default function ReviewNotesSection() {
   };
 
   const handleFileRemove = async (index: number, fileUrl: string) => {
-    if (!fileUrl) return;
-
-    try {
-      await edgestore.trialOutcomeAttachments.delete({
-        url: fileUrl,
-      });
-      
+    if (!fileUrl) {
       const currentAttachments = form.logsAttachments || [];
       const updatedAttachments = currentAttachments.filter((_, i) => i !== index);
       updateField("step5_8", "logsAttachments", updatedAttachments);
+      return;
+    }
+
+    // Optimistically update UI first
+    const currentAttachments = form.logsAttachments || [];
+    const updatedAttachments = currentAttachments.filter((_, i) => i !== index);
+    updateField("step5_8", "logsAttachments", updatedAttachments);
+
+    try {
+      await edgestore.trialOutcomeAttachments.delete({
+        url: fileUrl.trim(),
+      });
 
       toast({
         title: "Success",
         description: "File removed successfully",
       });
-    } catch (error) {
-      console.error("Error removing file:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove file. Please try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      console.error("Error removing file from Edge Store:", error);
+      
+      const errorMessage = error?.message || String(error) || '';
+      const errorString = errorMessage.toLowerCase();
+      
+      const isNotFoundError = errorString.includes('404') || 
+                             errorString.includes('not found') || 
+                             errorString.includes('does not exist') ||
+                             errorString.includes('no such key');
+      
+      const isServerError = errorString.includes('internal server error') ||
+                           errorString.includes('500') ||
+                           errorString.includes('server error');
+      
+      if (isNotFoundError || isServerError) {
+        // Already removed from UI, silently succeed
+        return;
+      } else {
+        console.warn("Edge Store deletion error (file removed from form):", error);
+        toast({
+          title: "File removed",
+          description: "File has been removed from the form.",
+        });
+      }
     }
   };
 
@@ -237,7 +261,7 @@ export default function ReviewNotesSection() {
                 <div className="flex gap-2">
                   <Input
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
