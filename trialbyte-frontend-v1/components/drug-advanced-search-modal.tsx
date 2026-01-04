@@ -9,11 +9,18 @@ import { X, Plus, Minus } from "lucide-react"
 import { QueryHistoryModal } from "@/components/query-history-modal"
 import CustomDateInput from "@/components/ui/custom-date-input"
 import { useToast } from "@/hooks/use-toast"
+import { DrugFilterState } from "./drug-filter-modal"
 
 interface DrugAdvancedSearchModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onApplySearch: (criteria: DrugSearchCriteria[]) => void
+  initialCriteria?: DrugSearchCriteria[] // Add initial criteria for editing
+  currentFilters?: DrugFilterState // Add current filters for save query functionality
+  editingQueryId?: string | null
+  editingQueryTitle?: string
+  editingQueryDescription?: string
+  onSaveQuerySuccess?: () => void
 }
 
 export interface DrugSearchCriteria {
@@ -86,28 +93,47 @@ const dateFields = [
   "updated_at"
 ]
 
+const DEFAULT_CRITERIA: DrugSearchCriteria[] = [
+  {
+    id: "1",
+    field: "drug_name",
+    operator: "contains",
+    value: "",
+    logic: "AND",
+  }
+]
 
-export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: DrugAdvancedSearchModalProps) {
+export function DrugAdvancedSearchModal({ 
+  open, 
+  onOpenChange, 
+  onApplySearch,
+  initialCriteria,
+  currentFilters,
+  editingQueryId = null,
+  editingQueryTitle = "",
+  editingQueryDescription = "",
+  onSaveQuerySuccess
+}: DrugAdvancedSearchModalProps) {
   const { toast } = useToast();
-  const [criteria, setCriteria] = useState<DrugSearchCriteria[]>([
-    {
-      id: "1",
-      field: "drug_name",
-      operator: "contains",
-      value: "",
-      logic: "AND",
-    }
-  ])
+  const [criteria, setCriteria] = useState<DrugSearchCriteria[]>(DEFAULT_CRITERIA)
   const [savedQueriesOpen, setSavedQueriesOpen] = useState(false)
   const [drugData, setDrugData] = useState<DrugData[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Fetch drug data when modal opens
+  const isEditMode = editingQueryId !== null && editingQueryId !== ""
+
+  // Load initial criteria when modal opens or when initialCriteria changes
   useEffect(() => {
     if (open) {
+      if (initialCriteria && initialCriteria.length > 0) {
+        setCriteria(initialCriteria)
+      } else if (!isEditMode) {
+        // Reset to default when not editing
+        setCriteria(DEFAULT_CRITERIA)
+      }
       fetchDrugData()
     }
-  }, [open])
+  }, [open, initialCriteria, isEditMode])
 
   const fetchDrugData = async () => {
     try {
@@ -116,7 +142,7 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
       if (response.ok) {
         const data = await response.json()
         // Extract overview data from each drug
-        const overviewData = (data.drugs || []).map(drug => drug.overview).filter(Boolean)
+        const overviewData = (data.drugs || []).map((drug: any) => drug.overview).filter(Boolean)
         setDrugData(overviewData)
       }
     } catch (error) {
@@ -267,13 +293,7 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
   }
 
   const handleClear = () => {
-    setCriteria([{
-      id: "1",
-      field: "drug_name",
-      operator: "contains",
-      value: "",
-      logic: "AND",
-    }])
+    setCriteria(DEFAULT_CRITERIA)
   }
 
   const handleOpenSavedQueries = () => {
@@ -288,47 +308,140 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
   }
 
   const handleSaveQuery = () => {
-    // Create a readable query name
-    const queryName = `Drug Advanced Search (${criteria.length} criteria) - ${new Date().toLocaleDateString()}`;
-    
-    // Save to localStorage using unified key
-    const savedQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]');
-    const newQuery = {
-      id: Date.now().toString(),
-      title: queryName,
-      description: `Drug advanced search with ${criteria.length} criteria`,
-      query_type: "drug_advanced_search",
-      query_data: {
-        searchTerm: "",
-        filters: {},
-        searchCriteria: criteria,
-        savedAt: new Date().toISOString()
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    savedQueries.push(newQuery);
-    localStorage.setItem('unifiedSavedQueries', JSON.stringify(savedQueries));
-    
-    // Debug: Log what we're saving
-    console.log("Saving to localStorage:", savedQueries);
-    console.log("Total queries in storage:", savedQueries.length);
-    
-    // Show feedback using toast
-    toast({
-      title: "Query Saved",
-      description: `Drug advanced search query saved as: ${queryName}`,
-    });
-    console.log("Drug query saved:", newQuery);
+    // Prepare the query data
+    const queryData = {
+      searchTerm: "",
+      filters: currentFilters || {},
+      searchCriteria: criteria,
+      savedAt: new Date().toISOString()
+    }
+
+    if (isEditMode && editingQueryId) {
+      // UPDATE MODE: Update existing query
+      const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+      const queryIndex = existingQueries.findIndex((q: any) => q.id === editingQueryId)
+
+      if (queryIndex !== -1) {
+        // Update the existing query
+        existingQueries[queryIndex] = {
+          ...existingQueries[queryIndex],
+          query_data: queryData,
+          updated_at: new Date().toISOString()
+        }
+        localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
+        
+        toast({
+          title: "Query Updated",
+          description: `"${editingQueryTitle}" has been updated successfully`,
+        });
+      }
+
+      // Try to update in backend API
+      try {
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved/${editingQueryId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              title: editingQueryTitle,
+              description: editingQueryDescription || null,
+              query_type: "drug_advanced_search",
+              query_data: queryData
+            })
+          }
+        ).then(response => {
+          if (response.ok) {
+            console.log("Query updated in backend successfully")
+          }
+        }).catch(err => {
+          console.warn("Backend update failed:", err)
+        })
+      } catch (apiError) {
+        console.warn("API update failed, but query updated locally:", apiError)
+      }
+
+      if (onSaveQuerySuccess) {
+        onSaveQuerySuccess()
+      }
+    } else {
+      // CREATE MODE: Create new query
+      const queryName = `Drug Advanced Search (${criteria.length} criteria) - ${new Date().toLocaleDateString()}`;
+      
+      const newQuery = {
+        id: Date.now().toString(),
+        title: queryName,
+        description: `Drug advanced search with ${criteria.length} criteria`,
+        query_type: "drug_advanced_search",
+        query_data: queryData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      const savedQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]');
+      savedQueries.push(newQuery);
+      localStorage.setItem('unifiedSavedQueries', JSON.stringify(savedQueries));
+      
+      // Debug: Log what we're saving
+      console.log("Saving to localStorage:", savedQueries);
+      console.log("Total queries in storage:", savedQueries.length);
+      
+      // Show feedback using toast
+      toast({
+        title: "Query Saved",
+        description: `Drug advanced search query saved as: ${queryName}`,
+      });
+      console.log("Drug query saved:", newQuery);
+
+      // Try to save to backend API
+      try {
+        fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              title: queryName,
+              description: `Drug advanced search with ${criteria.length} criteria`,
+              query_type: "drug_advanced_search",
+              query_data: queryData
+            })
+          }
+        ).then(response => {
+          if (response.ok) {
+            console.log("Query saved to backend successfully")
+          }
+        }).catch(err => {
+          console.warn("Backend save failed:", err)
+        })
+      } catch (apiError) {
+        console.warn("API save failed, but query saved locally:", apiError)
+      }
+    }
+  }
+
+  const handleClose = () => {
+    // Reset criteria when closing if not in edit mode
+    if (!isEditMode) {
+      setCriteria(DEFAULT_CRITERIA)
+    }
+    onOpenChange(false)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] p-0">
         <DialogHeader className="px-6 py-4 border-b bg-blue-50">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">Advanced Drug Search</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              {isEditMode ? `Edit Query: ${editingQueryTitle}` : "Advanced Drug Search"}
+            </DialogTitle>
           </div>
         </DialogHeader>
 
@@ -445,7 +558,7 @@ export function DrugAdvancedSearchModal({ open, onOpenChange, onApplySearch }: D
             </Button>
             <Button variant="outline" onClick={handleSaveQuery} className="bg-gray-600 text-white hover:bg-gray-700">
               <span className="mr-2">💾</span>
-              Save this Query
+              {isEditMode ? "Update Query" : "Save this Query"}
             </Button>
             <Button variant="outline" onClick={handleClear} className="bg-yellow-600 text-white hover:bg-yellow-700">
               <span className="mr-2">🔄</span>

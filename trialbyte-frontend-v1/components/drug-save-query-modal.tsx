@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,6 +18,9 @@ interface DrugSaveQueryModalProps {
   currentFilters: DrugFilterState
   currentSearchCriteria: DrugSearchCriteria[]
   searchTerm?: string
+  editingQueryId?: string | null
+  editingQueryTitle?: string
+  editingQueryDescription?: string
 }
 
 export function DrugSaveQueryModal({ 
@@ -26,16 +29,23 @@ export function DrugSaveQueryModal({
   onSaveSuccess,
   currentFilters,
   currentSearchCriteria,
-  searchTerm = ""
+  searchTerm = "",
+  editingQueryId = null,
+  editingQueryTitle = "",
+  editingQueryDescription = ""
 }: DrugSaveQueryModalProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  const isEditMode = editingQueryId !== null && editingQueryId !== ""
+
   const resetForm = () => {
-    setTitle("")
-    setDescription("")
+    if (!isEditMode) {
+      setTitle("")
+      setDescription("")
+    }
     setError("")
   }
 
@@ -43,6 +53,17 @@ export function DrugSaveQueryModal({
     resetForm()
     onOpenChange(false)
   }
+
+  // Pre-populate form when in edit mode
+  React.useEffect(() => {
+    if (open && isEditMode) {
+      setTitle(editingQueryTitle)
+      setDescription(editingQueryDescription)
+    } else if (open && !isEditMode) {
+      setTitle("")
+      setDescription("")
+    }
+  }, [open, isEditMode, editingQueryTitle, editingQueryDescription])
 
   const hasActiveFilters = () => {
     return Object.values(currentFilters).some(filter => filter.length > 0) || 
@@ -93,42 +114,111 @@ export function DrugSaveQueryModal({
         savedAt: new Date().toISOString()
       }
 
-      const requestBody = {
-        title: title.trim(),
-        description: description.trim() || null,
-        query_type: "drug_dashboard",
-        query_data: queryData,
-        filters: currentFilters
-        // user_id and trial_id are now optional for dashboard queries
-      }
+      if (isEditMode && editingQueryId) {
+        // UPDATE MODE: Update existing query
+        const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+        const queryIndex = existingQueries.findIndex((q: any) => q.id === editingQueryId)
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(requestBody)
+        if (queryIndex !== -1) {
+          // Update the existing query
+          existingQueries[queryIndex] = {
+            ...existingQueries[queryIndex],
+            title: title.trim(),
+            description: description.trim() || null,
+            query_data: queryData,
+            updated_at: new Date().toISOString()
+          }
+          localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
         }
-      )
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Failed to save query")
+        // Try to update in backend API
+        try {
+          const requestBody = {
+            title: title.trim(),
+            description: description.trim() || null,
+            query_type: "drug_dashboard",
+            query_data: queryData,
+            filters: currentFilters
+          }
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved/${editingQueryId}`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify(requestBody)
+            }
+          )
+
+          if (response.ok) {
+            const result = await response.json()
+            console.log("Query updated in backend successfully:", result)
+          } else {
+            console.warn("Backend update failed, but query updated locally")
+          }
+        } catch (apiError) {
+          console.warn("API update failed, but query updated locally:", apiError)
+        }
+      } else {
+        // CREATE MODE: Create new query
+        const localQuery = {
+          id: Date.now().toString(),
+          title: title.trim(),
+          description: description.trim() || null,
+          query_type: "drug_dashboard",
+          query_data: queryData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+
+        const existingQueries = JSON.parse(localStorage.getItem('unifiedSavedQueries') || '[]')
+        existingQueries.push(localQuery)
+        localStorage.setItem('unifiedSavedQueries', JSON.stringify(existingQueries))
+
+        // Try to save to backend API
+        try {
+          const requestBody = {
+            title: title.trim(),
+            description: description.trim() || null,
+            query_type: "drug_dashboard",
+            query_data: queryData,
+            filters: currentFilters
+          }
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/queries/saved`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify(requestBody)
+            }
+          )
+
+          if (response.ok) {
+            const result = await response.json()
+            console.log("Query saved to backend successfully:", result)
+          } else {
+            console.warn("Backend save failed, but query saved locally")
+          }
+        } catch (apiError) {
+          console.warn("API save failed, but query saved locally:", apiError)
+        }
       }
 
-      const result = await response.json()
-      
       if (onSaveSuccess) {
         onSaveSuccess()
       }
-      
+
       handleClose()
     } catch (error) {
       console.error("Error saving query:", error)
-      setError(error instanceof Error ? error.message : "Failed to save query")
+      setError("Failed to save query. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -138,7 +228,7 @@ export function DrugSaveQueryModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Save Current Drug Query</DialogTitle>
+          <DialogTitle>{isEditMode ? "Update Drug Query" : "Save Current Drug Query"}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -207,7 +297,7 @@ export function DrugSaveQueryModal({
               disabled={isLoading || !hasActiveFilters()}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Query
+              {isEditMode ? "Update Query" : "Save Query"}
             </Button>
           </div>
         </div>

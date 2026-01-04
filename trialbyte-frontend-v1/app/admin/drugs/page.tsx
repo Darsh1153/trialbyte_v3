@@ -41,6 +41,7 @@ import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal
 import { DrugSaveQueryModal } from "@/components/drug-save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
 import { DrugCustomizeColumnModal, DrugColumnSettings, DEFAULT_DRUG_COLUMN_SETTINGS } from "@/components/drug-customize-column-modal";
+import { useToast } from "@/hooks/use-toast";
 
 // Types based on the new API response
 interface DrugOverview {
@@ -142,6 +143,7 @@ interface ApiResponse {
 
 export default function DrugsDashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [drugs, setDrugs] = useState<DrugData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -171,6 +173,11 @@ export default function DrugsDashboardPage() {
   });
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
+  
+  // Query editing state
+  const [editingQueryId, setEditingQueryId] = useState<string | null>(null);
+  const [editingQueryTitle, setEditingQueryTitle] = useState<string>("");
+  const [editingQueryDescription, setEditingQueryDescription] = useState<string>("");
   
   // Sorting state
   const [sortField, setSortField] = useState<string>("");
@@ -331,17 +338,61 @@ export default function DrugsDashboardPage() {
 
   // Handle load query from history
   const handleLoadQuery = (queryData: any) => {
+    // Load search criteria
     if (queryData.searchCriteria && Array.isArray(queryData.searchCriteria)) {
       setAdvancedSearchCriteria(queryData.searchCriteria);
-      toast({
-        title: "Query Loaded",
-        description: `Loaded query with ${queryData.searchCriteria.length} criteria`,
-      });
     } else if (queryData.criteria && Array.isArray(queryData.criteria)) {
       setAdvancedSearchCriteria(queryData.criteria);
+    }
+    
+    // Load filters if available
+    if (queryData.filters) {
+      setAppliedFilters(queryData.filters);
+    }
+    
+    // Load search term if available
+    if (queryData.searchTerm) {
+      setSearchTerm(queryData.searchTerm);
+    }
+    
+    toast({
+      title: "Query Loaded",
+      description: `"${queryData.queryTitle || 'Query'}" has been applied to your current view`,
+    });
+  };
+
+  // Handle edit query from history
+  const handleEditQuery = (queryData: any) => {
+    console.log('Editing query data:', queryData);
+
+    // Store the query being edited
+    setEditingQueryId(queryData.queryId);
+    setEditingQueryTitle(queryData.queryTitle || "");
+    setEditingQueryDescription(queryData.queryDescription || "");
+
+    // Check if query has advanced search criteria
+    const hasAdvancedCriteria = queryData.searchCriteria && Array.isArray(queryData.searchCriteria) && queryData.searchCriteria.length > 0;
+
+    if (hasAdvancedCriteria) {
+      // Load the criteria and open Advanced Search modal for editing
+      setAdvancedSearchCriteria(queryData.searchCriteria);
+      setIsAdvancedSearchOpen(true);
       toast({
-        title: "Query Loaded",
-        description: `Loaded query with ${queryData.criteria.length} criteria`,
+        title: "Edit Query",
+        description: `Opening Advanced Search with "${queryData.queryTitle}"`,
+      });
+    } else {
+      // No advanced criteria, just open save query modal for editing title/description
+      if (queryData.filters) {
+        setAppliedFilters(queryData.filters);
+      }
+      if (queryData.searchTerm) {
+        setSearchTerm(queryData.searchTerm);
+      }
+      setSaveQueryModalOpen(true);
+      toast({
+        title: "Edit Query",
+        description: `Editing "${queryData.queryTitle}"`,
       });
     }
   };
@@ -1473,8 +1524,27 @@ export default function DrugsDashboardPage() {
       {/* Advanced Search Modal */}
       <DrugAdvancedSearchModal
         open={isAdvancedSearchOpen}
-        onOpenChange={setIsAdvancedSearchOpen}
+        onOpenChange={(open) => {
+          setIsAdvancedSearchOpen(open);
+          if (!open) {
+            // Reset editing state when modal closes
+            setEditingQueryId(null);
+            setEditingQueryTitle("");
+            setEditingQueryDescription("");
+          }
+        }}
         onApplySearch={handleAdvancedSearch}
+        initialCriteria={advancedSearchCriteria}
+        currentFilters={appliedFilters}
+        editingQueryId={editingQueryId}
+        editingQueryTitle={editingQueryTitle}
+        editingQueryDescription={editingQueryDescription}
+        onSaveQuerySuccess={() => {
+          // Reset editing state after successful save
+          setEditingQueryId(null);
+          setEditingQueryTitle("");
+          setEditingQueryDescription("");
+        }}
       />
 
       {/* Filter Modal */}
@@ -1488,10 +1558,21 @@ export default function DrugsDashboardPage() {
       {/* Save Query Modal */}
       <DrugSaveQueryModal
         open={saveQueryModalOpen}
-        onOpenChange={setSaveQueryModalOpen}
+        onOpenChange={(open) => {
+          setSaveQueryModalOpen(open);
+          if (!open) {
+            // Reset editing state when modal closes
+            setEditingQueryId(null);
+            setEditingQueryTitle("");
+            setEditingQueryDescription("");
+          }
+        }}
         currentFilters={appliedFilters}
         currentSearchCriteria={advancedSearchCriteria}
         searchTerm={searchTerm}
+        editingQueryId={editingQueryId}
+        editingQueryTitle={editingQueryTitle}
+        editingQueryDescription={editingQueryDescription}
       />
 
       {/* Query History Modal */}
@@ -1499,6 +1580,7 @@ export default function DrugsDashboardPage() {
         open={queryHistoryModalOpen}
         onOpenChange={setQueryHistoryModalOpen}
         onLoadQuery={handleLoadQuery}
+        onEditQuery={handleEditQuery}
       />
 
       {/* Drug Customize Column Modal */}
