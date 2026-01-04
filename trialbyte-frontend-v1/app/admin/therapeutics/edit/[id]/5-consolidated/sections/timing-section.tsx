@@ -754,7 +754,7 @@ export default function TimingSection() {
               <CardContent className="p-6 space-y-4">
                 {/* Reference Header */}
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-gray-900">Reference {index + 1}</h4>
+                  <h4 className="font-medium text-gray-900">Timing Info {index + 1}</h4>
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"

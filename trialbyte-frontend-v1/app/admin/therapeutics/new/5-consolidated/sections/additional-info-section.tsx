@@ -200,7 +200,14 @@ export default function AdditionalInfoSection() {
         {currentItems.length > 0 ? (
           currentItems.map((item: any, idx: number) => (
             <div key={item.id || idx} className={`space-y-2 p-4 border rounded-lg ${!item.isVisible ? 'bg-gray-50 opacity-60' : 'bg-white'}`}>
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-gray-900">
+                  {activeTab === "pipeline_data" && `Pipeline ${idx + 1}`}
+                  {activeTab === "press_releases" && `Press Release ${idx + 1}`}
+                  {activeTab === "publications" && `Publication ${idx + 1}`}
+                  {activeTab === "trial_registries" && `Registry ${idx + 1}`}
+                  {activeTab === "associated_studies" && `Study ${idx + 1}`}
+                </h4>
                 <Button
                   type="button"
                   variant="ghost"
