@@ -181,10 +181,10 @@ export interface EditTherapeuticFormData {
     patient_segment: string | string[];
     line_of_therapy: string | string[];
     reference_links: string[];
-    trial_tags: string;
+    trial_tags: string | string[];
     sponsor_collaborators: string | string[];
     sponsor_field_activity: string | string[];
-    associated_cro: string;
+    associated_cro: string | string[];
     countries: string | string[];
     region: string | string[];
     trial_record_status: string;
@@ -422,10 +422,10 @@ const initialFormData: EditTherapeuticFormData = {
     patient_segment: [],
     line_of_therapy: [],
     reference_links: [],
-    trial_tags: "",
+    trial_tags: [],
     sponsor_collaborators: [],
     sponsor_field_activity: [],
-    associated_cro: "",
+    associated_cro: [],
     countries: [],
     region: [],
     trial_record_status: "",
@@ -1075,10 +1075,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               patient_segment: stringToArray(foundTrial.overview?.patient_segment),
               line_of_therapy: stringToArray(foundTrial.overview?.line_of_therapy),
               reference_links: foundTrial.overview?.reference_links || [],
-              trial_tags: foundTrial.overview?.trial_tags || "",
+              trial_tags: stringToArray(foundTrial.overview?.trial_tags),
               sponsor_collaborators: stringToArray(foundTrial.overview?.sponsor_collaborators),
               sponsor_field_activity: stringToArray(foundTrial.overview?.sponsor_field_activity),
-              associated_cro: foundTrial.overview?.associated_cro || "",
+              associated_cro: stringToArray(foundTrial.overview?.associated_cro),
               countries: stringToArray(foundTrial.overview?.countries),
               region: stringToArray(foundTrial.overview?.region),
               trial_record_status: foundTrial.overview?.trial_record_status || "",
@@ -3326,10 +3326,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           patient_segment: arrayToString(formData.step5_1.patient_segment),
           line_of_therapy: arrayToString(formData.step5_1.line_of_therapy),
           reference_links: formData.step5_1.reference_links,
-          trial_tags: formData.step5_1.trial_tags,
+          trial_tags: arrayToString(formData.step5_1.trial_tags),
           sponsor_collaborators: arrayToString(formData.step5_1.sponsor_collaborators),
           sponsor_field_activity: arrayToString(formData.step5_1.sponsor_field_activity),
-          associated_cro: formData.step5_1.associated_cro,
+          associated_cro: arrayToString(formData.step5_1.associated_cro),
           countries: arrayToString(formData.step5_1.countries),
           region: arrayToString(formData.step5_1.region),
           trial_record_status: formData.step5_1.trial_record_status,

@@ -17,10 +17,10 @@ export interface TherapeuticFormData {
     patient_segment: string | string[];
     line_of_therapy: string | string[];
     reference_links: string[];
-    trial_tags: string;
+    trial_tags: string | string[];
     sponsor_collaborators: string | string[];
     sponsor_field_activity: string | string[];
-    associated_cro: string;
+    associated_cro: string | string[];
     countries: string | string[];
     region: string | string[];
     trial_record_status: string;
@@ -287,10 +287,10 @@ const initialFormState: TherapeuticFormData = {
     patient_segment: [],
     line_of_therapy: [],
     reference_links: [""],
-    trial_tags: "",
+    trial_tags: [],
     sponsor_collaborators: [],
     sponsor_field_activity: [],
-    associated_cro: "",
+    associated_cro: [],
     countries: [],
     region: [],
     trial_record_status: "",
@@ -1463,14 +1463,18 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             ? allFormData.step5_1.line_of_therapy.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.line_of_therapy),
           reference_links: allFormData.step5_1.reference_links.filter(Boolean).length > 0 ? allFormData.step5_1.reference_links.filter(Boolean) : [],
-          trial_tags: ensureString(allFormData.step5_1.trial_tags),
+          trial_tags: Array.isArray(allFormData.step5_1.trial_tags)
+            ? allFormData.step5_1.trial_tags.filter(Boolean).join(", ")
+            : ensureString(allFormData.step5_1.trial_tags),
           sponsor_collaborators: Array.isArray(allFormData.step5_1.sponsor_collaborators)
             ? allFormData.step5_1.sponsor_collaborators.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.sponsor_collaborators),
           sponsor_field_activity: Array.isArray(allFormData.step5_1.sponsor_field_activity)
             ? allFormData.step5_1.sponsor_field_activity.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.sponsor_field_activity),
-          associated_cro: ensureString(allFormData.step5_1.associated_cro),
+          associated_cro: Array.isArray(allFormData.step5_1.associated_cro)
+            ? allFormData.step5_1.associated_cro.filter(Boolean).join(", ")
+            : ensureString(allFormData.step5_1.associated_cro),
           countries: Array.isArray(allFormData.step5_1.countries)
             ? allFormData.step5_1.countries.filter(Boolean).join(", ")
             : ensureString(allFormData.step5_1.countries),

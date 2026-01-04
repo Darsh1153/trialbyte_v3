@@ -759,11 +759,11 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Trial Tags</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={trialTagsOptions}
-            value={form.trial_tags}
+            value={Array.isArray(form.trial_tags) ? form.trial_tags : (form.trial_tags ? [form.trial_tags] : [])}
             onValueChange={(v) => updateField("step5_1", "trial_tags", v)}
-            placeholder="Select trial tag"
+            placeholder="Select trial tags"
             searchPlaceholder="Search trial tags..."
             emptyMessage="No trial tag found."
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -799,11 +799,11 @@ export default function BasicInfoSection() {
         </div>
         <div className="space-y-2">
           <Label>Associated CRO</Label>
-          <SearchableSelect
+          <MultiSelectSearchable
             options={croOptions}
-            value={form.associated_cro}
+            value={Array.isArray(form.associated_cro) ? form.associated_cro : (form.associated_cro ? [form.associated_cro] : [])}
             onValueChange={(v) => updateField("step5_1", "associated_cro", v)}
-            placeholder="Select CRO"
+            placeholder="Select CROs"
             searchPlaceholder="Search CROs..."
             emptyMessage="No CRO found."
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
