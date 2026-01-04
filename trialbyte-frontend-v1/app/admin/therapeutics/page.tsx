@@ -538,21 +538,21 @@ export default function AdminTherapeuticsPage() {
 
       setDrugNameMapping(mapping);
       console.log("Drug name mapping built. Total entries:", mapping.size);
-      
+
       // Log all entries for debugging
       if (mapping.size > 0) {
         console.log("All drug mapping entries:");
         mapping.forEach((relatedSet, drugName) => {
           const relatedArray = Array.from(relatedSet);
           console.log(`  "${drugName}" -> [${relatedArray.join(", ")}]`);
-          
+
           // Specifically log entries containing "value 100", "value 101", or "value 102"
-          if (drugName.toLowerCase().includes('value 100') || 
-              drugName.toLowerCase().includes('value 101') || 
-              drugName.toLowerCase().includes('value 102') ||
-              relatedArray.some(name => name.toLowerCase().includes('value 100') || 
-                                        name.toLowerCase().includes('value 101') || 
-                                        name.toLowerCase().includes('value 102'))) {
+          if (drugName.toLowerCase().includes('value 100') ||
+            drugName.toLowerCase().includes('value 101') ||
+            drugName.toLowerCase().includes('value 102') ||
+            relatedArray.some(name => name.toLowerCase().includes('value 100') ||
+              name.toLowerCase().includes('value 101') ||
+              name.toLowerCase().includes('value 102'))) {
             console.log(`  *** Found value 100/101/102 entry: "${drugName}" -> [${relatedArray.join(", ")}]`);
           }
         });
@@ -1414,7 +1414,7 @@ export default function AdminTherapeuticsPage() {
           });
           return false;
         }
-        
+
         // If mapping is empty, return false (don't match anything)
         if (drugNameMapping.size === 0) {
           console.log('Drug mapping is empty - no matches for drug field search:', {
@@ -1424,23 +1424,23 @@ export default function AdminTherapeuticsPage() {
           });
           return false;
         }
-        
+
         // searchValueLower is already defined at the top
         const trialDrugValue = fieldValue.toLowerCase().trim();
-        
+
         // If trial has no drug value, don't match
         if (!trialDrugValue || trialDrugValue === "") {
           return false;
         }
-        
+
         // Get all related drug names for the search value (case-insensitive)
         const relatedNames = new Set<string>();
-        
+
         // Iterate through the drug mapping to find all related names
         // The mapping has original case keys, so we need to do case-insensitive lookup
         drugNameMapping.forEach((relatedSet, drugName) => {
           const drugNameLower = drugName.toLowerCase().trim();
-          
+
           // If the search value matches this drug name (case-insensitive)
           if (drugNameLower === searchValueLower) {
             // Add all related names from this drug entry (convert to lowercase)
@@ -1456,7 +1456,7 @@ export default function AdminTherapeuticsPage() {
             }
           }
         });
-        
+
         // Also check if any name in the related sets matches the search value
         drugNameMapping.forEach((relatedSet, drugName) => {
           relatedSet.forEach(name => {
@@ -1477,12 +1477,12 @@ export default function AdminTherapeuticsPage() {
             }
           });
         });
-        
+
         // If we found related names, check if the trial's drug value matches any of them
         if (relatedNames.size > 0) {
           // Normalize trial drug value for comparison
           const trialValueTrimmed = trialDrugValue.trim();
-          
+
           // Check if trial value exactly matches any related name (case-insensitive)
           const matchesRelatedName = Array.from(relatedNames).some(relatedName => {
             const relatedNameTrimmed = relatedName.trim();
@@ -1493,7 +1493,7 @@ export default function AdminTherapeuticsPage() {
             }
             return matches;
           });
-          
+
           // Debug logging
           console.log('Drug search debug:', {
             field,
@@ -1508,7 +1508,7 @@ export default function AdminTherapeuticsPage() {
             trialId: trial.trial_id,
             willMatch: matchesRelatedName
           });
-          
+
           // Extra logging for value 100/101/102 searches
           if (searchValueLower.includes('value 100') || searchValueLower.includes('value 101') || searchValueLower.includes('value 102')) {
             console.log('*** Value 100/101/102 search details:', {
@@ -1521,7 +1521,7 @@ export default function AdminTherapeuticsPage() {
               trialId: trial.trial_id
             });
           }
-          
+
           switch (operator) {
             case "contains":
             case "is":
@@ -1549,7 +1549,7 @@ export default function AdminTherapeuticsPage() {
             drugNameMappingSize: drugNameMapping.size,
             trialId: trial.trial_id
           });
-          
+
           // For value 100/101/102, show more details
           if (searchValueLower.includes('value 100') || searchValueLower.includes('value 101') || searchValueLower.includes('value 102')) {
             console.warn('*** Value 100/101/102 not found in mapping!', {
@@ -1559,7 +1559,7 @@ export default function AdminTherapeuticsPage() {
               message: 'Check if drug entry has these values in drug_name, generic_name, or other_name fields'
             });
           }
-          
+
           // Return false - don't match if no related names found
           // This ensures only trials with related drug names are shown
           return false;
@@ -1637,7 +1637,7 @@ export default function AdminTherapeuticsPage() {
               }
             });
           });
-          
+
           if (relatedNames.size > 0) {
             console.log(`🔍 Drug Search Summary for "${criterionValue}":`, {
               searchValue: criterionValue,
@@ -2148,12 +2148,12 @@ export default function AdminTherapeuticsPage() {
               }
             });
           });
-          
+
           const matchingTrials = filteredTrials.filter(trial => {
             const trialDrug = (trial.overview?.primary_drugs || "").toLowerCase().trim();
             return Array.from(relatedNames).some(name => name === trialDrug);
           });
-          
+
           console.log(`📊 Drug Search Summary for "${criterionValue}":`, {
             searchValue: criterionValue,
             relatedNames: Array.from(relatedNames),
@@ -2404,9 +2404,9 @@ export default function AdminTherapeuticsPage() {
   // Note: Do not block render with a loading screen; render UI immediately
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="space-y-4 w-0 min-w-full">
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div className="shrink-0">
           <h1 className="text-2xl font-bold">Clinical Trials</h1>
           <p className="text-sm text-muted-foreground">
             Browse and manage all trials. Total: {trials.length}
@@ -2422,7 +2422,7 @@ export default function AdminTherapeuticsPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center space-x-2 ml-5">
+        <div className="flex items-center flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => setIsAdvancedSearchOpen(true)}
@@ -2727,400 +2727,344 @@ export default function AdminTherapeuticsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card ">
-        {/* Desktop / larger screens → normal table */}
-        <ScrollArea className="rounded-md border">
-          <div className="">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40">
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={isSelectAllChecked}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Trial ID</TableHead>
-                  <TableHead>Title</TableHead>
-                  {columnSettings.therapeuticArea && <TableHead>Therapeutic Area</TableHead>}
-                  {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
-                  {columnSettings.primaryDrug && <TableHead>Primary Drug</TableHead>}
-                  {columnSettings.trialPhase && <TableHead>Trial Phase</TableHead>}
-                  {columnSettings.patientSegment && <TableHead>Patient Segment</TableHead>}
-                  {columnSettings.lineOfTherapy && <TableHead>Line of Therapy</TableHead>}
-                  {columnSettings.countries && <TableHead>Countries</TableHead>}
-                  {columnSettings.sponsorsCollaborators && <TableHead>Sponsors & Collaborators</TableHead>}
-                  {columnSettings.sponsor && <TableHead>Sponsor</TableHead>}
-                  {columnSettings.fieldOfActivity && <TableHead>Field of Activity</TableHead>}
-                  {columnSettings.associatedCro && <TableHead>Associated CRO</TableHead>}
-                  {columnSettings.trialTags && <TableHead>Trial Tags</TableHead>}
-                  {columnSettings.sex && <TableHead>Sex</TableHead>}
-                  {columnSettings.healthyVolunteers && <TableHead>Healthy Volunteers</TableHead>}
-                  {columnSettings.trialRecordStatus && <TableHead>Trial Record Status</TableHead>}
-                  {columnSettings.otherDrugs && <TableHead>Other Drugs</TableHead>}
-                  {columnSettings.regions && <TableHead>Regions</TableHead>}
-                  {columnSettings.ageMin && <TableHead>Age Min</TableHead>}
-                  {columnSettings.ageMax && <TableHead>Age Max</TableHead>}
-                  {columnSettings.subjectType && <TableHead>Subject Type</TableHead>}
-                  {columnSettings.ecogPerformanceStatus && <TableHead>ECOG Status</TableHead>}
-                  {columnSettings.priorTreatments && <TableHead>Prior Treatments</TableHead>}
-                  {columnSettings.biomarkerRequirements && <TableHead>Biomarker Requirements</TableHead>}
-                  {columnSettings.estimatedEnrollment && <TableHead>Est. Enrollment</TableHead>}
-                  {columnSettings.actualEnrollment && <TableHead>Actual Enrollment</TableHead>}
-                  {columnSettings.enrollmentStatus && <TableHead>Enrollment Status</TableHead>}
-                  {columnSettings.recruitmentPeriod && <TableHead>Recruitment Period</TableHead>}
-                  {columnSettings.studyCompletionDate && <TableHead>Study Completion</TableHead>}
-                  {columnSettings.primaryCompletionDate && <TableHead>Primary Completion</TableHead>}
-                  {columnSettings.populationDescription && <TableHead>Population</TableHead>}
-                  {columnSettings.studySites && <TableHead>Study Sites</TableHead>}
-                  {columnSettings.principalInvestigators && <TableHead>Principal Investigators</TableHead>}
-                  {columnSettings.siteStatus && <TableHead>Site Status</TableHead>}
-                  {columnSettings.siteCountries && <TableHead>Site Countries</TableHead>}
-                  {columnSettings.siteRegions && <TableHead>Site Regions</TableHead>}
-                  {columnSettings.siteContactInfo && <TableHead>Site Contact Info</TableHead>}
-                  {columnSettings.trialResults && <TableHead>Trial Results</TableHead>}
-                  {columnSettings.trialOutcomeContent && <TableHead>Trial Outcome Content</TableHead>}
-                  {columnSettings.resultsAvailable && <TableHead>Results Available</TableHead>}
-                  {columnSettings.endpointsMet && <TableHead>Endpoints Met</TableHead>}
-                  {columnSettings.adverseEventsReported && <TableHead>Adverse Events</TableHead>}
-                  {columnSettings.studyStartDate && <TableHead>Study Start Date</TableHead>}
-                  {columnSettings.firstPatientIn && <TableHead>First Patient In</TableHead>}
-                  {columnSettings.lastPatientIn && <TableHead>Last Patient In</TableHead>}
-                  {columnSettings.studyEndDate && <TableHead>Study End Date</TableHead>}
-                  {columnSettings.interimAnalysisDates && <TableHead>Interim Analysis</TableHead>}
-                  {columnSettings.finalAnalysisDate && <TableHead>Final Analysis</TableHead>}
-                  {columnSettings.regulatorySubmissionDate && <TableHead>Regulatory Submission</TableHead>}
-                  {columnSettings.purposeOfTrial && <TableHead>Purpose of Trial</TableHead>}
-                  {columnSettings.summary && <TableHead>Summary</TableHead>}
-                  {columnSettings.primaryOutcomeMeasures && <TableHead>Primary Outcome</TableHead>}
-                  {columnSettings.otherOutcomeMeasures && <TableHead>Other Outcome</TableHead>}
-                  {columnSettings.studyDesignKeywords && <TableHead>Study Design Keywords</TableHead>}
-                  {columnSettings.studyDesign && <TableHead>Study Design</TableHead>}
-                  {columnSettings.treatmentRegimen && <TableHead>Treatment Regimen</TableHead>}
-                  {columnSettings.numberOfArms && <TableHead>Number of Arms</TableHead>}
-                  {columnSettings.inclusionCriteria && <TableHead>Inclusion Criteria</TableHead>}
-                  {columnSettings.exclusionCriteria && <TableHead>Exclusion Criteria</TableHead>}
-                  {columnSettings.ageFrom && <TableHead>Age From</TableHead>}
-                  {columnSettings.ageTo && <TableHead>Age To</TableHead>}
-                  {columnSettings.gender && <TableHead>Gender</TableHead>}
-                  {columnSettings.targetNoVolunteers && <TableHead>Target Volunteers</TableHead>}
-                  {columnSettings.actualEnrolledVolunteers && <TableHead>Actual Volunteers</TableHead>}
-                  {columnSettings.startDateEstimated && <TableHead>Start Date Est.</TableHead>}
-                  {columnSettings.trialEndDateEstimated && <TableHead>End Date Est.</TableHead>}
-                  {columnSettings.trialOutcome && <TableHead>Trial Outcome</TableHead>}
-                  {columnSettings.adverseEventReported && <TableHead>Adverse Event</TableHead>}
-                  {columnSettings.adverseEventType && <TableHead>Adverse Event Type</TableHead>}
-                  {columnSettings.treatmentForAdverseEvents && <TableHead>Treatment for AE</TableHead>}
-                  {columnSettings.totalSites && <TableHead>Total Sites</TableHead>}
-                  {columnSettings.siteNotes && <TableHead>Site Notes</TableHead>}
-                  {columnSettings.publicationType && <TableHead>Publication Type</TableHead>}
-                  {columnSettings.registryName && <TableHead>Registry Name</TableHead>}
-                  {columnSettings.studyType && <TableHead>Study Type</TableHead>}
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="">
-                {paginatedTrials.map((trial) => (
-                  <TableRow key={trial.trial_id} className="hover:bg-muted/40">
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedTrials.has(trial.trial_id)}
-                        onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-mono max-w-[140px] truncate" title={trial.overview.trial_id || trial.trial_id}>
-                      {trial.overview.trial_id || (trial.trial_id ? `${trial.trial_id.slice(0, 8)}...` : "-")}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
-                      {trial.overview.title || "Untitled"}
-                    </TableCell>
-                    {columnSettings.therapeuticArea && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.therapeutic_area || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.diseaseType && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.disease_type || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.primaryDrug && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.primary_drugs || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.trialPhase && (
-                      <TableCell>{trial.overview.trial_phase || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.patientSegment && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.patient_segment || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.lineOfTherapy && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.line_of_therapy || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.countries && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.countries || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.sponsorsCollaborators && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.sponsor && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.fieldOfActivity && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_field_activity || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.associatedCro && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.associated_cro || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.trialTags && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.trial_tags || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.sex && (
-                      <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.healthyVolunteers && (
-                      <TableCell>{trial.criteria[0]?.healthy_volunteers || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.trialRecordStatus && (
-                      <TableCell className="max-w-[120px] truncate">{trial.overview.trial_record_status || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.otherDrugs && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.other_drugs || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.regions && (
-                      <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.ageMin && (
-                      <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.ageMax && (
-                      <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.subjectType && (
-                      <TableCell>{trial.criteria[0]?.subject_type || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.ecogPerformanceStatus && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.priorTreatments && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.biomarkerRequirements && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.estimatedEnrollment && (
-                      <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.actualEnrollment && (
-                      <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.enrollmentStatus && (
-                      <TableCell>{trial.overview.status || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.recruitmentPeriod && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.studyCompletionDate && (
-                      <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.primaryCompletionDate && (
-                      <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.populationDescription && (
-                      <TableCell className="max-w-[150px] truncate">{trial.overview.patient_segment || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.studySites && (
-                      <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.principalInvestigators && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.siteStatus && (
-                      <TableCell>{trial.overview.status || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.siteCountries && (
-                      <TableCell className="max-w-[120px] truncate">{trial.overview.countries || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.siteRegions && (
-                      <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.siteContactInfo && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.trialResults && (
-                      <TableCell className="max-w-[150px] truncate">
-                        {trial.results[0]?.trial_results?.join(", ") || "N/A"}
-                      </TableCell>
-                    )}
-                    {columnSettings.trialOutcomeContent && (
-                      <TableCell className="max-w-[150px] truncate">{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.resultsAvailable && (
-                      <TableCell>{trial.results?.length > 0 ? "Yes" : "No"}</TableCell>
-                    )}
-                    {columnSettings.endpointsMet && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.adverseEventsReported && (
-                      <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.studyStartDate && (
-                      <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.firstPatientIn && (
-                      <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.lastPatientIn && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.studyEndDate && (
-                      <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.interimAnalysisDates && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.finalAnalysisDate && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.regulatorySubmissionDate && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.purposeOfTrial && (
-                      <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.purpose_of_trial || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.summary && (
-                      <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.summary || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.primaryOutcomeMeasures && (
-                      <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.primary_outcome_measure || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.otherOutcomeMeasures && (
-                      <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.other_outcome_measure || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.studyDesignKeywords && (
-                      <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.study_design_keywords || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.studyDesign && (
-                      <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.study_design || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.treatmentRegimen && (
-                      <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.treatment_regimen || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.numberOfArms && (
-                      <TableCell>{trial.outcomes[0]?.number_of_arms || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.inclusionCriteria && (
-                      <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.inclusion_criteria || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.exclusionCriteria && (
-                      <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.exclusion_criteria || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.ageFrom && (
-                      <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.ageTo && (
-                      <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.gender && (
-                      <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.targetNoVolunteers && (
-                      <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.actualEnrolledVolunteers && (
-                      <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.startDateEstimated && (
-                      <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.trialEndDateEstimated && (
-                      <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.trialOutcome && (
-                      <TableCell>{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.adverseEventReported && (
-                      <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.adverseEventType && (
-                      <TableCell className="max-w-[120px] truncate">{trial.results[0]?.adverse_event_type || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.treatmentForAdverseEvents && (
-                      <TableCell className="max-w-[150px] truncate">{trial.results[0]?.treatment_for_adverse_events || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.totalSites && (
-                      <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.siteNotes && (
-                      <TableCell className="max-w-[150px] truncate">{trial.sites[0]?.notes || "N/A"}</TableCell>
-                    )}
-                    {columnSettings.publicationType && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.registryName && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    {columnSettings.studyType && (
-                      <TableCell>N/A</TableCell>
-                    )}
-                    <TableCell className="text-sm">{formatDate(trial.overview.created_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => {
-                          router.push(`/admin/therapeutics/${trial.trial_id}`);
-                        }}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableCaption>
-                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} Clinical Trials
-              </TableCaption>
-            </Table>
-          </div>
-          <ScrollBar orientation="horizontal" />
-
-        </ScrollArea>
-
-        {/* Mobile / small screens → cards */}
-        <div className="block md:hidden space-y-4 p-2">
-          {paginatedTrials.map((trial) => (
-            <Card key={trial.trial_id} className="shadow-sm">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">
-                      {trial.overview.trial_id || trial.trial_id.slice(0, 8) + '...'}
-                    </span></p>
-                    <p className="font-semibold">{trial.overview.title || "Untitled"}</p>
-                    <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
-                    <p className="text-sm">Disease: {trial.overview.disease_type || "N/A"}</p>
-                    <p className="text-sm">Status: <span className={getStatusColor(trial.overview.status)}>{trial.overview.status || "Unknown"}</span></p>
-                    <p className="text-sm">Phase: {trial.overview.trial_phase || "N/A"}</p>
-                    <p className="text-sm">Sponsor: {trial.overview.sponsor_collaborators || "N/A"}</p>
-                    <p className="text-sm">Created: {formatDate(trial.overview.created_at)}</p>
-                  </div>
-                  <div className="flex flex-col items-end space-y-2">
+      <div className="rounded-xl border bg-card relative overflow-hidden">
+        {/* Desktop / larger screens → normal table with fixed height scrollable container */}
+        <div
+          className="h-[calc(100vh-480px)] min-h-[400px] w-full [&>div]:h-full [&>div]:overflow-auto"
+        >
+          <Table className="min-w-[1800px]">
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isSelectAllChecked}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>Trial ID</TableHead>
+                <TableHead>Title</TableHead>
+                {columnSettings.therapeuticArea && <TableHead>Therapeutic Area</TableHead>}
+                {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
+                {columnSettings.primaryDrug && <TableHead>Primary Drug</TableHead>}
+                {columnSettings.trialPhase && <TableHead>Trial Phase</TableHead>}
+                {columnSettings.patientSegment && <TableHead>Patient Segment</TableHead>}
+                {columnSettings.lineOfTherapy && <TableHead>Line of Therapy</TableHead>}
+                {columnSettings.countries && <TableHead>Countries</TableHead>}
+                {columnSettings.sponsorsCollaborators && <TableHead>Sponsors & Collaborators</TableHead>}
+                {columnSettings.sponsor && <TableHead>Sponsor</TableHead>}
+                {columnSettings.fieldOfActivity && <TableHead>Field of Activity</TableHead>}
+                {columnSettings.associatedCro && <TableHead>Associated CRO</TableHead>}
+                {columnSettings.trialTags && <TableHead>Trial Tags</TableHead>}
+                {columnSettings.sex && <TableHead>Sex</TableHead>}
+                {columnSettings.healthyVolunteers && <TableHead>Healthy Volunteers</TableHead>}
+                {columnSettings.trialRecordStatus && <TableHead>Trial Record Status</TableHead>}
+                {columnSettings.otherDrugs && <TableHead>Other Drugs</TableHead>}
+                {columnSettings.regions && <TableHead>Regions</TableHead>}
+                {columnSettings.ageMin && <TableHead>Age Min</TableHead>}
+                {columnSettings.ageMax && <TableHead>Age Max</TableHead>}
+                {columnSettings.subjectType && <TableHead>Subject Type</TableHead>}
+                {columnSettings.ecogPerformanceStatus && <TableHead>ECOG Status</TableHead>}
+                {columnSettings.priorTreatments && <TableHead>Prior Treatments</TableHead>}
+                {columnSettings.biomarkerRequirements && <TableHead>Biomarker Requirements</TableHead>}
+                {columnSettings.estimatedEnrollment && <TableHead>Est. Enrollment</TableHead>}
+                {columnSettings.actualEnrollment && <TableHead>Actual Enrollment</TableHead>}
+                {columnSettings.enrollmentStatus && <TableHead>Enrollment Status</TableHead>}
+                {columnSettings.recruitmentPeriod && <TableHead>Recruitment Period</TableHead>}
+                {columnSettings.studyCompletionDate && <TableHead>Study Completion</TableHead>}
+                {columnSettings.primaryCompletionDate && <TableHead>Primary Completion</TableHead>}
+                {columnSettings.populationDescription && <TableHead>Population</TableHead>}
+                {columnSettings.studySites && <TableHead>Study Sites</TableHead>}
+                {columnSettings.principalInvestigators && <TableHead>Principal Investigators</TableHead>}
+                {columnSettings.siteStatus && <TableHead>Site Status</TableHead>}
+                {columnSettings.siteCountries && <TableHead>Site Countries</TableHead>}
+                {columnSettings.siteRegions && <TableHead>Site Regions</TableHead>}
+                {columnSettings.siteContactInfo && <TableHead>Site Contact Info</TableHead>}
+                {columnSettings.trialResults && <TableHead>Trial Results</TableHead>}
+                {columnSettings.trialOutcomeContent && <TableHead>Trial Outcome Content</TableHead>}
+                {columnSettings.resultsAvailable && <TableHead>Results Available</TableHead>}
+                {columnSettings.endpointsMet && <TableHead>Endpoints Met</TableHead>}
+                {columnSettings.adverseEventsReported && <TableHead>Adverse Events</TableHead>}
+                {columnSettings.studyStartDate && <TableHead>Study Start Date</TableHead>}
+                {columnSettings.firstPatientIn && <TableHead>First Patient In</TableHead>}
+                {columnSettings.lastPatientIn && <TableHead>Last Patient In</TableHead>}
+                {columnSettings.studyEndDate && <TableHead>Study End Date</TableHead>}
+                {columnSettings.interimAnalysisDates && <TableHead>Interim Analysis</TableHead>}
+                {columnSettings.finalAnalysisDate && <TableHead>Final Analysis</TableHead>}
+                {columnSettings.regulatorySubmissionDate && <TableHead>Regulatory Submission</TableHead>}
+                {columnSettings.purposeOfTrial && <TableHead>Purpose of Trial</TableHead>}
+                {columnSettings.summary && <TableHead>Summary</TableHead>}
+                {columnSettings.primaryOutcomeMeasures && <TableHead>Primary Outcome</TableHead>}
+                {columnSettings.otherOutcomeMeasures && <TableHead>Other Outcome</TableHead>}
+                {columnSettings.studyDesignKeywords && <TableHead>Study Design Keywords</TableHead>}
+                {columnSettings.studyDesign && <TableHead>Study Design</TableHead>}
+                {columnSettings.treatmentRegimen && <TableHead>Treatment Regimen</TableHead>}
+                {columnSettings.numberOfArms && <TableHead>Number of Arms</TableHead>}
+                {columnSettings.inclusionCriteria && <TableHead>Inclusion Criteria</TableHead>}
+                {columnSettings.exclusionCriteria && <TableHead>Exclusion Criteria</TableHead>}
+                {columnSettings.ageFrom && <TableHead>Age From</TableHead>}
+                {columnSettings.ageTo && <TableHead>Age To</TableHead>}
+                {columnSettings.gender && <TableHead>Gender</TableHead>}
+                {columnSettings.targetNoVolunteers && <TableHead>Target Volunteers</TableHead>}
+                {columnSettings.actualEnrolledVolunteers && <TableHead>Actual Volunteers</TableHead>}
+                {columnSettings.startDateEstimated && <TableHead>Start Date Est.</TableHead>}
+                {columnSettings.trialEndDateEstimated && <TableHead>End Date Est.</TableHead>}
+                {columnSettings.trialOutcome && <TableHead>Trial Outcome</TableHead>}
+                {columnSettings.adverseEventReported && <TableHead>Adverse Event</TableHead>}
+                {columnSettings.adverseEventType && <TableHead>Adverse Event Type</TableHead>}
+                {columnSettings.treatmentForAdverseEvents && <TableHead>Treatment for AE</TableHead>}
+                {columnSettings.totalSites && <TableHead>Total Sites</TableHead>}
+                {columnSettings.siteNotes && <TableHead>Site Notes</TableHead>}
+                {columnSettings.publicationType && <TableHead>Publication Type</TableHead>}
+                {columnSettings.registryName && <TableHead>Registry Name</TableHead>}
+                {columnSettings.studyType && <TableHead>Study Type</TableHead>}
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="">
+              {paginatedTrials.map((trial) => (
+                <TableRow key={trial.trial_id} className="hover:bg-muted/40">
+                  <TableCell>
                     <Checkbox
                       checked={selectedTrials.has(trial.trial_id)}
                       onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
                     />
-                    <div className="flex items-center space-x-2">
+                  </TableCell>
+                  <TableCell className="font-mono max-w-[140px] truncate" title={trial.overview.trial_id || trial.trial_id}>
+                    {trial.overview.trial_id || (trial.trial_id ? `${trial.trial_id.slice(0, 8)}...` : "-")}
+                  </TableCell>
+                  <TableCell className="max-w-[200px] truncate" title={trial.overview.title}>
+                    {trial.overview.title || "Untitled"}
+                  </TableCell>
+                  {columnSettings.therapeuticArea && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.therapeutic_area || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.diseaseType && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.disease_type || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.primaryDrug && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.primary_drugs || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialPhase && (
+                    <TableCell>{trial.overview.trial_phase || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.patientSegment && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.patient_segment || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.lineOfTherapy && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.line_of_therapy || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.countries && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.countries || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.sponsorsCollaborators && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.sponsor && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_collaborators || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.fieldOfActivity && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.sponsor_field_activity || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.associatedCro && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.associated_cro || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialTags && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.trial_tags || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.sex && (
+                    <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.healthyVolunteers && (
+                    <TableCell>{trial.criteria[0]?.healthy_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialRecordStatus && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.trial_record_status || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.otherDrugs && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.other_drugs || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.regions && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageMin && (
+                    <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageMax && (
+                    <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.subjectType && (
+                    <TableCell>{trial.criteria[0]?.subject_type || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ecogPerformanceStatus && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.priorTreatments && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.biomarkerRequirements && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.estimatedEnrollment && (
+                    <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.actualEnrollment && (
+                    <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.enrollmentStatus && (
+                    <TableCell>{trial.overview.status || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.recruitmentPeriod && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.studyCompletionDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.primaryCompletionDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.populationDescription && (
+                    <TableCell className="max-w-[150px] truncate">{trial.overview.patient_segment || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studySites && (
+                    <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.principalInvestigators && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.siteStatus && (
+                    <TableCell>{trial.overview.status || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteCountries && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.countries || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteRegions && (
+                    <TableCell className="max-w-[120px] truncate">{trial.overview.region || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteContactInfo && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.trialResults && (
+                    <TableCell className="max-w-[150px] truncate">
+                      {trial.results[0]?.trial_results?.join(", ") || "N/A"}
+                    </TableCell>
+                  )}
+                  {columnSettings.trialOutcomeContent && (
+                    <TableCell className="max-w-[150px] truncate">{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.resultsAvailable && (
+                    <TableCell>{trial.results?.length > 0 ? "Yes" : "No"}</TableCell>
+                  )}
+                  {columnSettings.endpointsMet && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.adverseEventsReported && (
+                    <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studyStartDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.firstPatientIn && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.lastPatientIn && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.studyEndDate && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.interimAnalysisDates && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.finalAnalysisDate && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.regulatorySubmissionDate && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.purposeOfTrial && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.purpose_of_trial || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.summary && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.summary || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.primaryOutcomeMeasures && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.primary_outcome_measure || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.otherOutcomeMeasures && (
+                    <TableCell className="max-w-[200px] truncate">{trial.outcomes[0]?.other_outcome_measure || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studyDesignKeywords && (
+                    <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.study_design_keywords || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.studyDesign && (
+                    <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.study_design || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.treatmentRegimen && (
+                    <TableCell className="max-w-[150px] truncate">{trial.outcomes[0]?.treatment_regimen || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.numberOfArms && (
+                    <TableCell>{trial.outcomes[0]?.number_of_arms || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.inclusionCriteria && (
+                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.inclusion_criteria || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.exclusionCriteria && (
+                    <TableCell className="max-w-[200px] truncate">{trial.criteria[0]?.exclusion_criteria || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageFrom && (
+                    <TableCell>{trial.criteria[0]?.age_from || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.ageTo && (
+                    <TableCell>{trial.criteria[0]?.age_to || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.gender && (
+                    <TableCell>{trial.criteria[0]?.sex || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.targetNoVolunteers && (
+                    <TableCell>{trial.criteria[0]?.target_no_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.actualEnrolledVolunteers && (
+                    <TableCell>{trial.criteria[0]?.actual_enrolled_volunteers || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.startDateEstimated && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.start_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialEndDateEstimated && (
+                    <TableCell className="text-sm">{formatDate(trial.timing[0]?.trial_end_date_estimated) || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.trialOutcome && (
+                    <TableCell>{trial.results[0]?.trial_outcome || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.adverseEventReported && (
+                    <TableCell>{trial.results[0]?.adverse_event_reported || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.adverseEventType && (
+                    <TableCell className="max-w-[120px] truncate">{trial.results[0]?.adverse_event_type || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.treatmentForAdverseEvents && (
+                    <TableCell className="max-w-[150px] truncate">{trial.results[0]?.treatment_for_adverse_events || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.totalSites && (
+                    <TableCell>{trial.sites[0]?.total || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.siteNotes && (
+                    <TableCell className="max-w-[150px] truncate">{trial.sites[0]?.notes || "N/A"}</TableCell>
+                  )}
+                  {columnSettings.publicationType && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.registryName && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  {columnSettings.studyType && (
+                    <TableCell>N/A</TableCell>
+                  )}
+                  <TableCell className="text-sm">{formatDate(trial.overview.created_at)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end space-x-2">
                       <Button variant="outline" size="sm" onClick={() => {
-                        const popup = window.open(
-                          `/admin/therapeutics/${trial.trial_id}/backend`,
-                          `trial_backend_${trial.trial_id}`,
-                          `width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no`
-                        );
-                        if (!popup) {
-                          toast({
-                            title: "Popup blocked",
-                            description: "Please allow popups for this site to view trial backend data.",
-                            variant: "destructive",
-                          });
-                        }
+                        router.push(`/admin/therapeutics/${trial.trial_id}`);
                       }}>
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -3128,89 +3072,141 @@ export default function AdminTherapeuticsPage() {
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableCaption>
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} Clinical Trials
+            </TableCaption>
+          </Table>
         </div>
       </div>
 
+      {/* Mobile / small screens → cards */}
+      <div className="block md:hidden space-y-4 p-2">
+        {paginatedTrials.map((trial) => (
+          <Card key={trial.trial_id} className="shadow-sm">
+            <CardContent className="p-4 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">Trial ID: <span className="font-mono">
+                    {trial.overview.trial_id || trial.trial_id.slice(0, 8) + '...'}
+                  </span></p>
+                  <p className="font-semibold">{trial.overview.title || "Untitled"}</p>
+                  <Badge variant="outline">{trial.overview.therapeutic_area || "N/A"}</Badge>
+                  <p className="text-sm">Disease: {trial.overview.disease_type || "N/A"}</p>
+                  <p className="text-sm">Status: <span className={getStatusColor(trial.overview.status)}>{trial.overview.status || "Unknown"}</span></p>
+                  <p className="text-sm">Phase: {trial.overview.trial_phase || "N/A"}</p>
+                  <p className="text-sm">Sponsor: {trial.overview.sponsor_collaborators || "N/A"}</p>
+                  <p className="text-sm">Created: {formatDate(trial.overview.created_at)}</p>
+                </div>
+                <div className="flex flex-col items-end space-y-2">
+                  <Checkbox
+                    checked={selectedTrials.has(trial.trial_id)}
+                    onCheckedChange={(checked) => handleSelectTrial(trial.trial_id, checked as boolean)}
+                  />
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      const popup = window.open(
+                        `/admin/therapeutics/${trial.trial_id}/backend`,
+                        `trial_backend_${trial.trial_id}`,
+                        `width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no`
+                      );
+                      if (!popup) {
+                        toast({
+                          title: "Popup blocked",
+                          description: "Please allow popups for this site to view trial backend data.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* Pagination Controls */}
-      {
-        totalItems > 0 && (
-          <div className="flex items-center justify-between px-4 py-4 border-t">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="items-per-page" className="text-sm font-medium">
-                  Results per page:
-                </Label>
-                <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
-                  <SelectTrigger className="w-20">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
-              </div>
+      {totalItems > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-white">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="items-per-page" className="text-sm font-medium whitespace-nowrap">
+                Results per page:
+              </Label>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+                <SelectTrigger className="w-[70px] h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            {totalPages > 1 && (
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-
-                    return (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(pageNum)}
-                          isActive={currentPage === pageNum}
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
+            <div className="text-sm text-muted-foreground whitespace-nowrap">
+              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
+            </div>
           </div>
-        )
-      }
+
+          {totalPages > 1 && (
+            <Pagination className="mx-0 w-auto">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        onClick={() => handlePageChange(pageNum)}
+                        isActive={currentPage === pageNum}
+                        className="cursor-pointer"
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  );
+                })}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </div>
+      )}
 
       {/* Advanced Search Modal */}
       <TherapeuticAdvancedSearchModal
@@ -3270,6 +3266,6 @@ export default function AdminTherapeuticsPage() {
         columnSettings={columnSettings}
         onColumnSettingsChange={handleColumnSettingsChange}
       />
-    </div >
+    </div>
   );
 }
