@@ -453,7 +453,16 @@ export default function ResultsSection() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-lg font-semibold">Results Notes</Label>
-
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddSiteNote}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Note
+          </Button>
         </div>
 
         <div className="space-y-4">
@@ -543,23 +552,37 @@ export default function ResultsSection() {
                 </div>
 
                 {/* View Source */}
-                <div className="space-y-2">
-                  <Label htmlFor={`site-note-source-${index}`}>Source</Label>
-                  <Select
-                    value={note.sourceType || ""}
-                    onValueChange={(value) => handleUpdateSiteNote(index, "sourceType", value)}
-                  >
-                    <SelectTrigger className="border-gray-600 focus:border-gray-800 focus:ring-gray-800">
-                      <SelectValue placeholder="Select source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sourceTypes.map((source) => (
-                        <SelectItem key={source} value={source}>
-                          {source}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`site-note-source-${index}`}>Source</Label>
+                    <Select
+                      value={note.sourceType || ""}
+                      onValueChange={(value) => handleUpdateSiteNote(index, "sourceType", value)}
+                    >
+                      <SelectTrigger className="border-gray-600 focus:border-gray-800 focus:ring-gray-800">
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sourceTypes.map((source) => (
+                          <SelectItem key={source} value={source}>
+                            {source}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Source Link */}
+                  <div className="space-y-2">
+                    <Label htmlFor={`site-note-source-link-${index}`}>Source Link</Label>
+                    <Input
+                      type="url"
+                      placeholder="Enter source URL..."
+                      value={note.sourceLink || ""}
+                      onChange={(e) => handleUpdateSiteNote(index, "sourceLink", e.target.value)}
+                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                    />
+                  </div>
                 </div>
 
                 {/* Attachments */}
