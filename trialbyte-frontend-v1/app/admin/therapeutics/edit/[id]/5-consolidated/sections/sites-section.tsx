@@ -269,8 +269,10 @@ export default function SitesSection() {
         <Label>Total No of Sites</Label>
         <Input
           type="number"
-          value={form.study_start_date || ""}
-          onChange={(e) => updateField("step5_6", "study_start_date", e.target.value)}
+          min="1"
+          max="10000"
+          value={form.total_sites || ""}
+          onChange={(e) => updateField("step5_6", "total_sites", e.target.value)}
           className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 w-32"
         />
       </div>

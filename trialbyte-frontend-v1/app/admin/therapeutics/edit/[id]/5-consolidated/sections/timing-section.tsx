@@ -30,19 +30,18 @@ export default function TimingSection() {
     frequency: "days",
     outputDate: ""
   });
-  // State for Duration to Months Converter
-  const [durationConverterData, setDurationConverterData] = useState({
+  // Use form context for calculator data instead of local state
+  const durationConverterData = form.durationConverterData || {
     duration: "",
     frequency: "days",
     outputMonths: ""
-  });
-  // State for Enhanced Date Calculator
-  const [enhancedCalculatorData, setEnhancedCalculatorData] = useState({
+  };
+  const enhancedCalculatorData = form.enhancedCalculatorData || {
     date: "",
     duration: "",
     frequency: "months",
     outputDate: ""
-  });
+  };
 
   console.log("TimingSection - Current form data:", form);
 
@@ -272,15 +271,16 @@ export default function TimingSection() {
     } else if (durationConverterData.frequency === "weeks") {
       months = duration / 4;
     }
-    setDurationConverterData(prev => ({
-      ...prev,
-      outputMonths: months.toFixed(2)
-    }));
-    console.log("Duration converted to months:", months.toFixed(2));
+    const outputMonths = months.toFixed(2);
+    updateField("step5_4", "durationConverterData", {
+      ...durationConverterData,
+      outputMonths
+    });
+    console.log("Duration converted to months:", outputMonths);
   };
 
   const clearDurationConverter = () => {
-    setDurationConverterData({
+    updateField("step5_4", "durationConverterData", {
       duration: "",
       frequency: "days",
       outputMonths: ""
@@ -316,10 +316,10 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setEnhancedCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
-    }));
+    updateField("step5_4", "enhancedCalculatorData", {
+      ...enhancedCalculatorData,
+      outputDate: formattedDate
+    });
     console.log("Enhanced date forward calculated:", formattedDate);
   };
 
@@ -351,15 +351,15 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setEnhancedCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
-    }));
+    updateField("step5_4", "enhancedCalculatorData", {
+      ...enhancedCalculatorData,
+      outputDate: formattedDate
+    });
     console.log("Enhanced date backward calculated:", formattedDate);
   };
 
   const clearEnhancedCalculator = () => {
-    setEnhancedCalculatorData({
+    updateField("step5_4", "enhancedCalculatorData", {
       date: "",
       duration: "",
       frequency: "months",
@@ -574,7 +574,7 @@ export default function TimingSection() {
                 <Input
                   type="number"
                   value={durationConverterData.duration}
-                  onChange={(e) => setDurationConverterData(prev => ({ ...prev, duration: e.target.value }))}
+                  onChange={(e) => updateField("step5_4", "durationConverterData", { ...durationConverterData, duration: e.target.value })}
                   placeholder="Enter duration"
                   className="w-full"
                 />
@@ -584,7 +584,7 @@ export default function TimingSection() {
                 <Label>Select Frequency</Label>
                 <Select
                   value={durationConverterData.frequency}
-                  onValueChange={(value) => setDurationConverterData(prev => ({ ...prev, frequency: value }))}
+                  onValueChange={(value) => updateField("step5_4", "durationConverterData", { ...durationConverterData, frequency: value })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select frequency" />
@@ -648,7 +648,7 @@ export default function TimingSection() {
                 <Label>Date</Label>
                 <CustomDateInput
                   value={enhancedCalculatorData.date}
-                  onChange={(value) => setEnhancedCalculatorData(prev => ({ ...prev, date: value }))}
+                  onChange={(value) => updateField("step5_4", "enhancedCalculatorData", { ...enhancedCalculatorData, date: value })}
                   placeholder="Select date"
                   className="w-full"
                 />
@@ -659,7 +659,7 @@ export default function TimingSection() {
                 <Input
                   type="number"
                   value={enhancedCalculatorData.duration}
-                  onChange={(e) => setEnhancedCalculatorData(prev => ({ ...prev, duration: e.target.value }))}
+                  onChange={(e) => updateField("step5_4", "enhancedCalculatorData", { ...enhancedCalculatorData, duration: e.target.value })}
                   placeholder="Enter duration"
                   className="w-full"
                 />
@@ -669,7 +669,7 @@ export default function TimingSection() {
                 <Label>Frequency</Label>
                 <Select
                   value={enhancedCalculatorData.frequency}
-                  onValueChange={(value) => setEnhancedCalculatorData(prev => ({ ...prev, frequency: value }))}
+                  onValueChange={(value) => updateField("step5_4", "enhancedCalculatorData", { ...enhancedCalculatorData, frequency: value })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select frequency" />

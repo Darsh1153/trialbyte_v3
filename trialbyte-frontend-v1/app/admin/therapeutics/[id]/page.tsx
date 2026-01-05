@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
@@ -46,8 +47,11 @@ import {
   Link as LinkIcon,
   Eye,
   EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import { Suspense } from "react";
+import { useTherapeuticTrialDetail } from "@/hooks/use-therapeutic-trial-detail";
+import { useQueryClient } from "@tanstack/react-query";
 
 // API Response interface
 interface ApiResponse {
@@ -108,8 +112,30 @@ interface TherapeuticTrial {
   timing: Array<{
     id: string;
     trial_id: string;
+    start_date_actual: string | null;
+    start_date_benchmark: string | null;
     start_date_estimated: string | null;
+    inclusion_period_actual: string | null;
+    inclusion_period_benchmark: string | null;
+    inclusion_period_estimated: string | null;
+    enrollment_closed_actual: string | null;
+    enrollment_closed_benchmark: string | null;
+    enrollment_closed_estimated: string | null;
+    primary_outcome_duration_actual: string | null;
+    primary_outcome_duration_benchmark: string | null;
+    primary_outcome_duration_estimated: string | null;
+    trial_end_date_actual: string | null;
+    trial_end_date_benchmark: string | null;
     trial_end_date_estimated: string | null;
+    result_duration_actual: string | null;
+    result_duration_benchmark: string | null;
+    result_duration_estimated: string | null;
+    result_published_date_actual: string | null;
+    result_published_date_benchmark: string | null;
+    result_published_date_estimated: string | null;
+    overall_duration_complete: string | null;
+    overall_duration_publish: string | null;
+    timing_references: any[] | string | null;
   }>;
   results: Array<{
     id: string;
@@ -120,6 +146,27 @@ interface TherapeuticTrial {
     adverse_event_reported: string;
     adverse_event_type: string | null;
     treatment_for_adverse_events: string | null;
+    results_available: string | boolean | null;
+    endpoints_met: string | boolean | null;
+    adverse_events_reported: string | boolean | null;
+    trial_outcome_content: string | null;
+    trial_outcome_link: string | null;
+    trial_outcome_attachment: string | any | null;
+    trial_outcome_reference_date: string | null;
+    site_notes: Array<{
+      id?: string;
+      date: string;
+      noteType?: string;
+      type?: string;
+      content: string;
+      sourceType?: string;
+      source?: string;
+      attachments?: (string | { url: string; name: string; size?: number; type?: string })[];
+      isVisible?: boolean;
+      adverse_event_reported?: string;
+      adverse_event_type?: string;
+      treatment_for_adverse_events?: string;
+    }> | null;
   }>;
   sites: Array<{
     id: string;
@@ -158,6 +205,291 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const resolvedParams = use(params);
   const [trial, setTrial] = useState<TherapeuticTrial | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Helper function to check if a value is valid (not null, undefined, or empty string)
+  const isValidValue = (value: any): boolean => {
+    return value !== null && value !== undefined && value !== "" && String(value).trim() !== "";
+  };
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Use React Query to fetch trial data (must be declared before useEffects that use it)
+  const { data: apiData, isLoading: queryLoading, error: queryError, refetch } = useTherapeuticTrialDetail(resolvedParams.id);
+
+  // Helper function to transform API data to our interface
+  const transformTrialData = (data: any): TherapeuticTrial | null => {
+    if (!data?.data) return null;
+
+    return {
+      trial_id: data.trial_id,
+      overview: {
+        id: data.data.overview.id,
+        therapeutic_area: data.data.overview.therapeutic_area || "N/A",
+        trial_identifier: data.data.overview.trial_identifier || [],
+        trial_phase: data.data.overview.trial_phase || "N/A",
+        status: data.data.overview.status || "N/A",
+        primary_drugs: data.data.overview.primary_drugs || "N/A",
+        other_drugs: data.data.overview.other_drugs || "N/A",
+        title: data.data.overview.title || "N/A",
+        disease_type: data.data.overview.disease_type || "N/A",
+        patient_segment: data.data.overview.patient_segment || "N/A",
+        line_of_therapy: data.data.overview.line_of_therapy || "N/A",
+        reference_links: data.data.overview.reference_links || [],
+        trial_tags: data.data.overview.trial_tags || "N/A",
+        sponsor_collaborators: data.data.overview.sponsor_collaborators || "N/A",
+        sponsor_field_activity: data.data.overview.sponsor_field_activity || "N/A",
+        associated_cro: data.data.overview.associated_cro || "N/A",
+        countries: data.data.overview.countries || "N/A",
+        region: data.data.overview.region || "N/A",
+        trial_record_status: data.data.overview.trial_record_status || "N/A",
+        created_at: data.data.overview.created_at || "N/A",
+        updated_at: data.data.overview.updated_at || "N/A",
+      },
+      outcomes: data.data.outcomes.map((outcome: any) => ({
+        id: outcome.id,
+        trial_id: outcome.trial_id,
+        purpose_of_trial: outcome.purpose_of_trial || "N/A",
+        summary: outcome.summary || "N/A",
+        primary_outcome_measure: outcome.primary_outcome_measure || "N/A",
+        other_outcome_measure: outcome.other_outcome_measure || "N/A",
+        study_design_keywords: outcome.study_design_keywords || "N/A",
+        study_design: outcome.study_design || "N/A",
+        treatment_regimen: outcome.treatment_regimen || "N/A",
+        number_of_arms: outcome.number_of_arms || 0,
+      })),
+      criteria: data.data.criteria.map((criterion: any) => ({
+        id: criterion.id,
+        trial_id: criterion.trial_id,
+        inclusion_criteria: criterion.inclusion_criteria || "N/A",
+        exclusion_criteria: criterion.exclusion_criteria || "N/A",
+        age_from: criterion.age_from || "N/A",
+        subject_type: criterion.subject_type || "N/A",
+        age_to: criterion.age_to || "N/A",
+        sex: criterion.sex || "N/A",
+        healthy_volunteers: criterion.healthy_volunteers || "N/A",
+        target_no_volunteers: criterion.target_no_volunteers || 0,
+        actual_enrolled_volunteers: criterion.actual_enrolled_volunteers || 0,
+      })),
+      timing: data.data.timing.map((timing: any) => ({
+        id: timing.id,
+        trial_id: timing.trial_id,
+        start_date_actual: timing.start_date_actual || null,
+        start_date_benchmark: timing.start_date_benchmark || null,
+        start_date_estimated: timing.start_date_estimated || null,
+        inclusion_period_actual: timing.inclusion_period_actual || null,
+        inclusion_period_benchmark: timing.inclusion_period_benchmark || null,
+        inclusion_period_estimated: timing.inclusion_period_estimated || null,
+        enrollment_closed_actual: timing.enrollment_closed_actual || null,
+        enrollment_closed_benchmark: timing.enrollment_closed_benchmark || null,
+        enrollment_closed_estimated: timing.enrollment_closed_estimated || null,
+        primary_outcome_duration_actual: timing.primary_outcome_duration_actual || null,
+        primary_outcome_duration_benchmark: timing.primary_outcome_duration_benchmark || null,
+        primary_outcome_duration_estimated: timing.primary_outcome_duration_estimated || null,
+        trial_end_date_actual: timing.trial_end_date_actual || null,
+        trial_end_date_benchmark: timing.trial_end_date_benchmark || null,
+        trial_end_date_estimated: timing.trial_end_date_estimated || null,
+        result_duration_actual: timing.result_duration_actual || null,
+        result_duration_benchmark: timing.result_duration_benchmark || null,
+        result_duration_estimated: timing.result_duration_estimated || null,
+        result_published_date_actual: timing.result_published_date_actual || null,
+        result_published_date_benchmark: timing.result_published_date_benchmark || null,
+        result_published_date_estimated: timing.result_published_date_estimated || null,
+        overall_duration_complete: timing.overall_duration_complete || null,
+        overall_duration_publish: timing.overall_duration_publish || null,
+        timing_references: timing.timing_references || null,
+      })),
+      results: data.data.results.map((result: any) => {
+        // Parse site_notes if it's a string
+        let siteNotes = result.site_notes;
+        if (typeof siteNotes === 'string' && siteNotes.trim()) {
+          try {
+            siteNotes = JSON.parse(siteNotes);
+          } catch (e) {
+            console.warn('Failed to parse site_notes:', e);
+            siteNotes = null;
+          }
+        }
+        if (!Array.isArray(siteNotes)) {
+          siteNotes = null;
+        }
+
+        // Parse trial_outcome_attachment if it's a string
+        let attachment = result.trial_outcome_attachment;
+        if (typeof attachment === 'string' && attachment.trim()) {
+          try {
+            attachment = JSON.parse(attachment);
+          } catch (e) {
+            // If parsing fails, keep as string or null
+            attachment = attachment || null;
+          }
+        }
+
+        return {
+          id: result.id,
+          trial_id: result.trial_id,
+          trial_outcome: result.trial_outcome || "N/A",
+          reference: result.reference || "N/A",
+          trial_results: result.trial_results || [],
+          adverse_event_reported: result.adverse_event_reported || "N/A",
+          adverse_event_type: result.adverse_event_type || null,
+          treatment_for_adverse_events: result.treatment_for_adverse_events || null,
+          results_available: result.results_available !== null && result.results_available !== undefined 
+            ? (result.results_available === true || result.results_available === "true" || result.results_available === "Yes")
+            : null,
+          endpoints_met: result.endpoints_met !== null && result.endpoints_met !== undefined
+            ? (result.endpoints_met === true || result.endpoints_met === "true" || result.endpoints_met === "Yes")
+            : null,
+          adverse_events_reported: result.adverse_events_reported !== null && result.adverse_events_reported !== undefined
+            ? (result.adverse_events_reported === true || result.adverse_events_reported === "true" || result.adverse_events_reported === "Yes")
+            : null,
+          trial_outcome_content: result.trial_outcome_content || null,
+          trial_outcome_link: result.trial_outcome_link || null,
+          trial_outcome_attachment: attachment,
+          trial_outcome_reference_date: result.trial_outcome_reference_date || result.reference || null,
+          site_notes: siteNotes,
+        };
+      }),
+      sites: data.data.sites.map((site: any) => ({
+        id: site.id,
+        trial_id: site.trial_id,
+        total: site.total || 0,
+        notes: site.notes || "N/A",
+      })),
+      other: data.data.other.map((other: any) => ({
+        id: other.id,
+        trial_id: other.trial_id,
+        data: other.data || "N/A",
+        url: other.url || "N/A",
+      })),
+      logs: data.data.logs.map((log: any) => ({
+        id: log.id,
+        trial_id: log.trial_id,
+        trial_changes_log: log.trial_changes_log || "N/A",
+        trial_added_date: log.trial_added_date || "N/A",
+        last_modified_date: log.last_modified_date || "N/A",
+        last_modified_user: log.last_modified_user || "N/A",
+        full_review_user: log.full_review_user || "N/A",
+        next_review_date: log.next_review_date || "N/A",
+        attachment: log.attachment || null,
+      })),
+      notes: data.data.notes.map((note: any) => ({
+        id: note.id,
+        trial_id: note.trial_id,
+        date_type: note.date_type || "N/A",
+        notes: note.notes || "N/A",
+        link: note.link || "N/A",
+        attachments: (() => {
+          if (Array.isArray(note.attachments)) {
+            return note.attachments;
+          } else if (typeof note.attachments === 'string' && note.attachments.trim()) {
+            try {
+              const parsed = JSON.parse(note.attachments);
+              return Array.isArray(parsed) ? parsed : [note.attachments];
+            } catch {
+              return note.attachments.includes(',') 
+                ? note.attachments.split(',').map((item: string) => item.trim()).filter((item: string) => item)
+                : [note.attachments];
+            }
+          }
+          return [];
+        })(),
+      })),
+    };
+  };
+
+  // Transform and set trial data when API data changes
+  useEffect(() => {
+    if (apiData) {
+      const transformedTrial = transformTrialData(apiData);
+      if (transformedTrial) {
+        console.log("Transformed trial data:", transformedTrial);
+        console.log("Timing data from API:", apiData.data.timing);
+        console.log("Transformed timing data:", transformedTrial.timing);
+        setTrial(transformedTrial);
+      } else {
+        toast({
+          title: "No Data Available",
+          description: "Unable to load trial data.",
+          variant: "destructive",
+        });
+        router.push("/admin/therapeutics");
+      }
+    }
+  }, [apiData, router, toast]);
+
+  // Handle query errors
+  useEffect(() => {
+    if (queryError) {
+      if (queryError instanceof Error && queryError.message.includes("not found")) {
+        toast({
+          title: "Trial Not Found",
+          description: "The requested therapeutic trial could not be found.",
+          variant: "destructive",
+        });
+        router.push("/admin/therapeutics");
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to load trial data.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [queryError, router, toast]);
+
+  // Set loading state based on query
+  useEffect(() => {
+    setLoading(queryLoading);
+  }, [queryLoading]);
+
+  // Function to manually refresh data
+  const handleRefresh = async () => {
+    try {
+      // Invalidate and refetch
+      await queryClient.invalidateQueries({ queryKey: ["therapeutic-trial-detail", resolvedParams.id] });
+      await refetch();
+      toast({
+        title: "Data Refreshed",
+        description: "Trial data has been refreshed.",
+      });
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh trial data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Listen for storage events to refresh when data is updated from edit page
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // If timing data was saved, refresh
+      if (e.key?.includes('trial_timing_') || e.key?.includes('trial_db_saved_')) {
+        console.log("Detected timing data update, refreshing...");
+        queryClient.invalidateQueries({ queryKey: ["therapeutic-trial-detail", resolvedParams.id] });
+        refetch();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events (for same-tab updates)
+    const handleCustomRefresh = () => {
+      console.log("Custom refresh event received, refreshing...");
+      queryClient.invalidateQueries({ queryKey: ["therapeutic-trial-detail", resolvedParams.id] });
+      refetch();
+    };
+
+    window.addEventListener('trial-data-updated', handleCustomRefresh);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('trial-data-updated', handleCustomRefresh);
+    };
+  }, [resolvedParams.id, queryClient, refetch]);
   const [endpointsMet, setEndpointsMet] = useState(true);
   const [resultPosted, setResultPosted] = useState({ yes: true, no: false });
   const [activeSection, setActiveSection] = useState("overview");
@@ -170,7 +502,6 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showBackendView, setShowBackendView] = useState(false);
-  const { toast } = useToast();
 
   // Refs for each section
   const overviewRef = useRef<HTMLDivElement>(null);
@@ -184,175 +515,6 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const otherSourcesRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch trial data
-  useEffect(() => {
-    const fetchTrial = async () => {
-      try {
-        setLoading(true);
-          const trialId = resolvedParams.id;
-        
-        // Use the specific endpoint for fetching a single trial's data
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trial/${trialId}/all-data`);
-        
-        if (!response.ok) {
-          if (response.status === 404) {
-            toast({
-              title: "Trial Not Found",
-              description: "The requested therapeutic trial could not be found.",
-              variant: "destructive",
-            });
-            router.push("/admin/therapeutics");
-            return;
-          }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.data) {
-          // Transform the API response to match our interface
-          const transformedTrial: TherapeuticTrial = {
-            trial_id: data.trial_id,
-            overview: {
-              id: data.data.overview.id,
-              therapeutic_area: data.data.overview.therapeutic_area || "N/A",
-              trial_identifier: data.data.overview.trial_identifier || [],
-              trial_phase: data.data.overview.trial_phase || "N/A",
-              status: data.data.overview.status || "N/A",
-              primary_drugs: data.data.overview.primary_drugs || "N/A",
-              other_drugs: data.data.overview.other_drugs || "N/A",
-              title: data.data.overview.title || "N/A",
-              disease_type: data.data.overview.disease_type || "N/A",
-              patient_segment: data.data.overview.patient_segment || "N/A",
-              line_of_therapy: data.data.overview.line_of_therapy || "N/A",
-              reference_links: data.data.overview.reference_links || [],
-              trial_tags: data.data.overview.trial_tags || "N/A",
-              sponsor_collaborators: data.data.overview.sponsor_collaborators || "N/A",
-              sponsor_field_activity: data.data.overview.sponsor_field_activity || "N/A",
-              associated_cro: data.data.overview.associated_cro || "N/A",
-              countries: data.data.overview.countries || "N/A",
-              region: data.data.overview.region || "N/A",
-              trial_record_status: data.data.overview.trial_record_status || "N/A",
-              created_at: data.data.overview.created_at || "N/A",
-              updated_at: data.data.overview.updated_at || "N/A",
-            },
-            outcomes: data.data.outcomes.map((outcome: any) => ({
-              id: outcome.id,
-              trial_id: outcome.trial_id,
-              purpose_of_trial: outcome.purpose_of_trial || "N/A",
-              summary: outcome.summary || "N/A",
-              primary_outcome_measure: outcome.primary_outcome_measure || "N/A",
-              other_outcome_measure: outcome.other_outcome_measure || "N/A",
-              study_design_keywords: outcome.study_design_keywords || "N/A",
-              study_design: outcome.study_design || "N/A",
-              treatment_regimen: outcome.treatment_regimen || "N/A",
-              number_of_arms: outcome.number_of_arms || 0,
-            })),
-            criteria: data.data.criteria.map((criterion: any) => ({
-              id: criterion.id,
-              trial_id: criterion.trial_id,
-              inclusion_criteria: criterion.inclusion_criteria || "N/A",
-              exclusion_criteria: criterion.exclusion_criteria || "N/A",
-              age_from: criterion.age_from || "N/A",
-              subject_type: criterion.subject_type || "N/A",
-              age_to: criterion.age_to || "N/A",
-              sex: criterion.sex || "N/A",
-              healthy_volunteers: criterion.healthy_volunteers || "N/A",
-              target_no_volunteers: criterion.target_no_volunteers || 0,
-              actual_enrolled_volunteers: criterion.actual_enrolled_volunteers || 0,
-            })),
-            timing: data.data.timing.map((timing: any) => ({
-              id: timing.id,
-              trial_id: timing.trial_id,
-              start_date_estimated: timing.start_date_estimated || "N/A",
-              trial_end_date_estimated: timing.trial_end_date_estimated || "N/A",
-            })),
-            results: data.data.results.map((result: any) => ({
-              id: result.id,
-              trial_id: result.trial_id,
-              trial_outcome: result.trial_outcome || "N/A",
-              reference: result.reference || "N/A",
-              trial_results: result.trial_results || [],
-              adverse_event_reported: result.adverse_event_reported || "N/A",
-              adverse_event_type: result.adverse_event_type || "N/A",
-              treatment_for_adverse_events: result.treatment_for_adverse_events || "N/A",
-            })),
-            sites: data.data.sites.map((site: any) => ({
-              id: site.id,
-              trial_id: site.trial_id,
-              total: site.total || 0,
-              notes: site.notes || "N/A",
-            })),
-            other: data.data.other.map((other: any) => ({
-              id: other.id,
-              trial_id: other.trial_id,
-              data: other.data || "N/A",
-              url: other.url || "N/A",
-            })),
-            logs: data.data.logs.map((log: any) => ({
-              id: log.id,
-              trial_id: log.trial_id,
-              trial_changes_log: log.trial_changes_log || "N/A",
-              trial_added_date: log.trial_added_date || "N/A",
-              last_modified_date: log.last_modified_date || "N/A",
-              last_modified_user: log.last_modified_user || "N/A",
-              full_review_user: log.full_review_user || "N/A",
-              next_review_date: log.next_review_date || "N/A",
-              attachment: log.attachment || null,
-            })),
-            notes: data.data.notes.map((note: any) => ({
-              id: note.id,
-              trial_id: note.trial_id,
-              date_type: note.date_type || "N/A",
-              notes: note.notes || "N/A",
-              link: note.link || "N/A",
-              attachments: (() => {
-                if (Array.isArray(note.attachments)) {
-                  return note.attachments;
-                } else if (typeof note.attachments === 'string' && note.attachments.trim()) {
-                  // Try to parse as JSON first
-                  try {
-                    const parsed = JSON.parse(note.attachments);
-                    return Array.isArray(parsed) ? parsed : [note.attachments];
-                  } catch {
-                    // If not JSON, split by comma or treat as single item
-                    return note.attachments.includes(',') 
-                      ? note.attachments.split(',').map(item => item.trim()).filter(item => item)
-                      : [note.attachments];
-                  }
-                }
-                return [];
-              })(),
-            })),
-          };
-          
-          console.log("Transformed trial data:", transformedTrial);
-          console.log("Notes data:", data.data.notes);
-          console.log("Notes attachments:", data.data.notes.map(note => ({ id: note.id, attachments: note.attachments })));
-          setTrial(transformedTrial);
-        } else {
-          toast({
-            title: "No Data Available",
-            description: "Unable to load trial data.",
-            variant: "destructive",
-          });
-          router.push("/admin/therapeutics");
-        }
-      } catch (error) {
-        console.error("Error fetching trial:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load trial data.",
-          variant: "destructive",
-        });
-        router.push("/admin/therapeutics");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTrial();
-  }, [resolvedParams.id, router]);
 
   // Logout functionality
   const handleLogout = () => {
@@ -404,43 +566,6 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
     }
   };
 
-  // Handle refresh/reload trial data
-  const handleRefresh = async () => {
-    toast({
-      title: "Refreshing",
-      description: "Reloading trial data...",
-    });
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`);
-      const data = await response.json();
-      
-      if (data.trials && data.trials.length > 0) {
-        const trialId = resolvedParams.id;
-        const foundTrial = data.trials.find((t: TherapeuticTrial) => t.trial_id === trialId);
-        
-        if (foundTrial) {
-          setTrial(foundTrial);
-          toast({
-            title: "Refreshed",
-            description: "Trial data has been successfully updated",
-          });
-        } else {
-          toast({
-            title: "Trial Not Found",
-            description: "The requested therapeutic trial could not be found.",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "Refresh Failed",
-        description: "Failed to refresh trial data. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   // Handle filter dialog
   const handleFilter = () => {
@@ -756,6 +881,15 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
             >
               <Eye className="h-4 w-4 mr-2" />
               Backend View
+            </Button>
+            <Button 
+              onClick={handleRefresh}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              disabled={queryLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${queryLoading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
           </div>
           <div className="flex items-center space-x-4">
@@ -1821,34 +1955,127 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </tr>
                         </thead>
                         <tbody>
+                          {/* Actual Row */}
                           <tr className="bg-white">
-                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                            <td className="border border-slate-300 px-4 py-3 text-sm font-medium">
                               Actual
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              {trial.timing[0]?.start_date_estimated
+                              {isValidValue(trial.timing[0]?.start_date_actual)
+                                ? formatDateToMMDDYYYY(trial.timing[0].start_date_actual)
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.inclusion_period_actual) 
+                                ? trial.timing[0].inclusion_period_actual 
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.enrollment_closed_actual)
+                                ? formatDateToMMDDYYYY(trial.timing[0].enrollment_closed_actual)
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.primary_outcome_duration_actual)
+                                ? trial.timing[0].primary_outcome_duration_actual
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.trial_end_date_actual)
+                                ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_actual)
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.result_duration_actual)
+                                ? trial.timing[0].result_duration_actual
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.result_published_date_actual)
+                                ? formatDateToMMDDYYYY(trial.timing[0].result_published_date_actual)
+                                : "N/A"}
+                            </td>
+                          </tr>
+                          {/* Benchmark Row */}
+                          <tr className="bg-gray-50">
+                            <td className="border border-slate-300 px-4 py-3 text-sm font-medium">
+                              Benchmark
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.start_date_benchmark)
+                                ? formatDateToMMDDYYYY(trial.timing[0].start_date_benchmark)
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.inclusion_period_benchmark)
+                                ? trial.timing[0].inclusion_period_benchmark
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.enrollment_closed_benchmark)
+                                ? formatDateToMMDDYYYY(trial.timing[0].enrollment_closed_benchmark)
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.primary_outcome_duration_benchmark)
+                                ? trial.timing[0].primary_outcome_duration_benchmark
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.trial_end_date_benchmark)
+                                ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_benchmark)
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.result_duration_benchmark)
+                                ? trial.timing[0].result_duration_benchmark
+                                : "N/A"}
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.result_published_date_benchmark)
+                                ? formatDateToMMDDYYYY(trial.timing[0].result_published_date_benchmark)
+                                : "N/A"}
+                            </td>
+                          </tr>
+                          {/* Estimated Row */}
+                          <tr className="bg-white">
+                            <td className="border border-slate-300 px-4 py-3 text-sm font-medium">
+                              Estimated
+                            </td>
+                            <td className="border border-slate-300 px-4 py-3 text-sm">
+                              {isValidValue(trial.timing[0]?.start_date_estimated)
                                 ? formatDateToMMDDYYYY(trial.timing[0].start_date_estimated)
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              N/A
+                              {isValidValue(trial.timing[0]?.inclusion_period_estimated)
+                                ? trial.timing[0].inclusion_period_estimated
+                                : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              N/A
+                              {isValidValue(trial.timing[0]?.enrollment_closed_estimated)
+                                ? formatDateToMMDDYYYY(trial.timing[0].enrollment_closed_estimated)
+                                : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              N/A
+                              {isValidValue(trial.timing[0]?.primary_outcome_duration_estimated)
+                                ? trial.timing[0].primary_outcome_duration_estimated
+                                : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              {trial.timing[0]?.trial_end_date_estimated
+                              {isValidValue(trial.timing[0]?.trial_end_date_estimated)
                                 ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_estimated)
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              N/A
+                              {isValidValue(trial.timing[0]?.result_duration_estimated)
+                                ? trial.timing[0].result_duration_estimated
+                                : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              N/A
+                              {isValidValue(trial.timing[0]?.result_published_date_estimated)
+                                ? formatDateToMMDDYYYY(trial.timing[0].result_published_date_estimated)
+                                : "N/A"}
                             </td>
                           </tr>
                         </tbody>
@@ -1862,7 +2089,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           Start Date :
                         </span>
                         <Badge className="bg-green-600 text-white">
-                          {trial.timing[0]?.start_date_estimated
+                          {isValidValue(trial.timing[0]?.start_date_actual)
+                            ? formatDateToMMDDYYYY(trial.timing[0].start_date_actual)
+                            : isValidValue(trial.timing[0]?.start_date_estimated)
                             ? formatDateToMMDDYYYY(trial.timing[0].start_date_estimated)
                             : "N/A"}
                         </Badge>
@@ -1872,7 +2101,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           End Date :
                         </span>
                         <Badge className="bg-green-600 text-white">
-                          {trial.timing[0]?.trial_end_date_estimated
+                          {isValidValue(trial.timing[0]?.trial_end_date_actual)
+                            ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_actual)
+                            : isValidValue(trial.timing[0]?.trial_end_date_estimated)
                             ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_estimated)
                             : "N/A"}
                         </Badge>
@@ -1886,55 +2117,56 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       </h3>
 
                       {/* Reference Items */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
+                      {(() => {
+                        // Parse timing_references if it's a string
+                        let timingReferences = trial.timing[0]?.timing_references;
+                        if (typeof timingReferences === 'string') {
+                          try {
+                            timingReferences = JSON.parse(timingReferences);
+                          } catch (e) {
+                            console.warn('Failed to parse timing_references:', e);
+                            timingReferences = null;
+                          }
+                        }
+                        
+                        // Ensure it's an array and filter visible references
+                        const visibleReferences = Array.isArray(timingReferences) 
+                          ? timingReferences.filter((ref: any) => ref.isVisible !== false && (ref.date || ref.content))
+                          : [];
+                        
+                        if (visibleReferences.length === 0) {
+                          return (
+                            <div className="text-sm text-gray-500 mb-6">
+                              No references available
+                          </div>
+                          );
+                        }
+                        
+                        return (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            {visibleReferences.map((ref: any, index: number) => (
+                              <div key={ref.id || index} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-700">
-                              April 2, 2021
+                                    {ref.date ? formatDateToMMDDYYYY(ref.date) : "No date"}
                             </p>
-                            <p className="text-sm text-gray-600">CT.gov</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-600"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-700">
-                              Jan 10, 2021
-                            </p>
-                            <p className="text-sm text-gray-600">EUCTR</p>
-                          </div>
+                                  <p className="text-sm text-gray-600">{ref.registryType || "No registry type"}</p>
+                      </div>
+                                {ref.viewSource && (
                           <Button
                             variant="ghost"
                             size="sm"
                             className="text-blue-600"
+                                    onClick={() => window.open(ref.viewSource, '_blank')}
                           >
-                            <Plus className="h-4 w-4" />
+                                    <LinkIcon className="h-4 w-4" />
                           </Button>
+                                )}
                         </div>
-
-                        <div className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-700">
-                              April 2, 2021
-                            </p>
-                            <p className="text-sm text-gray-600">PubMed</p>
+                            ))}
                       </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-blue-600"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                        );
+                      })()}
 
                       {/* Study Details */}
                       <div className="space-y-2 mb-4">
@@ -1943,8 +2175,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             Study Start (Actual) :
                           </span>
                           <span className="text-sm text-gray-700">
-                            {trial.timing[0]?.start_date_estimated
-                              ? formatDateToMMDDYYYY(trial.timing[0].start_date_estimated)
+                            {isValidValue(trial.timing[0]?.start_date_actual)
+                              ? formatDateToMMDDYYYY(trial.timing[0].start_date_actual)
                               : "N/A"}
                           </span>
                         </div>
@@ -1953,8 +2185,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             Study Completion (Actual) :
                           </span>
                           <span className="text-sm text-gray-700">
-                            {trial.timing[0]?.trial_end_date_estimated
-                              ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_estimated)
+                            {isValidValue(trial.timing[0]?.trial_end_date_actual)
+                              ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_actual)
                               : "N/A"}
                           </span>
                         </div>
@@ -2001,13 +2233,31 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                 </div>
                 <CardContent className="p-6">
                   <div className="space-y-6">
-                    {/* Results Available Toggle */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
+                    {/* Toggle Switches */}
+                    <div className="flex flex-wrap items-center gap-6">
+                      <div className="flex items-center space-x-2">
                         <span className="text-sm font-medium text-gray-700">
                           Results available
                         </span>
-                        <Switch checked={true} />
+                        <Switch 
+                          checked={trial.results[0]?.results_available === true || trial.results[0]?.results_available === "true" || trial.results[0]?.results_available === "Yes"} 
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          Endpoints met
+                        </span>
+                        <Switch 
+                          checked={trial.results[0]?.endpoints_met === true || trial.results[0]?.endpoints_met === "true" || trial.results[0]?.endpoints_met === "Yes"} 
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-700">
+                          Adverse Events Reported
+                        </span>
+                        <Switch 
+                          checked={trial.results[0]?.adverse_events_reported === true || trial.results[0]?.adverse_events_reported === "true" || trial.results[0]?.adverse_events_reported === "Yes" || trial.results[0]?.adverse_event_reported === "Yes"} 
+                        />
                       </div>
                     </div>
 
@@ -2023,24 +2273,90 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     </div>
 
                     {/* Trial Outcome Reference */}
-                    <div className="bg-gray-50 rounded-lg p-6">
-                      <div className="flex items-center justify-between mb-4">
+                    <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                      <div className="flex items-center justify-between">
                         <h3 className="text-base font-semibold text-gray-800">
                           Trial Outcome Reference
                         </h3>
-                        <span className="text-sm text-gray-600">
-                          April 2, 2021
-                        </span>
+                        {trial.results[0]?.trial_outcome_reference_date && (
+                          <span className="text-sm text-gray-600">
+                            {formatDateToMMDDYYYY(trial.results[0].trial_outcome_reference_date)}
+                          </span>
+                        )}
                       </div>
 
-                      <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                        {trial.results[0]?.reference ||
-                          "No reference information available"}
-                      </p>
+                      {/* Trial Outcome Results Content */}
+                      {trial.results[0]?.trial_outcome_content && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                            Trial Outcome Results Content:
+                          </h4>
+                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                            {trial.results[0].trial_outcome_content}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Link */}
+                      {trial.results[0]?.trial_outcome_link && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                            Link:
+                          </h4>
+                          <a 
+                            href={trial.results[0].trial_outcome_link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                            {trial.results[0].trial_outcome_link}
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Attachments */}
+                      {trial.results[0]?.trial_outcome_attachment && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                            Attachments:
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            {typeof trial.results[0].trial_outcome_attachment === 'object' && trial.results[0].trial_outcome_attachment?.url ? (
+                              <>
+                                <span className="text-sm text-gray-700">
+                                  {trial.results[0].trial_outcome_attachment.name || "Attachment"}
+                                </span>
+                                <a
+                                  href={trial.results[0].trial_outcome_attachment.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                  View
+                                </a>
+                              </>
+                            ) : (
+                              <span className="text-sm text-gray-700">
+                                {typeof trial.results[0].trial_outcome_attachment === 'string' 
+                                  ? trial.results[0].trial_outcome_attachment 
+                                  : "Attachment available"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reference Text */}
+                      {trial.results[0]?.reference && trial.results[0].reference !== "N/A" && (
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                          {trial.results[0].reference}
+                        </p>
+                      )}
 
                       {trial.results[0]?.trial_results &&
                         trial.results[0].trial_results.length > 0 && (
-                          <div className="mb-4">
+                          <div>
                             <h4 className="text-sm font-semibold text-gray-800 mb-2">
                               Trial Results:
                             </h4>
@@ -2059,61 +2375,164 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                 )
                               )}
                             </ul>
-              </div>
-            )}
-
-                      {trial.results[0]?.adverse_event_reported ===
-                        "true" && (
-                        <div className="mb-4">
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Adverse Events:
-                          </h4>
-                          <p className="text-sm text-gray-700">
-                            Type:{" "}
-                            {trial.results[0]?.adverse_event_type ||
-                              "Not specified"}
-                          </p>
-                          <p className="text-sm text-gray-700">
-                            Treatment:{" "}
-                            {trial.results[0]
-                              ?.treatment_for_adverse_events || "Not specified"}
-                          </p>
                           </div>
                       )}
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center space-x-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-slate-600 text-white hover:bg-slate-700"
-                        >
-                          View source
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-slate-600 text-white hover:bg-slate-700"
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Attachments
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-600"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                          </div>
-                              </div>
-                            </div>
+                      {/* Adverse Events */}
+                      {(trial.results[0]?.adverse_event_reported === "Yes" || 
+                        trial.results[0]?.adverse_events_reported === true ||
+                        trial.results[0]?.adverse_events_reported === "true" ||
+                        trial.results[0]?.adverse_events_reported === "Yes") && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                            Adverse Events:
+                          </h4>
+                          {trial.results[0]?.adverse_event_type && (
+                            <p className="text-sm text-gray-700 mb-1">
+                              Type: {trial.results[0].adverse_event_type}
+                            </p>
+                          )}
+                          {trial.results[0]?.treatment_for_adverse_events && (
+                            <p className="text-sm text-gray-700">
+                              Treatment: {trial.results[0].treatment_for_adverse_events}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Published Results Section */}
-            {isSectionVisible("publishedResults") && (
+            {/* Results Notes Section */}
+            {isSectionVisible("outcome") && trial.results[0]?.site_notes && trial.results[0].site_notes.length > 0 && (
+              <Card className="mt-6">
+                <div className="bg-sky-200 p-4 rounded-t-lg">
+                  <h2 className="text-lg font-semibold text-gray-800">
+                    Results Notes
+                  </h2>
+                </div>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {trial.results[0].site_notes
+                      .filter((note: any) => note.isVisible !== false)
+                      .map((note: any, index: number) => {
+                        const noteDate = note.date ? formatDateToMMDDYYYY(note.date) : null;
+                        const resultType = note.noteType || note.type || "N/A";
+                        const source = note.sourceType || note.source || "N/A";
+                        const content = note.content || "";
+                        
+                        return (
+                          <Card key={index} className="border border-gray-200">
+                            <CardContent className="p-6 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
+                                {note.isVisible === false && (
+                                  <Badge variant="outline" className="text-gray-500">
+                                    <EyeOff className="h-3 w-3 mr-1" />
+                                    Hidden
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Date */}
+                                {noteDate && (
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-600">Date</Label>
+                                    <p className="text-sm text-gray-700 mt-1">{noteDate}</p>
+                                  </div>
+                                )}
+
+                                {/* Result Type */}
+                                {resultType && resultType !== "N/A" && (
+                                  <div>
+                                    <Label className="text-sm font-medium text-gray-600">Result type</Label>
+                                    <p className="text-sm text-gray-700 mt-1">{resultType}</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Content */}
+                              {content && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-600">Content</Label>
+                                  <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{content}</p>
+                                </div>
+                              )}
+
+                              {/* Source */}
+                              {source && source !== "N/A" && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-600">Source</Label>
+                                  <p className="text-sm text-gray-700 mt-1">{source}</p>
+                                </div>
+                              )}
+
+                              {/* Attachments */}
+                              {note.attachments && note.attachments.length > 0 && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-600">Attachments</Label>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {note.attachments.map((attachment: any, attachIndex: number) => {
+                                      const fileUrl = typeof attachment === 'object' && attachment?.url ? attachment.url : (typeof attachment === 'string' ? attachment : null);
+                                      const fileName = typeof attachment === 'object' && attachment?.name ? attachment.name : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
+                                      
+                                      return (
+                                        <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
+                                          <span className="text-sm text-gray-700">{fileName}</span>
+                                          {fileUrl && (
+                                            <a
+                                              href={fileUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:text-blue-800 text-sm"
+                                            >
+                                              View
+                                            </a>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Adverse Event Reported */}
+                              {note.adverse_event_reported && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-600">Adverse Event Reported</Label>
+                                  <p className="text-sm text-gray-700 mt-1">{note.adverse_event_reported}</p>
+                                </div>
+                              )}
+
+                              {/* Adverse Event Type */}
+                              {note.adverse_event_type && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-600">Adverse Event Type</Label>
+                                  <p className="text-sm text-gray-700 mt-1">{note.adverse_event_type}</p>
+                                </div>
+                              )}
+
+                              {/* Treatment For Adverse Events */}
+                              {note.treatment_for_adverse_events && (
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-600">Treatment For Adverse Events</Label>
+                                  <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{note.treatment_for_adverse_events}</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Published Results Section - Results Notes */}
+            {isSectionVisible("publishedResults") && trial.results[0]?.site_notes && trial.results[0].site_notes.length > 0 && (
               <Card className="mt-6" ref={publishedResultsRef}>
                 <div className="bg-sky-200 p-4 rounded-t-lg">
                   <h2 className="text-lg font-semibold text-gray-800">
@@ -2122,160 +2541,147 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                 </div>
                 <CardContent className="p-6">
                   <div className="space-y-6">
-                    {/* First Published Result - Expanded */}
-                    <div className="bg-slate-700 rounded-lg overflow-hidden">
-                      {/* Header */}
-                      <div className="p-4 flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <Badge className="bg-white text-slate-700 hover:bg-gray-100">
-                            Date : October 23, 2021
-                          </Badge>
-                          <Badge className="bg-white text-slate-700 hover:bg-gray-100">
-                            Result Type : Full Results
-                          </Badge>
-                          <Badge className="bg-white text-slate-700 hover:bg-gray-100">
-                            Source : PubMed
-                          </Badge>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-white hover:bg-slate-600"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      {/* Title */}
-                      <div className="px-4 pb-4">
-                        <h3 className="text-white font-medium text-base leading-relaxed">
-                          Efficacy and safety of long-acting pasireotide or
-                          everolimus alone or in combination in patients with
-                          advanced carcinoids of the lung and thymus (LUNA):
-                        </h3>
-                      </div>
-
-                      {/* Content */}
-                      <div className="bg-white p-6 space-y-4">
-                        {/* Authors */}
-                        <p className="text-sm text-gray-700 italic">
-                          Piero Ferolla, Maria Pia Brizzi, Tim Meyer, Wasat
-                          Mansoor, Julien Mazieres, Christine Do Cao, Hervé
-                          Léna, Alfredo Berruti
-                        </p>
-
-                        {/* Results */}
-                            <div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Results :
-                          </h4>
-                          <p className="text-sm text-gray-700 leading-relaxed">
-                            11 patients died during the core 12-month treatment
-                            phase or up to 56 days after the last study
-                            treatment exposure date: two (5%) of 41 in the
-                            long-acting pasireotide group, six (14%) of 42 in
-                            the everolimus group, and three (7%) of 41 in the
-                            combination group. No deaths were suspected to be
-                            related to long-acting pasireotide treatment. One
-                            death in the everolimus group (acute kidney injury
-                            associated with diarrhoea), and two deaths in the
-                            combination group (diarrhoea and urinary sepsis in
-                            one patient, and acute renal failure and respiratory
-                            failure in one patient) were suspected to be related
-                            to everolimus treatment. In the latter patient,
-                            acute renal failure was not suspected to be related
-                            to everolimus treatment, but respiratory failure was
-                            suspected to be related.
-                          </p>
+                    {trial.results[0].site_notes
+                      .filter((note: any) => note.isVisible !== false)
+                      .map((note: any, index: number) => {
+                        const noteDate = note.date ? formatDateToMMDDYYYY(note.date) : null;
+                        const resultType = note.noteType || note.type || "N/A";
+                        const source = note.sourceType || note.source || "N/A";
+                        const content = note.content || "";
+                        
+                        return (
+                          <div key={index} className="bg-slate-700 rounded-lg overflow-hidden">
+                            {/* Header */}
+                            <div className="p-4 flex items-center justify-between">
+                              <div className="flex items-center space-x-4 flex-wrap gap-2">
+                                {noteDate && (
+                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100">
+                                    Date : {noteDate}
+                                  </Badge>
+                                )}
+                                {resultType && resultType !== "N/A" && (
+                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100">
+                                    Result Type : {resultType}
+                                  </Badge>
+                                )}
+                                {source && source !== "N/A" && (
+                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100">
+                                    Source : {source}
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
 
-                        {/* Conclusion */}
-                            <div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Conclusion :
-                          </h4>
-                          <p className="text-sm text-gray-700 leading-relaxed">
-                            The study met the primary endpoint in all three
-                            treatment groups. Safety profiles were consistent
-                            with the known safety profiles of these agents.
-                            Further studies are needed to confirm the antitumour
-                            efficacy of the combination of a somatostatin
-                            analogue with everolimus in lung and thymic
-                            carcinoids
-                          </p>
-                            </div>
+                            {/* Content */}
+                            {content && (
+                              <div className="bg-white p-6 space-y-4">
+                                {/* Content Text */}
+                                <div>
+                                  <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                                    Content:
+                                  </h4>
+                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                    {content}
+                                  </p>
+                                </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center space-x-3 pt-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-slate-600 text-white hover:bg-slate-700"
-                          >
-                            View source
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-slate-600 text-white hover:bg-slate-700"
-                          >
-                            <FileText className="h-4 w-4 mr-2" />
-                            Full Text
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-600"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          </div>
-                          </div>
-                        </div>
+                                {/* Adverse Event Information */}
+                                {(note.adverse_event_reported || note.adverse_event_type || note.treatment_for_adverse_events) && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                                      Adverse Event Information:
+                                    </h4>
+                                    {note.adverse_event_reported && (
+                                      <p className="text-sm text-gray-700 mb-1">
+                                        Reported: {note.adverse_event_reported}
+                                      </p>
+                                    )}
+                                    {note.adverse_event_type && (
+                                      <p className="text-sm text-gray-700 mb-1">
+                                        Type: {note.adverse_event_type}
+                                      </p>
+                                    )}
+                                    {note.treatment_for_adverse_events && (
+                                      <p className="text-sm text-gray-700">
+                                        Treatment: {note.treatment_for_adverse_events}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
 
-                    {/* Second Published Result - Collapsed */}
-                    <div className="bg-gray-100 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <Badge
-                            variant="outline"
-                            className="bg-white text-gray-700"
-                          >
-                            Date : January 25, 2020
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="bg-white text-gray-700"
-                          >
-                            Result Type : Interim Results
-                          </Badge>
-                          <Badge
-                            variant="outline"
-                            className="bg-white text-gray-700"
-                          >
-                            Source : PubMed
-                          </Badge>
+                                {/* Attachments */}
+                                {note.attachments && note.attachments.length > 0 && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                                      Attachments:
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
+                                      {note.attachments.map((attachment: any, attachIndex: number) => {
+                                        const fileUrl = typeof attachment === 'object' && attachment?.url ? attachment.url : (typeof attachment === 'string' ? attachment : null);
+                                        const fileName = typeof attachment === 'object' && attachment?.name ? attachment.name : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
+                                        
+                                        return (
+                                          <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
+                                            <span className="text-sm text-gray-700">{fileName}</span>
+                                            {fileUrl && (
+                                              <a
+                                                href={fileUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:text-blue-800 text-sm"
+                                              >
+                                                View
+                                              </a>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex items-center space-x-3 pt-4">
+                                  {source && source !== "N/A" && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="bg-slate-600 text-white hover:bg-slate-700"
+                                      onClick={() => {
+                                        // You can add logic to open source link here
+                                        if (note.sourceType || note.source) {
+                                          // Handle source view
+                                        }
+                                      }}
+                                    >
+                                      View source
+                                    </Button>
+                                  )}
+                                  {note.attachments && note.attachments.length > 0 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="bg-slate-600 text-white hover:bg-slate-700"
+                                    >
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Attachments
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    
+                    {(!trial.results[0].site_notes || trial.results[0].site_notes.filter((note: any) => note.isVisible !== false).length === 0) && (
+                      <div className="text-center py-8 text-gray-500">
+                        No published results available
                       </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-600 hover:bg-blue-50"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="mt-3">
-                        <h3 className="text-gray-800 font-medium text-sm">
-                          A Multicenter Randomized Phase III Study of Single
-                          Agent Efficacy and Optimal Combination Sequence of
-                          Everolimus and Pasireotide LAR in Advanced Thyroid
-                          Cancer.
-                        </h3>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Sites Section */}
@@ -2286,47 +2692,150 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   <span className="text-sm font-medium text-gray-700">
                     Total No of Sites : {trial.sites[0]?.total || "N/A"}
                   </span>
-                          </div>
+                </div>
                 <CardContent className="p-6">
-                  <div className="space-y-8">
-                    {/* World Map */}
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                      <div className="aspect-[2/1]  flex items-center justify-center relative">
-                        <Image
-                          src="/world.png"
-                          fill
-                          alt="World Map"
-                          className="object-cover"
-                        />
-                          </div>
-                            </div>
-
+                  <div className="space-y-6">
                     {/* Site Information */}
-                            <div>
-                      <h3 className="text-base font-semibold text-gray-800 mb-6">
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-800 mb-4">
                         Site Information
                       </h3>
 
-                      {trial.sites[0]?.notes ? (
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="space-y-2 mb-4">
-                            <p className="text-sm font-medium text-gray-800">
-                              Site Notes
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {trial.sites[0].notes}
-                            </p>
+                      {trial.sites[0]?.notes ? (() => {
+                        // Parse the notes JSON string
+                        let siteNotes: any[] = [];
+                        try {
+                          const notesData = typeof trial.sites[0].notes === 'string' 
+                            ? JSON.parse(trial.sites[0].notes) 
+                            : trial.sites[0].notes;
+                          siteNotes = Array.isArray(notesData) ? notesData : [];
+                        } catch (e) {
+                          console.error('Failed to parse site notes:', e);
+                          siteNotes = [];
+                        }
+
+                        // Filter to show only visible notes
+                        const visibleNotes = siteNotes.filter((note: any) => note.isVisible !== false);
+
+                        if (visibleNotes.length === 0) {
+                          return (
+                            <div className="text-center py-8">
+                              <p className="text-sm text-gray-600">
+                                No site notes available
+                              </p>
                             </div>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-4">
+                            {visibleNotes.map((note: any, index: number) => (
+                              <Card key={note.id || index} className="border border-gray-200">
+                                <CardContent className="p-6 space-y-4">
+                                  {/* Note Header */}
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
+                                    {note.isVisible === false && (
+                                      <Badge variant="outline" className="text-gray-500">
+                                        <EyeOff className="h-3 w-3 mr-1" />
+                                        Hidden
+                                      </Badge>
+                                    )}
+                                  </div>
+
+                                  {/* Note Fields */}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Date */}
+                                    {note.date && (
+                                      <div>
+                                        <Label className="text-sm font-medium text-gray-600">Date</Label>
+                                        <p className="text-sm text-gray-700 mt-1">
+                                          {formatDateToMMDDYYYY(note.date)}
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {/* Registry Type */}
+                                    {note.registryType && (
+                                      <div>
+                                        <Label className="text-sm font-medium text-gray-600">Registry Type</Label>
+                                        <p className="text-sm text-gray-700 mt-1">{note.registryType}</p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Content */}
+                                  {note.content && (
+                                    <div>
+                                      <Label className="text-sm font-medium text-gray-600">Content</Label>
+                                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">
+                                        {note.content}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* View Source */}
+                                  {note.viewSource && (
+                                    <div>
+                                      <Label className="text-sm font-medium text-gray-600">View Source (URL)</Label>
+                                      <a
+                                        href={note.viewSource}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
+                                      >
+                                        <LinkIcon className="h-4 w-4" />
+                                        {note.viewSource}
+                                      </a>
+                                    </div>
+                                  )}
+
+                                  {/* Attachments */}
+                                  {note.attachments && Array.isArray(note.attachments) && note.attachments.length > 0 && (
+                                    <div>
+                                      <Label className="text-sm font-medium text-gray-600">Attachments</Label>
+                                      <div className="flex flex-wrap gap-2 mt-2">
+                                        {note.attachments.map((attachment: any, attachIndex: number) => {
+                                          const fileUrl = typeof attachment === 'object' && attachment?.url 
+                                            ? attachment.url 
+                                            : (typeof attachment === 'string' ? attachment : null);
+                                          const fileName = typeof attachment === 'object' && attachment?.name 
+                                            ? attachment.name 
+                                            : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
+                                          
+                                          return (
+                                            <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
+                                              <span className="text-sm text-gray-700">{fileName}</span>
+                                              {fileUrl && (
+                                                <a
+                                                  href={fileUrl}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="text-blue-600 hover:text-blue-800 text-sm"
+                                                >
+                                                  View
+                                                </a>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
                           </div>
-                      ) : (
+                        );
+                      })() : (
                         <div className="text-center py-8">
                           <p className="text-sm text-gray-600">
-                            No detailed site information available
+                            No site information available
                           </p>
-                          </div>
+                        </div>
                       )}
-                            </div>
-                            </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -2341,7 +2850,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </div>
                 <CardContent className="p-6">
                   <div className="space-y-6">
-                    {console.log("Rendering Other Sources - trial.other:", trial.other)}
+                    {(() => { console.log("Rendering Other Sources - trial.other:", trial.other); return null; })()}
                     
                     {/* Display Other Sources from step 5-7 */}
                     {trial.other && trial.other.length > 0 ? (
@@ -2793,7 +3302,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <div className="space-y-3">
                 {trial?.notes &&
                 trial.notes.length > 0 ? (
-                  trial.notes.map((note, index) => (
+                  trial.notes.map((note: any, index: number) => (
                     <div
                       key={index}
                       className="border rounded-lg p-4 bg-blue-50"
@@ -2820,7 +3329,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             Attachments:
                           </span>
                           <div className="flex flex-wrap gap-1 mt-1">
-                            {note.attachments.map((attachment, attachIndex) => (
+                            {note.attachments.map((attachment: any, attachIndex: number) => (
                               <Badge
                                 key={attachIndex}
                                 variant="outline"
