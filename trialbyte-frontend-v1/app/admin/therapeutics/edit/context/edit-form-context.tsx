@@ -248,6 +248,18 @@ export interface EditTherapeuticFormData {
     estimated_result_published_date: string;
     overall_duration_complete: string;
     overall_duration_publish: string;
+    // Calculator data fields
+    durationConverterData: {
+      duration: string;
+      frequency: string;
+      outputMonths: string;
+    };
+    enhancedCalculatorData: {
+      date: string;
+      duration: string;
+      frequency: string;
+      outputDate: string;
+    };
     references: Array<{
       id: string;
       date: string;
@@ -278,6 +290,7 @@ export interface EditTherapeuticFormData {
 
   // Step 5-6: Timeline & Milestones
   step5_6: {
+    total_sites: string;
     study_start_date: string;
     first_patient_in: string;
     last_patient_in: string;
@@ -501,6 +514,7 @@ const initialFormData: EditTherapeuticFormData = {
     site_notes: [],
   },
   step5_6: {
+    total_sites: "",
     study_start_date: "",
     first_patient_in: "",
     last_patient_in: "",
@@ -1210,6 +1224,43 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               estimated_result_published_date: formatDateForUI(foundTrial.timing?.[0]?.result_published_date_estimated),
               overall_duration_complete: foundTrial.timing?.[0]?.overall_duration_complete || "",
               overall_duration_publish: foundTrial.timing?.[0]?.overall_duration_publish || "",
+              durationConverterData: (() => {
+                // Try to load from timing data, or use defaults
+                const stored = foundTrial.timing?.[0]?.duration_converter_data;
+                if (stored && typeof stored === 'string') {
+                  try {
+                    return JSON.parse(stored);
+                  } catch (e) {
+                    console.warn('Failed to parse duration_converter_data:', e);
+                  }
+                } else if (stored && typeof stored === 'object') {
+                  return stored;
+                }
+                return {
+                  duration: "",
+                  frequency: "days",
+                  outputMonths: "",
+                };
+              })(),
+              enhancedCalculatorData: (() => {
+                // Try to load from timing data, or use defaults
+                const stored = foundTrial.timing?.[0]?.enhanced_calculator_data;
+                if (stored && typeof stored === 'string') {
+                  try {
+                    return JSON.parse(stored);
+                  } catch (e) {
+                    console.warn('Failed to parse enhanced_calculator_data:', e);
+                  }
+                } else if (stored && typeof stored === 'object') {
+                  return stored;
+                }
+                return {
+                  date: "",
+                  duration: "",
+                  frequency: "months",
+                  outputDate: "",
+                };
+              })(),
               references: (() => {
                 // Log timing data being loaded
                 console.log('Loading timing data from database:', {
@@ -1452,7 +1503,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               };
             })(),
             step5_6: {
-              study_start_date: foundTrial.sites?.[0]?.total?.toString() || "",
+              total_sites: foundTrial.sites?.[0]?.total?.toString() || "",
+              study_start_date: "",
               first_patient_in: "",
               last_patient_in: "",
               study_end_date: foundTrial.timing?.[0]?.trial_end_date_estimated || "",
@@ -2529,7 +2581,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             // Also update the sites data if we have a trial_id
             const filteredReferences = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
             const sitesData = {
-              total: formData.step5_6.study_start_date ? parseInt(formData.step5_6.study_start_date) : 0,
+              total: formData.step5_6.total_sites ? parseInt(String(formData.step5_6.total_sites)) : 0,
               site_notes: filteredReferences.length > 0 ? JSON.stringify(filteredReferences) : null,
             };
 
@@ -2634,6 +2686,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 result_published_date_estimated: formatDateForDB(formData.step5_4.estimated_result_published_date),
                 overall_duration_complete: formData.step5_4.overall_duration_complete || null,
                 overall_duration_publish: formData.step5_4.overall_duration_publish || null,
+                duration_converter_data: formData.step5_4.durationConverterData ? JSON.stringify(formData.step5_4.durationConverterData) : null,
+                enhanced_calculator_data: formData.step5_4.enhancedCalculatorData ? JSON.stringify(formData.step5_4.enhancedCalculatorData) : null,
                 timing_references: filteredTimingReferences.length > 0 ? filteredTimingReferences : null,
               };
 
@@ -2658,6 +2712,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               if (timingResponse && timingResponse.ok) {
                 const responseData = await timingResponse.json().catch(() => null);
                 console.log('Timing updated successfully. Response:', responseData);
+                
+                // Dispatch custom event to notify view page to refresh
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('trial-data-updated', {
+                    detail: { trialId, section: 'timing' }
+                  }));
+                  console.log('📢 Dispatched trial-data-updated event for timing section');
+                }
               } else {
                 console.warn('Timing update failed, but overview updated successfully');
                 if (timingResponse) {
@@ -3346,7 +3408,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           site_notes: formData.step5_5.site_notes.filter((note: any) => note.isVisible && (note.date || note.content)),
         }],
         sites: [{
-          total: formData.step5_6.study_start_date ? parseInt(formData.step5_6.study_start_date) : 0,
+          total: formData.step5_6.total_sites ? parseInt(String(formData.step5_6.total_sites)) : 0,
           site_notes: filteredReferencesForLocalStorage,
         }],
         other_sources: otherSourcesForLocalStorage,

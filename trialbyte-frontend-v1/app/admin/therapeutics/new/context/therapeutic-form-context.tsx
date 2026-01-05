@@ -100,6 +100,18 @@ export interface TherapeuticFormData {
         trialEndDate: "Estimated" | "Benchmark" | "Actual";
       };
     };
+    // Calculator data fields
+    durationConverterData: {
+      duration: string;
+      frequency: string;
+      outputMonths: string;
+    };
+    enhancedCalculatorData: {
+      date: string;
+      duration: string;
+      frequency: string;
+      outputDate: string;
+    };
     references: Array<{
       id: string;
       date: string;
@@ -362,6 +374,17 @@ const initialFormState: TherapeuticFormData = {
         resultPublishDate: "Estimated",
         trialEndDate: "Estimated",
       },
+    },
+    durationConverterData: {
+      duration: "",
+      frequency: "days",
+      outputMonths: "",
+    },
+    enhancedCalculatorData: {
+      date: "",
+      duration: "",
+      frequency: "months",
+      outputDate: "",
     },
     references: [{
       id: "1",
@@ -1525,6 +1548,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             result_published_date_estimated: formatDate(allFormData.step5_4.estimated_result_published_date),
             overall_duration_complete: ensureString(allFormData.step5_4.overall_duration_complete),
             overall_duration_publish: ensureString(allFormData.step5_4.overall_duration_publish),
+            duration_converter_data: allFormData.step5_4.durationConverterData ? JSON.stringify(allFormData.step5_4.durationConverterData) : null,
+            enhanced_calculator_data: allFormData.step5_4.enhancedCalculatorData ? JSON.stringify(allFormData.step5_4.enhancedCalculatorData) : null,
             timing_references: allFormData.step5_4.references.filter(ref => ref.isVisible && (ref.date || ref.content)).map(ref => ({
               id: ref.id,
               date: formatDate(ref.date),
@@ -1571,7 +1596,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
             : null
         },
         sites: {
-          total: ensureNumber(allFormData.step5_6.study_start_date, 0),
+          total: ensureNumber(allFormData.step5_6.total_sites, 0),
           // Save references as JSON stringified array in notes field (same as edit form expects)
           notes: (() => {
             const filteredReferences = allFormData.step5_6.references.filter(ref => ref.isVisible && (ref.date || ref.content));
