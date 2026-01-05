@@ -415,6 +415,7 @@ export default function ResultsSection() {
               <div className="flex items-center gap-2">
                 <Input
                   type="file"
+                  accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
                   onChange={(e) => updateField("step5_5", "trial_outcome_attachment", e.target.files?.[0])}
                   className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
@@ -590,6 +591,7 @@ export default function ResultsSection() {
                   <Label htmlFor={`site-note-attachments-${index}`}>Attachments</Label>
                   <Input
                     type="file"
+                    accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
                     multiple
                     onChange={(e) => {
                       if (e.target.files) {

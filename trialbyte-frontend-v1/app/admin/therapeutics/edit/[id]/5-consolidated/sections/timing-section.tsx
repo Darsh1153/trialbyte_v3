@@ -861,6 +861,52 @@ export default function TimingSection() {
                   />
                 </div>
 
+                {/* Attachments */}
+                <div className="space-y-2">
+                  <Label htmlFor={`ref-attachments-${index}`}>Attachments</Label>
+                  <Input
+                    id={`ref-attachments-${index}`}
+                    type="file"
+                    accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                    multiple
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const fileNames = Array.from(e.target.files).map(file => file.name);
+                        const currentAttachments = reference.attachments || [];
+                        console.log("Updating reference attachments:", index, fileNames);
+                        updateReference("step5_4", "references", index, { 
+                          attachments: [...currentAttachments, ...fileNames] 
+                        });
+                      }
+                    }}
+                    className="w-full border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                  />
+                  {reference.attachments && reference.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {reference.attachments.map((attachment: string, attachIndex: number) => (
+                        <div
+                          key={attachIndex}
+                          className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
+                        >
+                          <span className="truncate max-w-[200px]">{attachment}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
+                            onClick={() => {
+                              const newAttachments = reference.attachments.filter((_: any, i: number) => i !== attachIndex);
+                              updateReference("step5_4", "references", index, { attachments: newAttachments });
+                            }}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Preview Section */}
                 {reference.content && (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
