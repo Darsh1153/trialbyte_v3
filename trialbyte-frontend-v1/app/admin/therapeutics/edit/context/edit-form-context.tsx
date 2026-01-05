@@ -2452,10 +2452,36 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         throw new Error("No trial data available for saving.");
       }
 
+      // Helper to convert array to comma-separated string for API
+      const arrayToString = (value: string | string[]): string => {
+        if (Array.isArray(value)) {
+          return value.filter(Boolean).join(", ");
+        }
+        return value || "";
+      };
+
       // Prepare the update data for the overview (step5_1)
+      // Convert array fields to comma-separated strings as expected by the backend
       const updateData = {
         user_id: currentUserId,
-        ...formData.step5_1,
+        therapeutic_area: arrayToString(formData.step5_1.therapeutic_area),
+        trial_identifier: formData.step5_1.trial_identifier, // Keep as array
+        trial_phase: formData.step5_1.trial_phase,
+        status: formData.step5_1.status,
+        primary_drugs: arrayToString(formData.step5_1.primary_drugs),
+        other_drugs: arrayToString(formData.step5_1.other_drugs),
+        title: formData.step5_1.title,
+        disease_type: arrayToString(formData.step5_1.disease_type),
+        patient_segment: arrayToString(formData.step5_1.patient_segment),
+        line_of_therapy: arrayToString(formData.step5_1.line_of_therapy),
+        reference_links: formData.step5_1.reference_links, // Keep as array
+        trial_tags: arrayToString(formData.step5_1.trial_tags),
+        sponsor_collaborators: arrayToString(formData.step5_1.sponsor_collaborators),
+        sponsor_field_activity: arrayToString(formData.step5_1.sponsor_field_activity),
+        associated_cro: arrayToString(formData.step5_1.associated_cro),
+        countries: arrayToString(formData.step5_1.countries),
+        region: arrayToString(formData.step5_1.region),
+        trial_record_status: formData.step5_1.trial_record_status,
       };
 
       console.log('Saving trial with data:', updateData);
@@ -3364,14 +3390,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       
       // Prepare timing references for localStorage
       const filteredTimingReferences = formData.step5_4.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
-      
-      // Helper to convert array to comma-separated string
-      const arrayToString = (value: string | string[]): string => {
-        if (Array.isArray(value)) {
-          return value.filter(Boolean).join(", ");
-        }
-        return value || "";
-      };
       
       const updatedTrial = {
         ...originalTrial,
