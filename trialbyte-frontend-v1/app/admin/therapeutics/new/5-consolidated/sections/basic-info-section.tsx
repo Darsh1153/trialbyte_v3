@@ -17,7 +17,8 @@ import { useTherapeuticForm } from "../../context/therapeutic-form-context";
 import { Textarea } from "@/components/ui/textarea";
 import { useDrugNames } from "@/hooks/use-drug-names";
 import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { usersApi } from "@/app/_lib/api";
 
 export default function BasicInfoSection() {
   const {
@@ -495,7 +496,33 @@ export default function BasicInfoSection() {
     ]
   });
 
-  const { options: trialRecordStatusOptions } = useDynamicDropdown({
+  // State to track current user's IP Authority
+  const [currentUserIpAuthority, setCurrentUserIpAuthority] = useState<string | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+
+  // Fetch current user's IP Authority
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+        if (userId) {
+          const user = await usersApi.getById(userId);
+          // Check ipAuthority, ip_authority fields, or plan field (which is used to store IP Authority)
+          const ipAuthority = user?.ipAuthority || user?.ip_authority || 
+            (user?.plan && (user.plan.toLowerCase() === 'no' || user.plan.toLowerCase() === 'yes') ? user.plan.toLowerCase() : null);
+          setCurrentUserIpAuthority(ipAuthority);
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  const { options: trialRecordStatusOptionsRaw } = useDynamicDropdown({
     categoryName: 'trial_record_status',
     fallbackOptions: [
       { value: "development_in_progress", label: "Development In Progress (DIP)" },
@@ -503,6 +530,11 @@ export default function BasicInfoSection() {
       { value: "update_in_progress", label: "Update In Progress (UIP)" },
     ]
   });
+
+  // Filter out "in_production" if user's IP Authority is "no"
+  const trialRecordStatusOptions = currentUserIpAuthority === "no"
+    ? trialRecordStatusOptionsRaw.filter(option => option.value !== "in_production")
+    : trialRecordStatusOptionsRaw;
 
   // Helpers for multi-input fields
   const addTrialIdentifierField = () => addArrayItem("step5_1", "trial_identifier");

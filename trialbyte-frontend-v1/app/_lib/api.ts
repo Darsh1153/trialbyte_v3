@@ -115,6 +115,10 @@ export const usersApi = {
     const res = await request<{ users: any[] }>(`/api/v1/users/getAllUsers`)
     return res?.users ?? []
   },
+  getById: async (userId: string) => {
+    const res = await request<{ user: any }>(`/api/v1/users/getUserById/${userId}`)
+    return res?.user ?? null
+  },
   delete: (userId: string) =>
     request(`/api/v1/users/deleteUser/${userId}`, { method: 'DELETE' }),
 };

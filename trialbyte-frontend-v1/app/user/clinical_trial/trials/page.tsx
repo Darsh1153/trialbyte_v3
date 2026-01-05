@@ -1169,6 +1169,7 @@ function ClinicalTrialsPage() {
                         <Switch
                           checked={endpointsMet}
                           onCheckedChange={setEndpointsMet}
+                          disabled={true}
                         />
                       </div>
                       <div className="flex items-center space-x-4">

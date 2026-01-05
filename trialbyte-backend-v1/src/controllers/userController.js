@@ -28,6 +28,7 @@ const register = async (req, res) => {
     sex,
     age,
     plan,
+    ipAuthority,
   } = req.body || {};
 
   if (!username || !email || !password) {
@@ -51,6 +52,8 @@ const register = async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  // Map ipAuthority to plan if provided (since database uses plan field for IP Authority)
+  const planValue = ipAuthority || plan;
   const created = await userRepository.create({
     username,
     email,
@@ -62,7 +65,7 @@ const register = async (req, res) => {
     region,
     sex,
     age,
-    plan,
+    plan: planValue,
   });
   // Assign default "User" role
   const UserRoleId = await roleRepository.findByName("User");
