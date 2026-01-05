@@ -2872,6 +2872,19 @@ export default function AdminTherapeuticsPage() {
                       <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteTrial(trial.trial_id)}
+                        disabled={deletingTrials[trial.trial_id]}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        {deletingTrials[trial.trial_id] ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -2926,6 +2939,19 @@ export default function AdminTherapeuticsPage() {
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => handleEditClick(trial.trial_id)}>
                       <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteTrial(trial.trial_id)}
+                      disabled={deletingTrials[trial.trial_id]}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      {deletingTrials[trial.trial_id] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
