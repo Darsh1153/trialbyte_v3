@@ -128,11 +128,15 @@ export default function EligibilitySection() {
       return typeof value === "string" ? value : String(value);
     };
 
-    const setIfChanged = (field: keyof typeof form, rawValue: unknown) => {
-      const nextValue = asString(rawValue);
-      if (nextValue !== "" && form[field] !== nextValue) {
-        updateField("step5_3", field as string, nextValue);
+    const parseAgeToTuple = (value: unknown): string[] => {
+      if (!value) return ["", "Years"];
+      const str = String(value).trim();
+      if (!str) return ["", "Years"];
+      const parts = str.split(/\s+/);
+      if (parts.length >= 2) {
+        return [parts[0], parts.slice(1).join(" ")];
       }
+      return [str, "Years"];
     };
 
     const targetVolunteers = resolveVolunteerValue(trialData, "target");
@@ -143,21 +147,38 @@ export default function EligibilitySection() {
       age_from: criteria.age_from,
       age_to: criteria.age_to,
       sex: criteria.sex,
-      healthy_volunteers: criteria.healthy_volunteers,
       target_no_volunteers: targetVolunteers,
       actual_enrolled_volunteers: actualVolunteers,
     });
 
-    setIfChanged("subject_type", criteria.subject_type);
+    if (criteria.subject_type && form.subject_type !== criteria.subject_type) {
+      updateField("step5_3", "subject_type", criteria.subject_type);
+    }
     if (targetVolunteers !== "" && form.target_no_volunteers !== targetVolunteers) {
       updateField("step5_3", "target_no_volunteers", targetVolunteers);
     }
     if (actualVolunteers !== "" && form.actual_enrolled_volunteers !== actualVolunteers) {
       updateField("step5_3", "actual_enrolled_volunteers", actualVolunteers);
     }
-    setIfChanged("age_min", criteria.age_from);
-    setIfChanged("age_max", criteria.age_to);
-    setIfChanged("gender", criteria.sex);
+
+    // Handle Age fields which are now arrays [value, unit]
+    if (criteria.age_from) {
+      const parsed = parseAgeToTuple(criteria.age_from);
+      // Only update if current is empty or different
+      if (!form.age_min || form.age_min[0] === "" || (form.age_min[0] !== parsed[0] || form.age_min[1] !== parsed[1])) {
+        updateField("step5_3", "age_min", parsed);
+      }
+    }
+    if (criteria.age_to) {
+      const parsed = parseAgeToTuple(criteria.age_to);
+      if (!form.age_max || form.age_max[0] === "" || (form.age_max[0] !== parsed[0] || form.age_max[1] !== parsed[1])) {
+        updateField("step5_3", "age_max", parsed);
+      }
+    }
+
+    if (criteria.sex && form.gender !== criteria.sex) {
+      updateField("step5_3", "gender", criteria.sex);
+    }
 
     const healthyVolunteers = asString(criteria.healthy_volunteers);
     if (healthyVolunteers !== "" && form.healthy_volunteers[0] !== healthyVolunteers) {
@@ -168,9 +189,13 @@ export default function EligibilitySection() {
   }, [
     trialData,
     updateField,
+    form.age_min,
+    form.age_max,
+    form.gender,
     form.target_no_volunteers,
     form.actual_enrolled_volunteers,
     form.healthy_volunteers,
+    form.subject_type
   ]);
 
   const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
@@ -179,10 +204,10 @@ export default function EligibilitySection() {
   }));
 
   const ageUnitOptions: SearchableSelectOption[] = [
-    { value: "years", label: "Years" },
-    { value: "months", label: "Months" },
-    { value: "weeks", label: "Weeks" },
-    { value: "days", label: "Days" },
+    { value: "Years", label: "Years" },
+    { value: "Months", label: "Months" },
+    { value: "Weeks", label: "Weeks" },
+    { value: "Days", label: "Days" },
   ];
 
   // Fallback options for sex
@@ -217,6 +242,10 @@ export default function EligibilitySection() {
   console.log('Current Form Gender:', form.gender);
   console.log('Current Form Prior Treatments (Healthy Volunteers):', form.healthy_volunteers);
 
+  // Helper to safely get age parts
+  const getAgeValue = (field: string | string[]) => Array.isArray(field) ? field[0] : "";
+  const getAgeUnit = (field: string | string[]) => Array.isArray(field) ? (field[1] || "Years") : "Years";
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -224,9 +253,9 @@ export default function EligibilitySection() {
           <Label>Inclusion Criteria</Label>
           <Textarea
             rows={5}
-            placeholder="Enter inclusion criteria"
-            value={form.inclusion_criteria?.[0] || ""}
-            onChange={(e) => updateField("step5_3", "inclusion_criteria", [e.target.value])}
+            placeholder="Enter inclusion criteria (one per line)"
+            value={form.inclusion_criteria?.join("\n") || ""}
+            onChange={(e) => updateField("step5_3", "inclusion_criteria", e.target.value.split("\n"))}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -234,9 +263,9 @@ export default function EligibilitySection() {
           <Label>Exclusion Criteria</Label>
           <Textarea
             rows={5}
-            placeholder="Enter exclusion criteria"
-            value={form.exclusion_criteria?.[0] || ""}
-            onChange={(e) => updateField("step5_3", "exclusion_criteria", [e.target.value])}
+            placeholder="Enter exclusion criteria (one per line)"
+            value={form.exclusion_criteria?.join("\n") || ""}
+            onChange={(e) => updateField("step5_3", "exclusion_criteria", e.target.value.split("\n"))}
             className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
           />
         </div>
@@ -248,8 +277,11 @@ export default function EligibilitySection() {
           <div className="flex gap-2">
             <SearchableSelect
               options={ageNumberOptions}
-              value={form.age_min || ""}
-              onValueChange={(value) => updateField("step5_3", "age_min", value)}
+              value={getAgeValue(form.age_min)}
+              onValueChange={(value) => {
+                const currentUnit = getAgeUnit(form.age_min);
+                updateField("step5_3", "age_min", [value, currentUnit]);
+              }}
               placeholder="0"
               searchPlaceholder="Search age..."
               emptyMessage="No age found."
@@ -257,12 +289,10 @@ export default function EligibilitySection() {
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.age_min[0] || ""}
+              value={getAgeUnit(form.age_min)}
               onValueChange={(value) => {
-                const current = form.age_min || [""];
-                const updated = [...current];
-                updated[0] = value;
-                updateField("step5_3", "age_min", updated);
+                const currentValue = getAgeValue(form.age_min);
+                updateField("step5_3", "age_min", [currentValue, value]);
               }}
               placeholder="Years"
               searchPlaceholder="Search unit..."
@@ -288,8 +318,11 @@ export default function EligibilitySection() {
           <div className="flex gap-2">
             <SearchableSelect
               options={ageNumberOptions}
-              value={form.age_max || ""}
-              onValueChange={(value) => updateField("step5_3", "age_max", value)}
+              value={getAgeValue(form.age_max)}
+              onValueChange={(value) => {
+                const currentUnit = getAgeUnit(form.age_max);
+                updateField("step5_3", "age_max", [value, currentUnit]);
+              }}
               placeholder="150"
               searchPlaceholder="Search age..."
               emptyMessage="No age found."
@@ -297,12 +330,10 @@ export default function EligibilitySection() {
             />
             <SearchableSelect
               options={ageUnitOptions}
-              value={form.age_max[1] || ""}
+              value={getAgeUnit(form.age_max)}
               onValueChange={(value) => {
-                const current = form.age_max || [""];
-                const updated = [...current];
-                updated[1] = value;
-                updateField("step5_3", "age_max", updated);
+                const currentValue = getAgeValue(form.age_max);
+                updateField("step5_3", "age_max", [currentValue, value]);
               }}
               placeholder="Years"
               searchPlaceholder="Search unit..."

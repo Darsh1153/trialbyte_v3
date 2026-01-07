@@ -677,11 +677,17 @@ export default function BasicInfoSection() {
         <div className="space-y-2 md:col-span-2">
           <Label>Reference Links</Label>
           <div className="space-y-2">
-            {form.reference_links.map((val, idx) => (
+            {(form.reference_links.length > 0 ? form.reference_links : [""]).map((val, idx) => (
               <div key={idx} className="flex gap-2">
                 <Textarea
                   value={val}
-                  onChange={(e) => updateReferenceLink(idx, e.target.value)}
+                  onChange={(e) => {
+                    if (form.reference_links.length === 0) {
+                      addArrayItem("step5_1", "reference_links", e.target.value);
+                    } else {
+                      updateReferenceLink(idx, e.target.value);
+                    }
+                  }}
                   placeholder="https://..."
                   rows={1}
                   className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 min-h-[32px] h-10"
@@ -690,7 +696,13 @@ export default function BasicInfoSection() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={addReferenceLinkField}
+                    onClick={() => {
+                      if (form.reference_links.length === 0) {
+                        addArrayItem("step5_1", "reference_links", "");
+                      } else {
+                        addReferenceLinkField();
+                      }
+                    }}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>

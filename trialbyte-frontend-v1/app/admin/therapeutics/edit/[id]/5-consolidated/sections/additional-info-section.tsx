@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon, Image, FileText, Loader2 } from "lucide-react";
+import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { useToast } from "@/hooks/use-toast";
 import { useEdgeStore } from "@/lib/edgestore";
@@ -190,10 +191,10 @@ export default function AdditionalInfoSection() {
 
       console.log("File uploaded successfully:", res.url);
 
-      // Update both file name and URL
+      // Update both file name and fileUrl (not the user-facing url field)
       updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: file.name,
-        url: res.url
+        fileUrl: res.url
       });
 
       toast({
@@ -218,7 +219,7 @@ export default function AdditionalInfoSection() {
       // If no URL, just remove from UI
       updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: null,
-        url: null
+        fileUrl: null
       });
       return;
     }
@@ -229,7 +230,7 @@ export default function AdditionalInfoSection() {
       console.warn("Invalid URL format, removing from UI only:", validUrl);
       updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: null,
-        url: null
+        fileUrl: null
       });
       return;
     }
@@ -237,7 +238,7 @@ export default function AdditionalInfoSection() {
     // Optimistically update UI first for better UX
     updateComplexArrayItem("step5_7", activeTab, itemIndex, {
       file: null,
-      url: null
+      fileUrl: null
     });
 
     try {
@@ -251,22 +252,22 @@ export default function AdditionalInfoSection() {
       });
     } catch (error: any) {
       console.error("Error removing file from Edge Store:", error);
-      
+
       // Check if error is because file doesn't exist (404 or similar)
       const errorMessage = error?.message || String(error) || '';
       const errorString = errorMessage.toLowerCase();
-      
-      const isNotFoundError = errorString.includes('404') || 
-                             errorString.includes('not found') || 
-                             errorString.includes('does not exist') ||
-                             errorString.includes('no such key') ||
-                             errorString.includes('file not found');
-      
+
+      const isNotFoundError = errorString.includes('404') ||
+        errorString.includes('not found') ||
+        errorString.includes('does not exist') ||
+        errorString.includes('no such key') ||
+        errorString.includes('file not found');
+
       // Check for internal server errors that might be transient or already resolved
       const isServerError = errorString.includes('internal server error') ||
-                           errorString.includes('500') ||
-                           errorString.includes('server error');
-      
+        errorString.includes('500') ||
+        errorString.includes('server error');
+
       if (isNotFoundError) {
         // File doesn't exist - that's fine, we already removed it from UI
         // Don't show a warning, just silently succeed
@@ -298,8 +299,8 @@ export default function AdditionalInfoSection() {
             type="button"
             variant={activeTab === tab.key ? "default" : "outline"}
             className={`text-sm px-4 py-2 whitespace-nowrap ${activeTab === tab.key
-                ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
-                : "text-gray-600 hover:text-gray-800"
+              ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+              : "text-gray-600 hover:text-gray-800"
               }`}
             onClick={() => setActiveTab(tab.key)}
           >
@@ -336,15 +337,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Pipeline Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -422,7 +422,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.file || item.url) && (() => {
+                  {(item.fileUrl || item.file || item.url) && (() => {
                     const meta = getAttachmentMeta(item.file, item.url);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -432,9 +432,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {meta.url ? (
+                        {(item.fileUrl || meta.url) ? (
                           <a
-                            href={meta.url}
+                            href={item.fileUrl || meta.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -449,7 +449,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -466,15 +466,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Press Release Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -568,7 +567,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.file || item.url) && (() => {
+                  {(item.fileUrl || item.file || item.url) && (() => {
                     const meta = getAttachmentMeta(item.file, item.url);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -578,9 +577,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {meta.url ? (
+                        {(item.fileUrl || meta.url) ? (
                           <a
-                            href={meta.url}
+                            href={item.fileUrl || meta.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -595,7 +594,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -612,15 +611,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Publication Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -733,7 +731,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.file || item.url) && (() => {
+                  {(item.fileUrl || item.file || item.url) && (() => {
                     const meta = getAttachmentMeta(item.file, item.url);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -743,9 +741,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {meta.url ? (
+                        {(item.fileUrl || meta.url) ? (
                           <a
-                            href={meta.url}
+                            href={item.fileUrl || meta.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -760,7 +758,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -777,15 +775,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Registry Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -898,7 +895,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.file || item.url) && (() => {
+                  {(item.fileUrl || item.file || item.url) && (() => {
                     const meta = getAttachmentMeta(item.file, item.url);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -908,9 +905,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {meta.url ? (
+                        {(item.fileUrl || meta.url) ? (
                           <a
-                            href={meta.url}
+                            href={item.fileUrl || meta.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -925,7 +922,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -942,15 +939,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Study Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -1063,7 +1059,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.file || item.url) && (() => {
+                  {(item.fileUrl || item.file || item.url) && (() => {
                     const meta = getAttachmentMeta(item.file, item.url);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -1073,9 +1069,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {meta.url ? (
+                        {(item.fileUrl || meta.url) ? (
                           <a
-                            href={meta.url}
+                            href={item.fileUrl || meta.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -1090,7 +1086,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />

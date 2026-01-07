@@ -8,16 +8,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select";
 import { Plus, X, Eye, EyeOff, Upload, Link as LinkIcon, Image, FileText, Loader2 } from "lucide-react";
+import CustomDateInput from "@/components/ui/custom-date-input";
 import { useTherapeuticForm } from "../../context/therapeutic-form-context";
 import { useToast } from "@/hooks/use-toast";
 import { useEdgeStore } from "@/lib/edgestore";
 
 export default function AdditionalInfoSection() {
-  const { 
-    formData, 
+  const {
+    formData,
     updateComplexArrayItem,
     addComplexArrayItem,
-    removeArrayItem, 
+    removeArrayItem,
     toggleArrayItemVisibility,
   } = useTherapeuticForm();
   const { toast } = useToast();
@@ -77,7 +78,7 @@ export default function AdditionalInfoSection() {
     if (!file) return;
 
     const uploadKey = `${activeTab}_${itemIndex}`;
-    
+
     try {
       setUploadingFiles(prev => ({ ...prev, [uploadKey]: true }));
       console.log(`Uploading file to Edge Store for ${activeTab} item ${itemIndex}:`, file.name);
@@ -90,11 +91,11 @@ export default function AdditionalInfoSection() {
       });
 
       console.log("File uploaded successfully:", res.url);
-      
-      // Update both file name and URL
-      updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+
+      // Update both file name and fileUrl (not the user-facing url field)
+      updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: file.name,
-        url: res.url 
+        fileUrl: res.url
       });
 
       toast({
@@ -116,17 +117,17 @@ export default function AdditionalInfoSection() {
   // Handle file removal
   const handleFileRemove = async (itemIndex: number, fileUrl: string) => {
     if (!fileUrl) {
-      updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+      updateComplexArrayItem("step5_7", activeTab, itemIndex, {
         file: null,
-        url: null 
+        fileUrl: null
       });
       return;
     }
 
     // Optimistically update UI first for better UX
-    updateComplexArrayItem("step5_7", activeTab, itemIndex, { 
+    updateComplexArrayItem("step5_7", activeTab, itemIndex, {
       file: null,
-      url: null 
+      fileUrl: null
     });
 
     try {
@@ -140,19 +141,19 @@ export default function AdditionalInfoSection() {
       });
     } catch (error: any) {
       console.error("Error removing file from Edge Store:", error);
-      
+
       const errorMessage = error?.message || String(error) || '';
       const errorString = errorMessage.toLowerCase();
-      
-      const isNotFoundError = errorString.includes('404') || 
-                             errorString.includes('not found') || 
-                             errorString.includes('does not exist') ||
-                             errorString.includes('no such key');
-      
+
+      const isNotFoundError = errorString.includes('404') ||
+        errorString.includes('not found') ||
+        errorString.includes('does not exist') ||
+        errorString.includes('no such key');
+
       const isServerError = errorString.includes('internal server error') ||
-                           errorString.includes('500') ||
-                           errorString.includes('server error');
-      
+        errorString.includes('500') ||
+        errorString.includes('server error');
+
       if (isNotFoundError || isServerError) {
         // File doesn't exist or server error - already removed from UI, silently succeed
         return;
@@ -176,11 +177,10 @@ export default function AdditionalInfoSection() {
             key={tab.key}
             type="button"
             variant={activeTab === tab.key ? "default" : "outline"}
-            className={`text-sm px-4 py-2 whitespace-nowrap ${
-              activeTab === tab.key
-                ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
+            className={`text-sm px-4 py-2 whitespace-nowrap ${activeTab === tab.key
+              ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+              : "text-gray-600 hover:text-gray-800"
+              }`}
             onClick={() => setActiveTab(tab.key)}
           >
             {tab.label}
@@ -234,15 +234,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Pipeline Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -302,8 +301,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -329,13 +328,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {item.url && (
+                      {(item.fileUrl || item.url) && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.url, '_blank');
+                            window.open(item.fileUrl || item.url, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -346,7 +345,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl || item.url)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />
@@ -362,15 +361,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Press Release Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -446,8 +444,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -473,13 +471,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {item.url && (
+                      {(item.fileUrl || item.url) && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.url, '_blank');
+                            window.open(item.fileUrl || item.url, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -490,7 +488,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl || item.url)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />
@@ -506,15 +504,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Publication Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -609,8 +606,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -636,13 +633,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {item.url && (
+                      {(item.fileUrl || item.url) && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.url, '_blank');
+                            window.open(item.fileUrl || item.url, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -669,15 +666,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Registry Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -772,8 +768,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -799,13 +795,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {item.url && (
+                      {(item.fileUrl || item.url) && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.url, '_blank');
+                            window.open(item.fileUrl || item.url, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -816,7 +812,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl || item.url)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />
@@ -832,15 +828,14 @@ export default function AdditionalInfoSection() {
                   <div className="flex gap-2">
                     <div className="w-1/4">
                       <Label className="text-sm">Study Date</Label>
-                      <Input
-                        type="date"
+                      <CustomDateInput
                         value={item.date || ""}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           updateComplexArrayItem(
                             "step5_7",
                             activeTab,
                             idx,
-                            { date: e.target.value }
+                            { date: value }
                           )
                         }
                         className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
@@ -935,8 +930,8 @@ export default function AdditionalInfoSection() {
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                         />
-                        <Button 
-                          type="button" 
+                        <Button
+                          type="button"
                           size="sm"
                           disabled={uploadingFiles[`${activeTab}_${idx}`]}
                           className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -962,13 +957,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {item.url && (
+                      {(item.fileUrl || item.url) && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.url, '_blank');
+                            window.open(item.fileUrl || item.url, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >

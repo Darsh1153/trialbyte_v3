@@ -16,6 +16,7 @@ interface CustomDateInputProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  readOnly?: boolean;
 }
 
 export function CustomDateInput({
@@ -23,7 +24,8 @@ export function CustomDateInput({
   onChange,
   placeholder = "MM-DD-YYYY or click calendar",
   className,
-  disabled = false
+  disabled = false,
+  readOnly = false
 }: CustomDateInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -32,7 +34,7 @@ export function CustomDateInput({
   // Parse the input value to a date
   const parseInputToDate = (input: string): Date | undefined => {
     if (!input.trim()) return undefined;
-    
+
     // Try different date formats
     const formats = [
       "MMMM d, yyyy", // January 1, 2024
@@ -68,7 +70,7 @@ export function CustomDateInput({
         continue;
       }
     }
-    
+
     // Try parsing as a simple number (assume it's a day of current month/year)
     const dayNumber = parseInt(input);
     if (!isNaN(dayNumber) && dayNumber >= 1 && dayNumber <= 31) {
@@ -78,7 +80,7 @@ export function CustomDateInput({
         return testDate;
       }
     }
-    
+
     return undefined;
   };
 
@@ -115,7 +117,7 @@ export function CustomDateInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    
+
     // Try to parse the input as a date
     const parsedDate = parseInputToDate(newValue);
     if (parsedDate) {
@@ -160,6 +162,14 @@ export function CustomDateInput({
     }
   };
 
+  const handlePopoverOpenChange = (open: boolean) => {
+    if (disabled || readOnly) {
+      setIsOpen(false);
+      return;
+    }
+    setIsOpen(open);
+  };
+
   return (
     <div className="relative">
       <Input
@@ -170,15 +180,16 @@ export function CustomDateInput({
         placeholder={placeholder}
         className={cn("pr-10", className)}
         disabled={disabled}
+        readOnly={readOnly}
       />
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover open={isOpen} onOpenChange={handlePopoverOpenChange}>
         <PopoverTrigger asChild>
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-            disabled={disabled}
+            disabled={disabled || readOnly}
           >
             <CalendarIcon className="h-4 w-4 text-gray-500" />
           </Button>

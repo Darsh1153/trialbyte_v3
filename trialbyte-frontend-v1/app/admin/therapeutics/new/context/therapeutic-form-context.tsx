@@ -192,6 +192,7 @@ export interface TherapeuticFormData {
       date: string;
       information: string;
       url: string;
+      fileUrl?: string;
       attachments: any[];
       isVisible: boolean;
     }>;
@@ -201,6 +202,7 @@ export interface TherapeuticFormData {
       title: string;
       description: string;
       url: string;
+      fileUrl?: string;
       attachments: any[];
       isVisible: boolean;
     }>;
@@ -211,6 +213,7 @@ export interface TherapeuticFormData {
       title: string;
       description: string;
       url: string;
+      fileUrl?: string;
       attachments: any[];
       isVisible: boolean;
     }>;
@@ -221,6 +224,7 @@ export interface TherapeuticFormData {
       identifier: string;
       description: string;
       url: string;
+      fileUrl?: string;
       attachments: any[];
       isVisible: boolean;
     }>;
@@ -231,6 +235,7 @@ export interface TherapeuticFormData {
       title: string;
       description: string;
       url: string;
+      fileUrl?: string;
       attachments: any[];
       isVisible: boolean;
     }>;
@@ -259,8 +264,12 @@ export interface TherapeuticFormData {
     logsAttachments?: Array<{
       name: string;
       url: string;
+      fileUrl?: string; // Added for consistency
       type: string;
     }>;
+    fullReview?: boolean;
+    fullReviewUser?: string;
+    nextReviewDate?: string;
     changesLog: Array<{
       id: string;
       timestamp: string;
@@ -459,6 +468,7 @@ const initialFormState: TherapeuticFormData = {
       date: "",
       information: "",
       url: "",
+      fileUrl: "",
       attachments: [],
       isVisible: true,
     }],
@@ -468,6 +478,7 @@ const initialFormState: TherapeuticFormData = {
       title: "",
       description: "",
       url: "",
+      fileUrl: "",
       attachments: [],
       isVisible: true,
     }],
@@ -478,6 +489,7 @@ const initialFormState: TherapeuticFormData = {
       title: "",
       description: "",
       url: "",
+      fileUrl: "",
       attachments: [],
       isVisible: true,
     }],
@@ -488,6 +500,7 @@ const initialFormState: TherapeuticFormData = {
       identifier: "",
       description: "",
       url: "",
+      fileUrl: "",
       attachments: [],
       isVisible: true,
     }],
@@ -498,6 +511,7 @@ const initialFormState: TherapeuticFormData = {
       title: "",
       description: "",
       url: "",
+      fileUrl: "",
       attachments: [],
       isVisible: true,
     }],
@@ -1649,11 +1663,11 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           }))
         },
         other_sources: {
-          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information || item.url)),
-          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title || item.url)),
-          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.date || item.type || item.title || item.url)),
-          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.date || item.registry || item.identifier || item.url)),
-          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.date || item.type || item.title || item.url)),
+          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information || item.url || item.fileUrl)),
+          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title || item.url || item.fileUrl)),
+          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.date || item.type || item.title || item.url || item.fileUrl)),
+          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.date || item.registry || item.identifier || item.url || item.fileUrl)),
+          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.date || item.type || item.title || item.url || item.fileUrl)),
         },
         logs: {
           trial_changes_log: allFormData.step5_8.changesLog.length > 0

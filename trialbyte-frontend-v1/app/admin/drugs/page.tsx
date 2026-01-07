@@ -32,6 +32,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useMemo } from "react";
+import { SearchableSelectOption } from "./drug-options";
 import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { drugsApi } from "../../_lib/api";
 import { Trash2, Eye, Plus, Search, Loader2, Filter, Clock, Edit, RefreshCw, ChevronDown, Settings, Download, Save, ExternalLink, Maximize2 } from "lucide-react";
@@ -40,7 +42,7 @@ import { DrugAdvancedSearchModal, DrugSearchCriteria } from "@/components/drug-a
 import { DrugFilterModal, DrugFilterState } from "@/components/drug-filter-modal";
 import { DrugSaveQueryModal } from "@/components/drug-save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
-import { DrugCustomizeColumnModal, DrugColumnSettings, DEFAULT_DRUG_COLUMN_SETTINGS } from "@/components/drug-customize-column-modal";
+import { DrugCustomizeColumnModal, DrugColumnSettings, DEFAULT_DRUG_COLUMN_SETTINGS, DRUG_COLUMN_OPTIONS } from "@/components/drug-customize-column-modal";
 import { useToast } from "@/hooks/use-toast";
 
 // Types based on the new API response
@@ -76,6 +78,7 @@ interface DevStatus {
   company_type: string | null;
   status: string | null;
   reference: string | null;
+  country?: string | null;
 }
 
 interface Activity {
@@ -169,29 +172,35 @@ export default function DrugsDashboardPage() {
     biologicalTargets: [],
     drugTechnologies: [],
     deliveryRoutes: [],
-    deliveryMediums: []
+
+    deliveryMediums: [],
+    therapeuticClasses: [],
+    countries: [],
+    primaryNames: []
   });
   const [saveQueryModalOpen, setSaveQueryModalOpen] = useState(false);
   const [queryHistoryModalOpen, setQueryHistoryModalOpen] = useState(false);
-  
+
   // Query editing state
   const [editingQueryId, setEditingQueryId] = useState<string | null>(null);
   const [editingQueryTitle, setEditingQueryTitle] = useState<string>("");
   const [editingQueryDescription, setEditingQueryDescription] = useState<string>("");
-  
+
   // Sorting state
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  
+
   // Multiple selection state
   const [selectedDrugs, setSelectedDrugs] = useState<Set<string>>(new Set());
   const [isSelectAllChecked, setIsSelectAllChecked] = useState(false);
-  
+
   // Column customization state
   const [customizeColumnModalOpen, setCustomizeColumnModalOpen] = useState(false);
   const [columnSettings, setColumnSettings] = useState<DrugColumnSettings>(DEFAULT_DRUG_COLUMN_SETTINGS);
-  
+
+
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -199,10 +208,10 @@ export default function DrugsDashboardPage() {
   // Filter function to show only the latest version of each record
   const filterLatestVersions = (drugs: DrugData[]) => {
     const drugMap = new Map<string, DrugData>();
-    
+
     drugs.forEach(drug => {
       const key = drug.overview?.drug_name || drug.drug_over_id;
-      
+
       // If this drug has an original_drug_id, it's an updated version
       if (drug.overview?.original_drug_id) {
         // This is an updated version, replace the original
@@ -213,7 +222,7 @@ export default function DrugsDashboardPage() {
       }
       // If we already have a newer version, skip this old one
     });
-    
+
     return Array.from(drugMap.values());
   };
 
@@ -225,20 +234,20 @@ export default function DrugsDashboardPage() {
       } else {
         setLoading(true);
       }
-      
+
       // Add cache-busting parameter for refresh
-      const url = isRefresh 
+      const url = isRefresh
         ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data?t=${Date.now()}`
         : `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`;
-        
+
       const response = await fetch(url);
       const data: ApiResponse = await response.json();
       const allDrugs = data.drugs || [];
-      
+
       // Filter out old versions and only show the latest version of each record
       const filteredDrugs = filterLatestVersions(allDrugs);
       setDrugs(filteredDrugs);
-      
+
       if (isRefresh) {
         console.log('Drugs data refreshed successfully');
       }
@@ -344,17 +353,17 @@ export default function DrugsDashboardPage() {
     } else if (queryData.criteria && Array.isArray(queryData.criteria)) {
       setAdvancedSearchCriteria(queryData.criteria);
     }
-    
+
     // Load filters if available
     if (queryData.filters) {
       setAppliedFilters(queryData.filters);
     }
-    
+
     // Load search term if available
     if (queryData.searchTerm) {
       setSearchTerm(queryData.searchTerm);
     }
-    
+
     toast({
       title: "Query Loaded",
       description: `"${queryData.queryTitle || 'Query'}" has been applied to your current view`,
@@ -600,10 +609,53 @@ export default function DrugsDashboardPage() {
     return finalResult;
   };
 
+  // Sorting functions
+  const getSortValue = (drug: DrugData, field: string): string | number => {
+    switch (field) {
+      case "drugId": return drug.drug_over_id;
+      case "drugName": return drug.overview.drug_name || "";
+      case "genericName": return drug.overview.generic_name || "";
+      case "otherName": return drug.overview.other_name || "";
+      case "primaryName": return drug.overview.primary_name || "";
+      case "globalStatus": return drug.overview.global_status || "";
+      case "developmentStatus": return drug.overview.development_status || "";
+      case "drugSummary": return drug.overview.drug_summary || "";
+      case "originator": return drug.overview.originator || "";
+      case "otherActiveCompanies": return drug.overview.other_active_companies || "";
+      case "therapeuticArea": return drug.overview.therapeutic_area || "";
+      case "diseaseType": return drug.overview.disease_type || "";
+      case "regulatorDesignations": return drug.overview.regulator_designations || "";
+      case "sourceLink": return drug.overview.source_link || "";
+      case "drugRecordStatus": return drug.overview.drug_record_status || "";
+      case "createdAt": return drug.overview.created_at || "";
+      case "updatedAt": return drug.overview.updated_at || "";
+      case "mechanismOfAction": return drug.activity.map(a => a.mechanism_of_action).join(", ");
+      case "biologicalTarget": return drug.activity.map(a => a.biological_target).join(", ");
+      case "drugTechnology": return drug.activity.map(a => a.drug_technology).join(", ");
+      case "deliveryRoute": return drug.activity.map(a => a.delivery_route).join(", ");
+      case "deliveryMedium": return drug.activity.map(a => a.delivery_medium).join(", ");
+      case "therapeuticClass": return drug.devStatus.map(d => d.therapeutic_class).join(", ");
+      case "company": return drug.devStatus.map(d => d.company).join(", ");
+      case "companyType": return drug.devStatus.map(d => d.company_type).join(", ");
+      case "country": return drug.devStatus.map(d => d.country).join(", ");
+      case "status": return drug.devStatus.map(d => d.status).join(", ");
+      case "reference": return drug.devStatus.map(d => d.reference).join(", ");
+      case "agreement": return drug.licencesMarketing.map(l => l.agreement).join(", ");
+      case "marketingApprovals": return drug.licencesMarketing.map(l => l.marketing_approvals).join(", ");
+      case "licensingAvailability": return drug.licencesMarketing.map(l => l.licensing_availability).join(", ");
+      case "preclinical": return drug.development.map(d => d.preclinical).join(", ");
+      case "trialId": return drug.development.map(d => d.trial_id).join(", ");
+      case "title": return drug.development.map(d => d.title).join(", ");
+      case "primaryDrugs": return drug.development.map(d => d.primary_drugs).join(", ");
+      case "sponsor": return drug.development.map(d => d.sponsor).join(", ");
+      default: return "";
+    }
+  };
+
   // Filter drugs based on search term, advanced search criteria, and filters
   const filteredDrugs = drugs.filter((drug) => {
     // Basic search term filter
-    const matchesSearchTerm = searchTerm === "" || 
+    const matchesSearchTerm = searchTerm === "" ||
       (drug.overview.drug_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (drug.overview.generic_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (drug.overview.therapeutic_area || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -614,38 +666,44 @@ export default function DrugsDashboardPage() {
 
     // Apply filters
     const matchesFilters = (
-      (appliedFilters.globalStatuses.length === 0 || 
-       appliedFilters.globalStatuses.includes(drug.overview.global_status || "")) &&
-      (appliedFilters.developmentStatuses.length === 0 || 
-       appliedFilters.developmentStatuses.includes(drug.overview.development_status || "")) &&
-      (appliedFilters.therapeuticAreas.length === 0 || 
-       appliedFilters.therapeuticAreas.includes(drug.overview.therapeutic_area || "")) &&
-      (appliedFilters.diseaseTypes.length === 0 || 
-       appliedFilters.diseaseTypes.includes(drug.overview.disease_type || "")) &&
-      (appliedFilters.originators.length === 0 || 
-       appliedFilters.originators.includes(drug.overview.originator || "")) &&
-      (appliedFilters.otherActiveCompanies.length === 0 || 
-       appliedFilters.otherActiveCompanies.some(company => 
-         (drug.overview.other_active_companies || "").toLowerCase().includes(company.toLowerCase()))) &&
-      (appliedFilters.regulatorDesignations.length === 0 || 
-       appliedFilters.regulatorDesignations.some(designation => 
-         (drug.overview.regulator_designations || "").toLowerCase().includes(designation.toLowerCase()))) &&
-      (appliedFilters.drugRecordStatus.length === 0 || 
-       appliedFilters.drugRecordStatus.includes(drug.overview.drug_record_status || "")) &&
-      (appliedFilters.isApproved.length === 0 || 
-       appliedFilters.isApproved.includes(drug.overview.is_approved ? "Yes" : "No")) &&
-      (appliedFilters.companyTypes.length === 0 || 
-       drug.devStatus.length > 0 && appliedFilters.companyTypes.includes(drug.devStatus[0].company_type || "")) &&
-      (appliedFilters.mechanismOfAction.length === 0 || 
-       drug.activity.length > 0 && appliedFilters.mechanismOfAction.includes(drug.activity[0].mechanism_of_action || "")) &&
-      (appliedFilters.biologicalTargets.length === 0 || 
-       drug.activity.length > 0 && appliedFilters.biologicalTargets.includes(drug.activity[0].biological_target || "")) &&
-      (appliedFilters.drugTechnologies.length === 0 || 
-       drug.activity.length > 0 && appliedFilters.drugTechnologies.includes(drug.activity[0].drug_technology || "")) &&
-      (appliedFilters.deliveryRoutes.length === 0 || 
-       drug.activity.length > 0 && appliedFilters.deliveryRoutes.includes(drug.activity[0].delivery_route || "")) &&
-      (appliedFilters.deliveryMediums.length === 0 || 
-       drug.activity.length > 0 && appliedFilters.deliveryMediums.includes(drug.activity[0].delivery_medium || ""))
+      (appliedFilters.globalStatuses.length === 0 ||
+        appliedFilters.globalStatuses.includes(drug.overview.global_status || "")) &&
+      (appliedFilters.developmentStatuses.length === 0 ||
+        appliedFilters.developmentStatuses.includes(drug.overview.development_status || "")) &&
+      (appliedFilters.therapeuticAreas.length === 0 ||
+        appliedFilters.therapeuticAreas.includes(drug.overview.therapeutic_area || "")) &&
+      (appliedFilters.diseaseTypes.length === 0 ||
+        appliedFilters.diseaseTypes.includes(drug.overview.disease_type || "")) &&
+      (appliedFilters.originators.length === 0 ||
+        appliedFilters.originators.includes(drug.overview.originator || "")) &&
+      (appliedFilters.otherActiveCompanies.length === 0 ||
+        appliedFilters.otherActiveCompanies.some(company =>
+          (drug.overview.other_active_companies || "").toLowerCase().includes(company.toLowerCase()))) &&
+      (appliedFilters.regulatorDesignations.length === 0 ||
+        appliedFilters.regulatorDesignations.some(designation =>
+          (drug.overview.regulator_designations || "").toLowerCase().includes(designation.toLowerCase()))) &&
+      (appliedFilters.drugRecordStatus.length === 0 ||
+        appliedFilters.drugRecordStatus.includes(drug.overview.drug_record_status || "")) &&
+      (appliedFilters.isApproved.length === 0 ||
+        appliedFilters.isApproved.includes(drug.overview.is_approved ? "Yes" : "No")) &&
+      (appliedFilters.companyTypes.length === 0 ||
+        drug.devStatus.length > 0 && appliedFilters.companyTypes.includes(drug.devStatus[0].company_type || "")) &&
+      (appliedFilters.mechanismOfAction.length === 0 ||
+        drug.activity.length > 0 && appliedFilters.mechanismOfAction.includes(drug.activity[0].mechanism_of_action || "")) &&
+      (appliedFilters.biologicalTargets.length === 0 ||
+        drug.activity.length > 0 && appliedFilters.biologicalTargets.includes(drug.activity[0].biological_target || "")) &&
+      (appliedFilters.drugTechnologies.length === 0 ||
+        drug.activity.length > 0 && appliedFilters.drugTechnologies.includes(drug.activity[0].drug_technology || "")) &&
+      (appliedFilters.deliveryRoutes.length === 0 ||
+        drug.activity.length > 0 && appliedFilters.deliveryRoutes.includes(drug.activity[0].delivery_route || "")) &&
+      (appliedFilters.deliveryMediums.length === 0 ||
+        drug.activity.length > 0 && appliedFilters.deliveryMediums.includes(drug.activity[0].delivery_medium || "")) &&
+      (appliedFilters.therapeuticClasses.length === 0 ||
+        drug.devStatus.length > 0 && appliedFilters.therapeuticClasses.some(tc => drug.devStatus.some(d => d.therapeutic_class === tc))) &&
+      (appliedFilters.countries.length === 0 ||
+        drug.devStatus.length > 0 && appliedFilters.countries.some(c => drug.devStatus.some(d => d.country === c))) &&
+      (appliedFilters.primaryNames.length === 0 ||
+        appliedFilters.primaryNames.includes(drug.overview.primary_name || ""))
     );
 
     return matchesSearchTerm && matchesAdvancedSearch && matchesFilters;
@@ -685,21 +743,7 @@ export default function DrugsDashboardPage() {
     setCurrentPage(1);
   }, [searchTerm, advancedSearchCriteria, appliedFilters, itemsPerPage]);
 
-  // Sorting functions
-  const getSortValue = (drug: DrugData, field: string): string | number => {
-    switch (field) {
-      case "drug_id": return drug.drug_over_id;
-      case "drug_name": return drug.overview.drug_name;
-      case "generic_name": return drug.overview.generic_name;
-      case "therapeutic_area": return drug.overview.therapeutic_area;
-      case "disease_type": return drug.overview.disease_type;
-      case "global_status": return drug.overview.global_status;
-      case "development_status": return drug.overview.development_status;
-      case "originator": return drug.overview.originator;
-      case "created_at": return drug.overview.created_at;
-      default: return "";
-    }
-  };
+
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -738,7 +782,7 @@ export default function DrugsDashboardPage() {
       newSelectedDrugs.delete(drugId);
     }
     setSelectedDrugs(newSelectedDrugs);
-    
+
     // Update select all checkbox state
     setIsSelectAllChecked(newSelectedDrugs.size === paginatedDrugs.length);
   };
@@ -754,7 +798,7 @@ export default function DrugsDashboardPage() {
     }
 
     const selectedDrugIds = Array.from(selectedDrugs);
-    
+
     if (openInTabs) {
       // Open in new tabs
       selectedDrugIds.forEach(drugId => {
@@ -784,6 +828,19 @@ export default function DrugsDashboardPage() {
     });
   };
 
+  const primaryNameOptions = useMemo(() => {
+    const uniqueNames = new Set<string>();
+    const options: SearchableSelectOption[] = [];
+    drugs.forEach(d => {
+      const name = d.overview.primary_name;
+      if (name && !uniqueNames.has(name)) {
+        uniqueNames.add(name);
+        options.push({ value: name, label: name });
+      }
+    });
+    return options.sort((a, b) => a.label.localeCompare(b.label));
+  }, [drugs]);
+
   const handleExportSelected = () => {
     if (selectedDrugs.size === 0) {
       toast({
@@ -795,7 +852,7 @@ export default function DrugsDashboardPage() {
     }
 
     const selectedDrugData = drugs.filter(drug => selectedDrugs.has(drug.drug_over_id));
-    
+
     // Create CSV content
     const csvContent = [
       // Header
@@ -843,7 +900,7 @@ export default function DrugsDashboardPage() {
 
   useEffect(() => {
     fetchDrugs();
-    
+
     // Load column settings from localStorage
     const savedSettings = localStorage.getItem('adminDrugColumnSettings');
     if (savedSettings) {
@@ -912,7 +969,7 @@ export default function DrugsDashboardPage() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('drugUpdated', handleDrugUpdated as EventListener);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
@@ -1064,7 +1121,10 @@ export default function DrugsDashboardPage() {
                 biologicalTargets: [],
                 drugTechnologies: [],
                 deliveryRoutes: [],
-                deliveryMediums: []
+                deliveryMediums: [],
+                therapeuticClasses: [],
+                countries: [],
+                primaryNames: []
               });
             }}
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -1082,7 +1142,7 @@ export default function DrugsDashboardPage() {
               {selectedDrugs.size} drug{selectedDrugs.size > 1 ? 's' : ''} selected
             </span>
             <div className="flex items-center space-x-2">
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -1135,169 +1195,27 @@ export default function DrugsDashboardPage() {
           </Button>
           {sortDropdownOpen && (
             <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-              <div className="py-1">
-                <button
-                  onClick={() => {
-                    handleSort("drug_id");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "drug_id" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Drug ID</span>
-                    {sortField === "drug_id" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("drug_name");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "drug_name" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Drug Name</span>
-                    {sortField === "drug_name" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("generic_name");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "generic_name" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Generic Name</span>
-                    {sortField === "generic_name" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("therapeutic_area");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "therapeutic_area" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Therapeutic Area</span>
-                    {sortField === "therapeutic_area" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("disease_type");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "disease_type" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Disease Type</span>
-                    {sortField === "disease_type" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("global_status");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "global_status" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Global Status</span>
-                    {sortField === "global_status" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("development_status");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "development_status" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Development Status</span>
-                    {sortField === "development_status" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("originator");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "originator" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Originator</span>
-                    {sortField === "originator" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={() => {
-                    handleSort("created_at");
-                    setSortDropdownOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
-                    sortField === "created_at" ? "bg-gray-100 font-semibold" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Created Date</span>
-                    {sortField === "created_at" && (
-                      <span className="text-xs">
-                        {sortDirection === "asc" ? "↑" : "↓"}
-                      </span>
-                    )}
-                  </div>
-                </button>
+              <div className="py-1 max-h-60 overflow-y-auto">
+                {DRUG_COLUMN_OPTIONS.map((option) => (
+                  <button
+                    key={option.key}
+                    onClick={() => {
+                      handleSort(option.key);
+                      setSortDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortField === option.key ? "bg-gray-100 font-semibold" : ""
+                      }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{option.label}</span>
+                      {sortField === option.key && (
+                        <span className="text-xs">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -1342,13 +1260,13 @@ export default function DrugsDashboardPage() {
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
-                {columnSettings.drugId && <TableHead>Drug ID</TableHead>}
-                <TableHead>Drug Name</TableHead>
-                {columnSettings.genericName && <TableHead>Generic Name</TableHead>}
-                {columnSettings.therapeuticArea && <TableHead>Therapeutic Area</TableHead>}
-                {columnSettings.diseaseType && <TableHead>Disease Type</TableHead>}
-                {columnSettings.globalStatus && <TableHead>Status</TableHead>}
-                {columnSettings.createdDate && <TableHead>Created</TableHead>}
+                {DRUG_COLUMN_OPTIONS.map((option) => (
+                  columnSettings[option.key] && (
+                    <TableHead key={option.key} className="whitespace-nowrap">
+                      {option.label}
+                    </TableHead>
+                  )
+                ))}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -1361,79 +1279,74 @@ export default function DrugsDashboardPage() {
                       onCheckedChange={(checked) => handleSelectDrug(drug.drug_over_id, checked as boolean)}
                     />
                   </TableCell>
-                  {columnSettings.drugId && (
-                    <TableCell className="font-mono text-sm">
-                      {drug.drug_over_id?.slice(0, 8)}...
-                    </TableCell>
-                  )}
-                  <TableCell className="font-medium">
-                    {drug.overview.drug_name || ""}
-                  </TableCell>
-                  {columnSettings.genericName && (
-                    <TableCell>{drug.overview.generic_name || ""}</TableCell>
-                  )}
-                  {columnSettings.therapeuticArea && (
-                    <TableCell>{drug.overview.therapeutic_area || ""}</TableCell>
-                  )}
-                  {columnSettings.diseaseType && (
-                    <TableCell>
-                      <Badge variant="outline">
-                        {drug.overview.disease_type || ""}
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {columnSettings.globalStatus && (
-                    <TableCell>
-                      <Badge
-                        className={getStatusColor(
-                          drug.overview.is_approved ? "Approved" : "Pending"
-                        )}
-                      >
-                        {drug.overview.is_approved ? "Approved" : "Pending"}
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {columnSettings.createdDate && (
-                    <TableCell className="text-sm">
-                      {formatDate(drug.overview.created_at)}
-                    </TableCell>
-                  )}
+                  {DRUG_COLUMN_OPTIONS.map((option) => {
+                    if (!columnSettings[option.key]) return null;
+
+                    let content: React.ReactNode = null;
+                    const val = getSortValue(drug, option.key); // Use getSortValue to extract raw data
+
+                    switch (option.key) {
+                      case 'drugId':
+                        content = <span className="font-mono text-sm">{String(val).slice(0, 8)}...</span>;
+                        break;
+                      case 'drugName':
+                        content = <span className="font-medium">{val}</span>;
+                        break;
+                      case 'diseaseType':
+                        content = val ? <Badge variant="outline">{val}</Badge> : null;
+                        break;
+                      case 'globalStatus':
+                        // reuse getStatusColor logic if available or just render text
+                        content = val ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(String(val))
+                            }`}>
+                            {val}
+                          </span>
+                        ) : null;
+                        break;
+                      case 'sourceLink':
+                        content = val ? (
+                          <a href={String(val)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center">
+                            Link <ExternalLink className="h-3 w-3 ml-1" />
+                          </a>
+                        ) : null;
+                        break;
+                      case 'createdAt':
+                      case 'updatedAt':
+                        content = val ? formatDateToMMDDYYYY(String(val)) : "";
+                        break;
+                      default:
+                        content = val;
+                    }
+
+                    return (
+                      <TableCell key={option.key} className="whitespace-nowrap max-w-[200px] truncate">
+                        {content}
+                      </TableCell>
+                    );
+                  })}
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end space-x-2">
-                      {/* View Details */}
-                      <Button 
-                        variant="outline" 
-                        size="sm"
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => router.push(`/admin/drugs/${drug.drug_over_id}`)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-
-                      {/* Edit Drug */}
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditClick(drug.drug_over_id)}
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => router.push(`/admin/drugs/edit/${drug.drug_over_id}`)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-
-                      {/* Delete Drug */}
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
                         onClick={() => deleteDrug(drug.drug_over_id)}
-                        disabled={deletingDrugs[drug.drug_over_id]}
-                        className="text-red-600 hover:text-red-700"
                       >
-                        {deletingDrugs[drug.drug_over_id] ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Deleting...
-                          </>
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
+                        <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
                     </div>
                   </TableCell>
@@ -1472,17 +1385,17 @@ export default function DrugsDashboardPage() {
               Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
             </div>
           </div>
-          
+
           {totalPages > 1 && (
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
+                  <PaginationPrevious
                     onClick={() => handlePageChange(currentPage - 1)}
                     className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   />
                 </PaginationItem>
-                
+
                 {/* Page numbers */}
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   let pageNum;
@@ -1495,7 +1408,7 @@ export default function DrugsDashboardPage() {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <PaginationItem key={pageNum}>
                       <PaginationLink
@@ -1508,9 +1421,9 @@ export default function DrugsDashboardPage() {
                     </PaginationItem>
                   );
                 })}
-                
+
                 <PaginationItem>
-                  <PaginationNext 
+                  <PaginationNext
                     onClick={() => handlePageChange(currentPage + 1)}
                     className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                   />
@@ -1553,6 +1466,7 @@ export default function DrugsDashboardPage() {
         onOpenChange={setFilterModalOpen}
         onApplyFilters={handleApplyFilters}
         currentFilters={appliedFilters}
+        primaryNameOptions={primaryNameOptions}
       />
 
       {/* Save Query Modal */}

@@ -19,25 +19,46 @@ export const useDrugNames = () => {
     try {
       setIsLoading(true);
       console.log('Fetching drug names from API...');
-      
+
       const data = await drugsApi.getAllDrugsWithData();
       console.log('API response received:', data);
       const drugs = data.drugs || [];
       console.log('Total drugs from API:', drugs.length);
-      
+
       // Extract all unique drug names from drug_name, generic_name, and other_name
       const allDrugNames = new Set<string>();
       const drugNameMap = new Map<string, DrugNameOption>();
 
       let drugsProcessed = 0;
       let namesExtracted = 0;
-      
+
       drugs.forEach((drug: any) => {
         drugsProcessed++;
         const overview = drug.overview || {};
-        const drugName = (overview.drug_name || "").trim();
-        const genericName = (overview.generic_name || "").trim();
-        const otherName = (overview.other_name || "").trim();
+        let drugName = (overview.drug_name || "").trim();
+        let genericName = (overview.generic_name || "").trim();
+        let otherName = (overview.other_name || "").trim();
+
+        // Helper to clean potential JSON strings
+        const cleanName = (name: string): string => {
+          if ((name.startsWith("{") && name.endsWith("}")) || (name.startsWith("[") && name.endsWith("]"))) {
+            try {
+              const parsed = JSON.parse(name);
+              if (typeof parsed === 'string') return parsed;
+              if (parsed.value) return String(parsed.value);
+              if (parsed.label) return String(parsed.label);
+              if (parsed.drug_name) return String(parsed.drug_name);
+              return name; // Return original if structure is unknown
+            } catch (e) {
+              return name;
+            }
+          }
+          return name;
+        };
+
+        drugName = cleanName(drugName);
+        genericName = cleanName(genericName);
+        otherName = cleanName(otherName);
 
         // Add drug_name
         if (drugName && !allDrugNames.has(drugName.toLowerCase())) {
@@ -72,20 +93,20 @@ export const useDrugNames = () => {
           namesExtracted++;
         }
       });
-      
+
       console.log('Drugs processed:', drugsProcessed, 'Names extracted:', namesExtracted);
 
       // Convert map to array (preserve original case from first occurrence)
       const uniqueDrugNames = Array.from(drugNameMap.values());
-      
+
       console.log('Unique drug names extracted:', uniqueDrugNames.length);
       if (uniqueDrugNames.length > 0) {
         console.log('Sample drug names:', uniqueDrugNames.slice(0, 5).map(d => d.value));
       }
-      
+
       setDrugNames(uniqueDrugNames);
       setHasLoaded(true);
-      
+
       // Also save to localStorage for offline access
       if (uniqueDrugNames.length > 0) {
         localStorage.setItem('drugNames', JSON.stringify(uniqueDrugNames));
@@ -149,9 +170,9 @@ export const useDrugNames = () => {
     if (!name.trim()) return;
 
     const trimmedName = name.trim();
-    
+
     // Check if drug name already exists
-    const exists = drugNames.some(drug => 
+    const exists = drugNames.some(drug =>
       drug.value.toLowerCase() === trimmedName.toLowerCase()
     );
 

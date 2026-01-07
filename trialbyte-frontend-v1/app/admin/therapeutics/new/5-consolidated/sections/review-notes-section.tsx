@@ -65,15 +65,15 @@ export default function ReviewNotesSection() {
       });
 
       console.log('File uploaded successfully:', res.url);
-      
+
       // Add the attachment to the logsAttachments array
       const currentAttachments = form.logsAttachments || [];
       const newAttachment = {
         name: file.name,
-        url: res.url,
+        fileUrl: res.url,
         type: file.type || 'application/octet-stream'
       };
-      
+
       updateField("step5_8", "logsAttachments", [...currentAttachments, newAttachment]);
 
       toast({
@@ -116,19 +116,19 @@ export default function ReviewNotesSection() {
       });
     } catch (error: any) {
       console.error("Error removing file from Edge Store:", error);
-      
+
       const errorMessage = error?.message || String(error) || '';
       const errorString = errorMessage.toLowerCase();
-      
-      const isNotFoundError = errorString.includes('404') || 
-                             errorString.includes('not found') || 
-                             errorString.includes('does not exist') ||
-                             errorString.includes('no such key');
-      
+
+      const isNotFoundError = errorString.includes('404') ||
+        errorString.includes('not found') ||
+        errorString.includes('does not exist') ||
+        errorString.includes('no such key');
+
       const isServerError = errorString.includes('internal server error') ||
-                           errorString.includes('500') ||
-                           errorString.includes('server error');
-      
+        errorString.includes('500') ||
+        errorString.includes('server error');
+
       if (isNotFoundError || isServerError) {
         // Already removed from UI, silently succeed
         return;
@@ -154,7 +154,7 @@ export default function ReviewNotesSection() {
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Created Date:</span>
                   <span className="text-gray-600">
-                    {form.creationInfo?.createdDate 
+                    {form.creationInfo?.createdDate
                       ? formatDateTimeToMMDDYYYY(form.creationInfo.createdDate)
                       : 'Not available'
                     }
@@ -173,7 +173,7 @@ export default function ReviewNotesSection() {
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Last Modified Date:</span>
                   <span className="text-gray-600">
-                    {form.modificationInfo?.lastModifiedDate 
+                    {form.modificationInfo?.lastModifiedDate
                       ? formatDateTimeToMMDDYYYY(form.modificationInfo.lastModifiedDate)
                       : 'Not available'
                     }
@@ -194,7 +194,7 @@ export default function ReviewNotesSection() {
       </Card>
 
       {/* Trial Changes Log */}
-      <TrialChangesLog changesLog={form.changesLog || []} />
+      <TrialChangesLog changesLog={(form.changesLog || []) as any[]} />
 
       {/* Internal Note */}
       <Card className="border rounded-xl shadow-sm">
@@ -214,7 +214,7 @@ export default function ReviewNotesSection() {
                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
             </div>
-            
+
             {/* Attachments Section */}
             <div className="space-y-2">
               <Label className="text-sm font-medium">Attachments</Label>
@@ -230,13 +230,13 @@ export default function ReviewNotesSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1">{attachment.name || 'Attachment'}</span>
-                        {attachment.url && (
+                        {(attachment.fileUrl || attachment.url) && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              window.open(attachment.url, '_blank');
+                              window.open(attachment.fileUrl || attachment.url, '_blank');
                             }}
                             className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                           >
@@ -247,7 +247,7 @@ export default function ReviewNotesSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(index, attachment.url)}
+                          onClick={() => handleFileRemove(index, attachment.fileUrl || attachment.url)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -256,7 +256,7 @@ export default function ReviewNotesSection() {
                     ))}
                   </div>
                 )}
-                
+
                 {/* Upload File Section */}
                 <div className="flex gap-2">
                   <Input
@@ -272,8 +272,8 @@ export default function ReviewNotesSection() {
                     disabled={uploadingFile}
                     className="flex-1 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
-                  <Button 
-                    type="button" 
+                  <Button
+                    type="button"
                     size="sm"
                     disabled={uploadingFile}
                     className="bg-[#204B73] hover:bg-[#204B73]/90 text-white"
@@ -299,8 +299,8 @@ export default function ReviewNotesSection() {
         <CardContent className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             <div className="flex items-center gap-2">
-              <Checkbox 
-                id="fullReview" 
+              <Checkbox
+                id="fullReview"
                 checked={form.fullReview || false}
                 onCheckedChange={handleFullReviewChange}
               />
@@ -308,8 +308,8 @@ export default function ReviewNotesSection() {
             </div>
             <div className="space-y-2">
               <Label>Full Review User</Label>
-              <Input 
-                placeholder="User name" 
+              <Input
+                placeholder="User name"
                 value={form.fullReviewUser || ""}
                 onChange={(e) => updateField("step5_8", "fullReviewUser", e.target.value)}
                 readOnly={form.fullReview}
@@ -318,7 +318,7 @@ export default function ReviewNotesSection() {
             </div>
             <div className="space-y-2">
               <Label>Next Review Date</Label>
-              <CustomDateInput 
+              <CustomDateInput
                 placeholder="Month Day Year"
                 value={form.nextReviewDate || ""}
                 onChange={(value) => updateField("step5_8", "nextReviewDate", value)}
@@ -335,11 +335,12 @@ export default function ReviewNotesSection() {
               if (typeof note.content === 'string') {
                 content = note.content;
               } else if (note.content && typeof note.content === 'object') {
-                content = note.content.text || note.content.content || JSON.stringify(note.content);
+                const noteContent = note.content as any;
+                content = noteContent.text || noteContent.content || JSON.stringify(note.content);
               } else {
                 content = String(note.content || "");
               }
-              
+
               return {
                 id: note.id,
                 date: String(note.date || ""),
@@ -364,7 +365,7 @@ export default function ReviewNotesSection() {
             noteTypes={[
               "General",
               "Clinical",
-              "Regulatory", 
+              "Regulatory",
               "Safety",
               "Efficacy",
               "Protocol",

@@ -1017,15 +1017,73 @@ const updateCriteria = async (req, res) => {
   return res.status(StatusCodes.OK).json({ criteria: item });
 };
 const updateCriteriaByTrial = async (req, res) => {
+  const { trial_id } = req.params;
+  const { user_id, ...rawUpdate } = req.body || {};
+
   console.log("[TherapeuticController] updateCriteriaByTrial payload:", {
-    trial_id: req.params.trial_id,
-    body: req.body,
+    trial_id,
+    user_id,
+    rawUpdate,
   });
-  const items = await criteriaRepo.updateByTrialId(
-    req.params.trial_id,
-    req.body || {}
-  );
-  return res.status(StatusCodes.OK).json({ criteria: items });
+
+  if (!user_id) {
+    return res
+      .status(StatusCodes.BAD_REQUEST)
+      .json({ message: "user_id is required for activity logging" });
+  }
+
+  try {
+    const updatedItems = await criteriaRepo.updateByTrialId(
+      trial_id,
+      rawUpdate
+    );
+
+    if (updatedItems.length === 0) {
+      // No existing criteria rows; create a new one
+      const toCreate = {
+        trial_id,
+        ...rawUpdate,
+      };
+
+      console.log(
+        "[TherapeuticController] No criteria rows found. Creating new criteria:",
+        toCreate
+      );
+
+      const createdCriteria = await criteriaRepo.create(toCreate);
+      await logTherapeuticActivity(
+        "INSERT",
+        "therapeutic_participation_criteria",
+        createdCriteria.id,
+        toCreate,
+        user_id
+      );
+      return res.status(StatusCodes.CREATED).json({
+        criteria: [createdCriteria], // Return as array to be consistent
+        created: true,
+      });
+    }
+
+    // Log update
+    await logTherapeuticActivity(
+      "UPDATE",
+      "therapeutic_participation_criteria",
+      updatedItems[0].id,
+      rawUpdate,
+      user_id
+    );
+
+    return res.status(StatusCodes.OK).json({ criteria: updatedItems });
+  } catch (error) {
+    console.error("Failed to update criteria for trial:", {
+      trial_id,
+      error,
+    });
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Failed to update criteria data",
+      error: error.message,
+    });
+  }
 };
 const deleteCriteria = async (req, res) => {
   const ok = await criteriaRepo.delete(req.params.id);

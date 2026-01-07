@@ -1,17 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { X } from "lucide-react"
-
-interface DrugFilterModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onApplyFilters: (filters: DrugFilterState) => void
-  currentFilters: DrugFilterState
-}
+import { Input } from "@/components/ui/input"
+import { X, Search } from "lucide-react"
+import {
+  GLOBAL_STATUS_OPTIONS,
+  DEVELOPMENT_STATUS_OPTIONS_DETAILED,
+  THERAPEUTIC_AREA_OPTIONS,
+  DISEASE_TYPE_OPTIONS,
+  ORIGINATOR_OPTIONS,
+  REGULATORY_DESIGNATIONS_OPTIONS,
+  DRUG_RECORD_STATUS_OPTIONS,
+  IS_APPROVED_OPTIONS,
+  COMPANY_TYPE_OPTIONS,
+  MECHANISM_OF_ACTION_OPTIONS,
+  BIOLOGICAL_TARGET_OPTIONS,
+  DRUG_TECHNOLOGY_OPTIONS,
+  DELIVERY_ROUTE_OPTIONS,
+  DELIVERY_MEDIUM_OPTIONS,
+  THERAPEUTIC_CLASS_OPTIONS,
+  COUNTRY_OPTIONS,
+  SearchableSelectOption
+} from "@/app/admin/drugs/drug-options"
 
 export interface DrugFilterState {
   globalStatuses: string[]
@@ -29,83 +42,56 @@ export interface DrugFilterState {
   drugTechnologies: string[]
   deliveryRoutes: string[]
   deliveryMediums: string[]
+  therapeuticClasses: string[]
+  countries: string[]
+  primaryNames: string[]
 }
 
-const filterCategories = {
-  globalStatuses: ["Approved", "Pending", "Rejected", "Discontinued", "Under Review", "Phase I", "Phase II", "Phase III", "Phase IV"],
-  developmentStatuses: ["Preclinical", "Phase I", "Phase II", "Phase III", "Phase IV", "Approved", "Discontinued", "Suspended"],
-  therapeuticAreas: ["Oncology", "Cardiology", "Neurology", "Endocrinology", "Immunology", "Dermatology", "Hematology", "Pulmonology", "Gastroenterology"],
-  diseaseTypes: ["Lung Cancer", "Breast Cancer", "Colorectal Cancer", "Melanoma", "Lymphoma", "Leukemia", "Prostate Cancer", "Ovarian Cancer", "Pancreatic Cancer"],
-  originators: ["Novartis", "Pfizer", "Roche", "Bristol Myers Squibb", "Merck", "Johnson & Johnson", "AstraZeneca", "Sanofi", "GlaxoSmithKline", "AbbVie"],
-  otherActiveCompanies: ["Novartis", "Pfizer", "Roche", "Bristol Myers Squibb", "Merck", "Johnson & Johnson", "AstraZeneca", "Sanofi", "GlaxoSmithKline", "AbbVie"],
-  regulatorDesignations: ["Fast Track", "Breakthrough Therapy", "Orphan Drug", "Priority Review", "Accelerated Approval", "Conditional Approval"],
-  drugRecordStatus: ["Active", "Inactive", "Draft", "Under Review", "Approved", "Rejected"],
-  isApproved: ["Yes", "No"],
-  companyTypes: ["Pharmaceutical Company", "Biotechnology Company", "Academic Institution", "Contract Research Organization", "Government Agency"],
-  mechanismOfAction: ["Kinase Inhibitor", "Monoclonal Antibody", "Small Molecule", "Gene Therapy", "Cell Therapy", "Antibody-Drug Conjugate", "Immunotherapy"],
-  biologicalTargets: ["EGFR", "VEGF", "PD-1", "PD-L1", "HER2", "ALK", "BRAF", "PI3K", "mTOR", "CDK"],
-  drugTechnologies: ["Small Molecule", "Biologic", "Gene Therapy", "Cell Therapy", "RNA Therapy", "Protein Therapy", "Vaccine"],
-  deliveryRoutes: ["Oral", "Intravenous", "Subcutaneous", "Intramuscular", "Topical", "Inhalation", "Intranasal"],
-  deliveryMediums: ["Tablets", "Capsules", "Injection", "Infusion", "Cream", "Ointment", "Inhaler", "Patch"]
+interface DrugFilterModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onApplyFilters: (filters: DrugFilterState) => void
+  currentFilters: DrugFilterState
+  primaryNameOptions: SearchableSelectOption[]
 }
 
-export function DrugFilterModal({ open, onOpenChange, onApplyFilters, currentFilters }: DrugFilterModalProps) {
+export function DrugFilterModal({ open, onOpenChange, onApplyFilters, currentFilters, primaryNameOptions }: DrugFilterModalProps) {
   const [filters, setFilters] = useState<DrugFilterState>(currentFilters)
   const [activeCategory, setActiveCategory] = useState<keyof DrugFilterState>("globalStatuses")
+  const [searchFilter, setSearchFilter] = useState("")
 
-  const handleSelectAll = (category: keyof DrugFilterState) => {
-    setFilters((prev) => ({
-      ...prev,
-      [category]: filterCategories[category],
-    }))
-  }
+  // Update local state when props change (re-opening modal)
+  useEffect(() => {
+    if (open) {
+      setFilters(currentFilters)
+      setSearchFilter("")
+    }
+  }, [open, currentFilters])
 
-  const handleDeselectAll = (category: keyof DrugFilterState) => {
-    setFilters((prev) => ({
-      ...prev,
-      [category]: [],
-    }))
-  }
-
-  const handleItemToggle = (category: keyof DrugFilterState, item: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [category]: prev[category].includes(item) 
-        ? prev[category].filter((i) => i !== item) 
-        : [...prev[category], item],
-    }))
-  }
-
-  const handleApply = () => {
-    onApplyFilters(filters)
-    onOpenChange(false)
-  }
-
-  const handleSaveQuery = () => {
-    // Create a readable query name
-    const activeFilterCount = Object.values(filters).reduce((count, arr) => count + arr.length, 0);
-    const queryName = `Drug Filter Query (${activeFilterCount} filters) - ${new Date().toLocaleDateString()}`;
-    
-    // Save to localStorage for demo purposes
-    const savedQueries = JSON.parse(localStorage.getItem('drugFilterQueries') || '[]');
-    const newQuery = {
-      id: Date.now().toString(),
-      name: queryName,
-      filters: filters,
-      createdAt: new Date().toISOString()
-    };
-    
-    savedQueries.push(newQuery);
-    localStorage.setItem('drugFilterQueries', JSON.stringify(savedQueries));
-    
-    // Show feedback
-    alert(`Query saved as: ${queryName}`);
-    console.log("Saving drug filter query:", filters)
+  const filterCategories: Record<keyof DrugFilterState, SearchableSelectOption[]> = {
+    globalStatuses: GLOBAL_STATUS_OPTIONS,
+    developmentStatuses: DEVELOPMENT_STATUS_OPTIONS_DETAILED,
+    therapeuticAreas: THERAPEUTIC_AREA_OPTIONS,
+    diseaseTypes: DISEASE_TYPE_OPTIONS,
+    originators: ORIGINATOR_OPTIONS,
+    otherActiveCompanies: ORIGINATOR_OPTIONS,
+    regulatorDesignations: REGULATORY_DESIGNATIONS_OPTIONS,
+    drugRecordStatus: DRUG_RECORD_STATUS_OPTIONS,
+    isApproved: IS_APPROVED_OPTIONS,
+    companyTypes: COMPANY_TYPE_OPTIONS,
+    mechanismOfAction: MECHANISM_OF_ACTION_OPTIONS,
+    biologicalTargets: BIOLOGICAL_TARGET_OPTIONS,
+    drugTechnologies: DRUG_TECHNOLOGY_OPTIONS,
+    deliveryRoutes: DELIVERY_ROUTE_OPTIONS,
+    deliveryMediums: DELIVERY_MEDIUM_OPTIONS,
+    therapeuticClasses: THERAPEUTIC_CLASS_OPTIONS,
+    countries: COUNTRY_OPTIONS,
+    primaryNames: primaryNameOptions
   }
 
   const categoryLabels: Record<keyof DrugFilterState, string> = {
     globalStatuses: "Global Status",
-    developmentStatuses: "Development Status", 
+    developmentStatuses: "Development Status",
     therapeuticAreas: "Therapeutic Area",
     diseaseTypes: "Disease Type",
     originators: "Originator",
@@ -118,13 +104,73 @@ export function DrugFilterModal({ open, onOpenChange, onApplyFilters, currentFil
     biologicalTargets: "Biological Target",
     drugTechnologies: "Drug Technology",
     deliveryRoutes: "Delivery Route",
-    deliveryMediums: "Delivery Medium"
+    deliveryMediums: "Delivery Medium",
+    therapeuticClasses: "Therapeutic Class",
+    countries: "Country",
+    primaryNames: "Primary Name"
   }
+
+  const handleSelectAll = (category: keyof DrugFilterState) => {
+    setFilters((prev) => ({
+      ...prev,
+      [category]: filterCategories[category].map(o => o.value),
+    }))
+  }
+
+  const handleDeselectAll = (category: keyof DrugFilterState) => {
+    setFilters((prev) => ({
+      ...prev,
+      [category]: [],
+    }))
+  }
+
+  const handleItemToggle = (category: keyof DrugFilterState, value: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      [category]: prev[category].includes(value)
+        ? prev[category].filter((i) => i !== value)
+        : [...prev[category], value],
+    }))
+  }
+
+  const handleApply = () => {
+    onApplyFilters(filters)
+    onOpenChange(false)
+  }
+
+  const handleSaveQuery = () => {
+    const activeFilterCount = Object.values(filters).reduce((count, arr) => count + arr.length, 0);
+    const queryName = `Drug Filter Query (${activeFilterCount} filters) - ${new Date().toLocaleDateString()}`;
+
+    const savedQueries = JSON.parse(localStorage.getItem('drugFilterQueries') || '[]');
+    const newQuery = {
+      id: Date.now().toString(),
+      name: queryName,
+      filters: filters,
+      createdAt: new Date().toISOString()
+    };
+
+    savedQueries.push(newQuery);
+    localStorage.setItem('drugFilterQueries', JSON.stringify(savedQueries));
+
+    alert(`Query saved as: ${queryName}`);
+  }
+
+  // Filter options based on search
+  const getFilteredOptions = () => {
+    const options = filterCategories[activeCategory] || []
+    if (!searchFilter.trim()) return options
+    return options.filter(option =>
+      option.label.toLowerCase().includes(searchFilter.toLowerCase())
+    )
+  }
+
+  const currentOptions = getFilteredOptions()
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] p-0">
-        <DialogHeader className="px-6 py-4 border-b bg-blue-50">
+      <DialogContent className="max-w-4xl max-h-[80vh] p-0 flex flex-col">
+        <DialogHeader className="px-6 py-4 border-b bg-blue-50 shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold">Drug Filters</DialogTitle>
             <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="h-6 w-6 p-0">
@@ -133,19 +179,21 @@ export function DrugFilterModal({ open, onOpenChange, onApplyFilters, currentFil
           </div>
         </DialogHeader>
 
-        <div className="flex h-[500px]">
+        <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Left sidebar with filter categories */}
-          <div className="w-64 border-r bg-gray-50 p-4">
+          <div className="w-64 border-r bg-gray-50 p-4 overflow-y-auto shrink-0">
             <div className="space-y-2">
               {Object.keys(categoryLabels).map((key) => {
                 const category = key as keyof DrugFilterState
                 return (
                   <button
                     key={category}
-                    onClick={() => setActiveCategory(category)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm ${
-                      activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
-                    }`}
+                    onClick={() => {
+                      setActiveCategory(category)
+                      setSearchFilter("")
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded text-sm ${activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                      }`}
                   >
                     {categoryLabels[category]}
                   </button>
@@ -155,10 +203,10 @@ export function DrugFilterModal({ open, onOpenChange, onApplyFilters, currentFil
           </div>
 
           {/* Right content area */}
-          <div className="flex-1 p-6">
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium">{categoryLabels[activeCategory]}</h3>
+          <div className="flex-1 p-6 flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-4 shrink-0">
+              <h3 className="font-medium">{categoryLabels[activeCategory]}</h3>
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -174,29 +222,45 @@ export function DrugFilterModal({ open, onOpenChange, onApplyFilters, currentFil
                     : "Select All"}
                 </Button>
               </div>
+            </div>
 
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {filterCategories[activeCategory].map((item) => (
-                  <div key={item} className="flex items-center space-x-2">
+            <div className="relative mb-4 shrink-0">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={`Search ${categoryLabels[activeCategory]}...`}
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+
+            <div className="space-y-3 overflow-y-auto flex-1 pr-2">
+              {currentOptions.length > 0 ? (
+                currentOptions.map((option) => (
+                  <div key={option.value} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`${activeCategory}-${item}`}
-                      checked={filters[activeCategory].includes(item)}
-                      onCheckedChange={() => handleItemToggle(activeCategory, item)}
+                      id={`${activeCategory}-${option.value}`}
+                      checked={filters[activeCategory].includes(option.value)}
+                      onCheckedChange={() => handleItemToggle(activeCategory, option.value)}
                     />
                     <label
-                      htmlFor={`${activeCategory}-${item}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      htmlFor={`${activeCategory}-${option.value}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                     >
-                      {item}
+                      {option.label}
                     </label>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="text-sm text-gray-500 text-center py-4">
+                  No options found
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50">
+        <div className="flex items-center justify-between px-6 py-4 border-t bg-gray-50 shrink-0">
           <Button variant="outline" onClick={handleSaveQuery} className="bg-blue-600 text-white hover:bg-blue-700">
             <span className="mr-2">💾</span>
             Save this Query
@@ -209,4 +273,3 @@ export function DrugFilterModal({ open, onOpenChange, onApplyFilters, currentFil
     </Dialog>
   )
 }
-

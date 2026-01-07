@@ -76,12 +76,7 @@ export default function ResultsSection() {
 
   const resultTypes = resultTypeOptions.map(opt => opt.label);
 
-  // Source type options
-  const sourceTypes = [
-    "PubMed",
-    "Journals",
-    "Conferences"
-  ];
+
 
   // Handle file upload for trial outcome attachment
   const handleAttachmentUpload = async (file: File) => {
@@ -89,7 +84,6 @@ export default function ResultsSection() {
 
     try {
       setUploadingAttachment(true);
-      console.log("Uploading file to Edge Store:", file.name);
 
       const res = await edgestore.trialOutcomeAttachments.upload({
         file,
@@ -403,7 +397,16 @@ export default function ResultsSection() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-lg font-semibold">Results Notes</Label>
-
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddSiteNote}
+            className="flex items-center gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            Add Note
+          </Button>
         </div>
 
         <div className="space-y-4">
@@ -498,21 +501,14 @@ export default function ResultsSection() {
                 {/* View Source */}
                 <div className="space-y-2">
                   <Label htmlFor={`site-note-source-${index}`}>Source</Label>
-                  <Select
-                    value={note.sourceType || ""}
-                    onValueChange={(value) => handleUpdateSiteNote(index, "sourceType", value)}
-                  >
-                    <SelectTrigger className="border-gray-600 focus:border-gray-800 focus:ring-gray-800">
-                      <SelectValue placeholder="Select source" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sourceTypes.map((source) => (
-                        <SelectItem key={source} value={source}>
-                          {source}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id={`site-note-source-${index}`}
+                    type="url"
+                    placeholder="Enter source link"
+                    value={note.source || ""}
+                    onChange={(e) => handleUpdateSiteNote(index, "source", e.target.value)}
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                  />
                 </div>
 
                 {/* Attachments */}

@@ -242,12 +242,7 @@ export default function ResultsSection() {
 
   const resultTypes = resultTypeOptions.map(opt => opt.label);
 
-  // Source type options
-  const sourceTypes = [
-    "PubMed",
-    "Journals",
-    "Conferences"
-  ];
+
 
   const attachmentDisplayInfo = useMemo(() => {
     console.log("🔍 Calculating attachment display info:", form.trial_outcome_attachment);
@@ -552,38 +547,16 @@ export default function ResultsSection() {
                   />
                 </div>
 
-                {/* View Source */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`site-note-source-${index}`}>Source</Label>
-                    <Select
-                      value={note.sourceType || ""}
-                      onValueChange={(value) => handleUpdateSiteNote(index, "sourceType", value)}
-                    >
-                      <SelectTrigger className="border-gray-600 focus:border-gray-800 focus:ring-gray-800">
-                        <SelectValue placeholder="Select source" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sourceTypes.map((source) => (
-                          <SelectItem key={source} value={source}>
-                            {source}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Source Link */}
-                  <div className="space-y-2">
-                    <Label htmlFor={`site-note-source-link-${index}`}>Source Link</Label>
-                    <Input
-                      type="url"
-                      placeholder="Enter source URL..."
-                      value={note.sourceLink || ""}
-                      onChange={(e) => handleUpdateSiteNote(index, "sourceLink", e.target.value)}
-                      className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
-                    />
-                  </div>
+                {/* Source Link */}
+                <div className="space-y-2">
+                  <Label htmlFor={`site-note-source-link-${index}`}>Source Link</Label>
+                  <Input
+                    type="url"
+                    placeholder="Enter source URL..."
+                    value={note.sourceLink || ""}
+                    onChange={(e) => handleUpdateSiteNote(index, "sourceLink", e.target.value)}
+                    className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+                  />
                 </div>
 
                 {/* Attachments */}
