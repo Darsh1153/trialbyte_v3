@@ -1523,8 +1523,8 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         outcome: {
           purpose_of_trial: ensureString(allFormData.step5_2.purpose_of_trial),
           summary: ensureString(allFormData.step5_2.summary),
-          primary_outcome_measure: allFormData.step5_2.primaryOutcomeMeasures.filter(Boolean).join("\n") || "",
-          other_outcome_measure: allFormData.step5_2.otherOutcomeMeasures.filter(Boolean).join("\n") || "",
+          primary_outcome_measure: allFormData.step5_2.primaryOutcomeMeasures.filter(Boolean).join("|||") || "",
+          other_outcome_measure: allFormData.step5_2.otherOutcomeMeasures.filter(Boolean).join("|||") || "",
           study_design_keywords: allFormData.step5_2.study_design_keywords.filter(Boolean).join(", ") || "",
           study_design: ensureString(allFormData.step5_2.study_design),
           treatment_regimen: ensureString(allFormData.step5_2.treatment_regimen),

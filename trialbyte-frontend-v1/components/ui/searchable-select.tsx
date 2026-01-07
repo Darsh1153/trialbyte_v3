@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,7 @@ interface SearchableSelectProps {
   emptyMessage?: string
   className?: string
   disabled?: boolean
+  loading?: boolean
 }
 
 export function SearchableSelect({
@@ -45,6 +46,7 @@ export function SearchableSelect({
   emptyMessage = "No option found.",
   className,
   disabled = false,
+  loading = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -62,10 +64,19 @@ export function SearchableSelect({
             !value && "text-muted-foreground",
             className
           )}
-          disabled={disabled}
+          disabled={disabled || loading}
         >
-          {selectedOption ? selectedOption.label : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          {loading ? (
+            <div className="flex items-center">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <span>Loading...</span>
+            </div>
+          ) : (
+            <>
+              {selectedOption ? selectedOption.label : placeholder}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">

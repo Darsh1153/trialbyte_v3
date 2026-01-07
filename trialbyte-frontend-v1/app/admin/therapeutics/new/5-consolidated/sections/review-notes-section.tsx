@@ -11,7 +11,7 @@ import { useTherapeuticForm } from "../../context/therapeutic-form-context";
 import { formatDateTimeToMMDDYYYY } from "@/lib/date-utils";
 import NotesSection from "@/components/notes-section";
 import CustomDateInput from "@/components/ui/custom-date-input";
-import TrialChangesLog from "@/components/trial-changes-log";
+
 import { Upload, X, Image, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEdgeStore } from "@/lib/edgestore";
@@ -193,8 +193,7 @@ export default function ReviewNotesSection() {
         </CardContent>
       </Card>
 
-      {/* Trial Changes Log */}
-      <TrialChangesLog changesLog={(form.changesLog || []) as any[]} />
+
 
       {/* Internal Note */}
       <Card className="border rounded-xl shadow-sm">

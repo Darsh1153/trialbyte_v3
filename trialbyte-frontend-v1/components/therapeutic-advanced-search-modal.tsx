@@ -541,7 +541,7 @@ export function TherapeuticAdvancedSearchModal({
   const [loadingQueries, setLoadingQueries] = useState(false)
   const [therapeuticData, setTherapeuticData] = useState<TherapeuticTrial[]>([])
   const [loading, setLoading] = useState(false)
-  const { getPrimaryDrugsOptions, refreshFromAPI } = useDrugNames()
+  const { getPrimaryDrugsOptions, refreshFromAPI, isLoading: isDrugsLoading } = useDrugNames()
 
   // Fetch therapeutic data when modal opens
   useEffect(() => {
@@ -795,6 +795,7 @@ export function TherapeuticAdvancedSearchModal({
           searchPlaceholder={criterion.field === "primary_drugs" ? "Search primary drugs..." : "Search other drugs..."}
           emptyMessage={criterion.field === "primary_drugs" ? "No primary drug found." : "No other drug found."}
           className="w-full"
+          loading={isDrugsLoading}
         />
       )
     }

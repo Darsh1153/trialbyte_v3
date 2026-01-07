@@ -131,11 +131,12 @@ const parseOutcomeMeasureField = (rawValue: unknown): string[] => {
     return [];
   }
 
-  if (trimmedValue.includes("\n")) {
-    return trimmedValue.split(/\n+/).map((value) => value.trim()).filter(Boolean);
+  // Use ||| as delimiter to support newlines within a single item
+  if (trimmedValue.includes("|||")) {
+    return trimmedValue.split("|||").map((value) => value.trim()).filter(Boolean);
   }
 
-  // Also treat single lines as a valid entry
+  // Treat as single item even if it has newlines (User Request: "content even in para with /n should take as 1 div")
   return [trimmedValue];
 };
 
@@ -143,13 +144,16 @@ const buildOutcomePayload = (formData: EditTherapeuticFormData) => {
   console.log("[EditTherapeuticFormContext] buildOutcomePayload source:", formData.step5_2);
 
   const outcome = formData.step5_2;
-  // Ensure we join arrays with newline for text area persistence
+  // Ensure we join arrays with special delimiter ||| to allow newlines within items
   const primaryMeasure = Array.isArray(outcome.primaryOutcomeMeasures)
-    ? outcome.primaryOutcomeMeasures.join("\n")
+    ? outcome.primaryOutcomeMeasures.join("|||")
     : outcome.primaryOutcomeMeasures;
+
+  // Ensure we join arrays with special delimiter ||| to allow newlines within items
   const otherMeasure = Array.isArray(outcome.otherOutcomeMeasures)
-    ? outcome.otherOutcomeMeasures.join("\n")
+    ? outcome.otherOutcomeMeasures.join("|||")
     : outcome.otherOutcomeMeasures;
+
 
   const payload = {
     purpose_of_trial: toNullableString(outcome.purpose_of_trial),
