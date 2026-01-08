@@ -232,10 +232,35 @@ const fetchAllTherapeuticData = async (req, res) => {
 };
 
 // NEW: Fetch all therapeutic trials with their associated data
+// OPTIMIZED: Uses bulk queries instead of N+1 queries for much better performance
 const fetchAllTherapeuticTrials = async (req, res) => {
   try {
-    // Get all overview records
-    const allOverviews = await trialRepo.findAll();
+    const startTime = Date.now();
+    
+    // Fetch ALL data from all tables in parallel (only 9 queries total, regardless of trial count)
+    const [
+      allOverviews,
+      allOutcomes,
+      allCriteria,
+      allTiming,
+      allResults,
+      allSites,
+      allOther,
+      allLogs,
+      allNotes,
+    ] = await Promise.all([
+      trialRepo.findAll(),
+      outcomeRepo.findAll(),
+      criteriaRepo.findAll(),
+      timingRepo.findAll(),
+      resultsRepo.findAll(),
+      sitesRepo.findAll(),
+      otherRepo.findAll(),
+      logsRepo.findAll(),
+      notesRepo.findAll(),
+    ]);
+
+    console.log(`[fetchAllTherapeuticTrials] Bulk queries completed in ${Date.now() - startTime}ms`);
 
     if (!allOverviews || allOverviews.length === 0) {
       return res.status(StatusCodes.OK).json({
@@ -244,35 +269,47 @@ const fetchAllTherapeuticTrials = async (req, res) => {
       });
     }
 
-    // Fetch associated data for each trial
-    const trialsWithData = await Promise.all(
-      allOverviews.map(async (overview) => {
-        const [outcomes, criteria, timing, results, sites, other, logs, notes] =
-          await Promise.all([
-            outcomeRepo.findByTrialId(overview.id),
-            criteriaRepo.findByTrialId(overview.id),
-            timingRepo.findByTrialId(overview.id),
-            resultsRepo.findByTrialId(overview.id),
-            sitesRepo.findByTrialId(overview.id),
-            otherRepo.findByTrialId(overview.id),
-            logsRepo.findByTrialId(overview.id),
-            notesRepo.findByTrialId(overview.id),
-          ]);
+    // Create lookup maps for O(1) access (much faster than filtering arrays)
+    const mapByTrialId = (items) => {
+      const map = new Map();
+      for (const item of items) {
+        const trialId = item.trial_id;
+        if (!map.has(trialId)) {
+          map.set(trialId, []);
+        }
+        map.get(trialId).push(item);
+      }
+      return map;
+    };
 
-        return {
-          trial_id: overview.id,
-          overview,
-          outcomes: outcomes || [],
-          criteria: criteria || [],
-          timing: timing || [],
-          results: results || [],
-          sites: sites || [],
-          other: other || [],
-          logs: logs || [],
-          notes: notes || [],
-        };
-      })
-    );
+    const outcomesMap = mapByTrialId(allOutcomes);
+    const criteriaMap = mapByTrialId(allCriteria);
+    const timingMap = mapByTrialId(allTiming);
+    const resultsMap = mapByTrialId(allResults);
+    const sitesMap = mapByTrialId(allSites);
+    const otherMap = mapByTrialId(allOther);
+    const logsMap = mapByTrialId(allLogs);
+    const notesMap = mapByTrialId(allNotes);
+
+    // Build the response by mapping data in memory (no additional DB queries)
+    const trialsWithData = allOverviews.map((overview) => {
+      const trialId = overview.id;
+      return {
+        trial_id: trialId,
+        overview,
+        outcomes: outcomesMap.get(trialId) || [],
+        criteria: criteriaMap.get(trialId) || [],
+        timing: timingMap.get(trialId) || [],
+        results: resultsMap.get(trialId) || [],
+        sites: sitesMap.get(trialId) || [],
+        other: otherMap.get(trialId) || [],
+        logs: logsMap.get(trialId) || [],
+        notes: notesMap.get(trialId) || [],
+      };
+    });
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[fetchAllTherapeuticTrials] Total processing time: ${totalTime}ms for ${trialsWithData.length} trials`);
 
     return res.status(StatusCodes.OK).json({
       message: "All therapeutic trials data retrieved successfully",

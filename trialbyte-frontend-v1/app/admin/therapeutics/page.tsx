@@ -331,46 +331,21 @@ export default function AdminTherapeuticsPage() {
     return Array.from(trialMap.values());
   };
 
-  // Apply localStorage updates to trials data
+  // Apply localStorage updates to trials data (lightweight - only clears update flags)
   const applyLocalStorageUpdates = (trials: TherapeuticTrial[]) => {
     try {
-      // Get the main trials list from localStorage
-      const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
-
-      if (localTrials.length === 0) {
-        return trials;
-      }
-
-      // Create a map of local trials for quick lookup
-      const localTrialMap = new Map<string, TherapeuticTrial>();
-      localTrials.forEach((trial: TherapeuticTrial) => {
-        localTrialMap.set(trial.trial_id, trial);
-      });
-
-      // Apply local updates to API trials
-      const updatedTrials = trials.map(trial => {
-        const localTrial = localTrialMap.get(trial.trial_id);
-
-        if (localTrial && localTrial.overview) {
-          // Check if local trial has more recent updates or if it was recently updated
-          const localUpdatedAt = new Date(localTrial.overview.updated_at || 0);
-          const apiUpdatedAt = new Date(trial.overview.updated_at || 0);
+      // Clear any pending update flags after data is fetched from API
+      trials.forEach(trial => {
+        try {
           const recentlyUpdated = localStorage.getItem(`trial_updated_${trial.trial_id}`);
-
-          if (localUpdatedAt > apiUpdatedAt || recentlyUpdated) {
-            console.log('Applying localStorage update for trial:', trial.trial_id);
-            // Clear the update flag after applying
-            if (recentlyUpdated) {
-              localStorage.removeItem(`trial_updated_${trial.trial_id}`);
-            }
-            return localTrial;
+          if (recentlyUpdated) {
+            localStorage.removeItem(`trial_updated_${trial.trial_id}`);
           }
+        } catch (e) {
+          // Ignore localStorage errors
         }
-
-        return trial;
       });
-
-      return updatedTrials;
+      return trials;
     } catch (error) {
       console.error('Error applying localStorage updates:', error);
       return trials;
@@ -392,19 +367,7 @@ export default function AdminTherapeuticsPage() {
     try {
       setLoading(true);
 
-      // Only use localStorage cache if not forcing refresh
-      if (!forceRefresh) {
-        const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
-        if (localTrials.length > 0) {
-          console.log('Using cached trials data from localStorage');
-          // Apply localStorage updates to cached data
-          const trialsWithLocalUpdates = applyLocalStorageUpdates(localTrials);
-          setTrials(trialsWithLocalUpdates);
-          setLoading(false);
-        }
-      }
-
-      // Then fetch fresh data from API
+      // Fetch fresh data from API (removed localStorage caching to avoid quota issues)
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
         {
@@ -432,29 +395,16 @@ export default function AdminTherapeuticsPage() {
       // Use the updated data (API + localStorage updates) as the source of truth
       setTrials(trialsWithLocalUpdates);
 
-      // Update localStorage with the combined data (API + local updates)
-      localStorage.setItem('therapeuticTrials', JSON.stringify(trialsWithLocalUpdates));
-
       // Pre-populate user name mapping cache
       populateUserNameMap(trialsWithLocalUpdates);
 
     } catch (error) {
       console.error("Error fetching trials:", error);
-
-      // If API fails, try to use localStorage data
-      const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
-      if (localTrials.length > 0) {
-        console.log('API failed, using localStorage data');
-        // Apply localStorage updates to cached data as well
-        const trialsWithLocalUpdates = applyLocalStorageUpdates(localTrials);
-        setTrials(trialsWithLocalUpdates);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch trials data",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: "Failed to fetch trials data. Please check your connection and try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -758,10 +708,16 @@ export default function AdminTherapeuticsPage() {
         executionTime: executionTime
       };
 
-      // Save to localStorage
-      const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
-      existingLogs.unshift(queryLog);
-      localStorage.setItem('queryExecutionLogs', JSON.stringify(existingLogs));
+      // Save to localStorage with limit to prevent quota errors
+      try {
+        const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
+        existingLogs.unshift(queryLog);
+        // Keep only the last 50 logs to prevent quota overflow
+        const limitedLogs = existingLogs.slice(0, 50);
+        localStorage.setItem('queryExecutionLogs', JSON.stringify(limitedLogs));
+      } catch (e) {
+        console.warn('Could not save query log to localStorage:', e);
+      }
     } finally {
       setIsSearching(false);
     }
@@ -816,10 +772,16 @@ export default function AdminTherapeuticsPage() {
       executionTime: executionTime
     };
 
-    // Save to localStorage
-    const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
-    existingLogs.unshift(queryLog); // Add to beginning of array
-    localStorage.setItem('queryExecutionLogs', JSON.stringify(existingLogs));
+    // Save to localStorage with limit to prevent quota errors
+    try {
+      const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
+      existingLogs.unshift(queryLog); // Add to beginning of array
+      // Keep only the last 50 logs to prevent quota overflow
+      const limitedLogs = existingLogs.slice(0, 50);
+      localStorage.setItem('queryExecutionLogs', JSON.stringify(limitedLogs));
+    } catch (e) {
+      console.warn('Could not save query log to localStorage:', e);
+    }
 
     toast({
       title: "Query Loaded",
@@ -938,10 +900,16 @@ export default function AdminTherapeuticsPage() {
       executionTime: executionTime
     };
 
-    // Save to localStorage
-    const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
-    existingLogs.unshift(queryLog);
-    localStorage.setItem('queryExecutionLogs', JSON.stringify(existingLogs));
+    // Save to localStorage with limit to prevent quota errors
+    try {
+      const existingLogs = JSON.parse(localStorage.getItem('queryExecutionLogs') || '[]');
+      existingLogs.unshift(queryLog);
+      // Keep only the last 50 logs to prevent quota overflow
+      const limitedLogs = existingLogs.slice(0, 50);
+      localStorage.setItem('queryExecutionLogs', JSON.stringify(limitedLogs));
+    } catch (e) {
+      console.warn('Could not save query log to localStorage:', e);
+    }
 
     if (activeFilterCount > 0) {
       toast({
@@ -2105,6 +2073,15 @@ export default function AdminTherapeuticsPage() {
   };
 
   useEffect(() => {
+    // Clear old bloated localStorage cache to prevent quota issues
+    // This removes the 'therapeuticTrials' cache that was causing QuotaExceededError
+    try {
+      localStorage.removeItem('therapeuticTrials');
+      localStorage.removeItem('trialUpdateMappings');
+    } catch (e) {
+      console.warn('Could not clear old localStorage cache:', e);
+    }
+
     fetchTrials();
     fetchDrugsAndBuildMapping(); // Fetch drugs and build name mapping
 
