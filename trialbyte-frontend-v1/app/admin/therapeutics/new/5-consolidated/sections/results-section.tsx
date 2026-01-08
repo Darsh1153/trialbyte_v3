@@ -338,7 +338,7 @@ export default function ResultsSection() {
                 <div className="flex gap-2">
                   <Input
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -518,7 +518,7 @@ export default function ResultsSection() {
                     <Input
                       id={`site-note-attachments-${index}`}
                       type="file"
-                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
