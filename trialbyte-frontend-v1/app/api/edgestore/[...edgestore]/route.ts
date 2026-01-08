@@ -7,7 +7,6 @@ const createEdgeStoreRouter = (es: ReturnType<typeof initEdgeStore.create>) => {
   return es.router({
     trialOutcomeAttachments: es.fileBucket({
       maxSize: 1024 * 1024 * 50, // 50MB
-      accept: ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'], // Images, PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX
     }),
   });
 };
@@ -43,27 +42,27 @@ let cachedHandler: ReturnType<typeof buildEdgeStoreHandler> | null = null;
 
 const handler = async (req: Request, ...args: any[]) => {
   console.log('[EdgeStore] handler invoked', { method: req.method, url: req.url });
-  
+
   try {
     // Build handler if not cached
     if (!cachedHandler) {
       console.log('[EdgeStore] Building handler...');
       cachedHandler = buildEdgeStoreHandler();
     }
-    
+
     if (!cachedHandler) {
       console.error('[EdgeStore] Handler not available - missing credentials');
       return new Response(
-        JSON.stringify({ 
-          error: 'EdgeStore not configured. Please set EDGE_STORE_ACCESS_KEY and EDGE_STORE_SECRET_KEY environment variables.' 
+        JSON.stringify({
+          error: 'EdgeStore not configured. Please set EDGE_STORE_ACCESS_KEY and EDGE_STORE_SECRET_KEY environment variables.'
         }),
-        { 
+        {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         }
       );
     }
-    
+
     // Call the Edge Store handler with all arguments
     console.log('[EdgeStore] Calling Edge Store handler...');
     return await cachedHandler(req, ...args);
@@ -72,10 +71,10 @@ const handler = async (req: Request, ...args: any[]) => {
     const errorMessage = error instanceof Error ? error.message : 'Failed to process EdgeStore request';
     console.error('[EdgeStore] Error details:', { message: errorMessage, stack: error instanceof Error ? error.stack : undefined });
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage 
+      JSON.stringify({
+        error: errorMessage
       }),
-      { 
+      {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       }

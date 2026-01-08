@@ -1060,7 +1060,7 @@ export default function TimingSection() {
                     <Input
                       id={`ref-attachments-${index}`}
                       type="file"
-                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
