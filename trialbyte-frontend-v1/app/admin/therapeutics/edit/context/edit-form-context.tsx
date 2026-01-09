@@ -993,7 +993,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         }
       }
 
-      if (data.trials && data.trials.length > 0) {
+      if (data && data.trials && data.trials.length > 0) {
         // First, check if we have localStorage data that might be more recent
         const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
         const localTrial = localTrials.find((t: any) => t.trial_id === trialId);
@@ -1338,43 +1338,19 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 estimated_result_published_date: formatDateForUI(foundTrial.timing?.[0]?.result_published_date_estimated),
                 overall_duration_complete: foundTrial.timing?.[0]?.overall_duration_complete || "",
                 overall_duration_publish: foundTrial.timing?.[0]?.overall_duration_publish || "",
-                durationConverterData: (() => {
-                  // Try to load from timing data, or use defaults
-                  const stored = foundTrial.timing?.[0]?.duration_converter_data;
-                  if (stored && typeof stored === 'string') {
-                    try {
-                      return JSON.parse(stored);
-                    } catch (e) {
-                      console.warn('Failed to parse duration_converter_data:', e);
-                    }
-                  } else if (stored && typeof stored === 'object') {
-                    return stored;
-                  }
-                  return {
-                    duration: "",
-                    frequency: "days",
-                    outputMonths: "",
-                  };
-                })(),
-                enhancedCalculatorData: (() => {
-                  // Try to load from timing data, or use defaults
-                  const stored = foundTrial.timing?.[0]?.enhanced_calculator_data;
-                  if (stored && typeof stored === 'string') {
-                    try {
-                      return JSON.parse(stored);
-                    } catch (e) {
-                      console.warn('Failed to parse enhanced_calculator_data:', e);
-                    }
-                  } else if (stored && typeof stored === 'object') {
-                    return stored;
-                  }
-                  return {
-                    date: "",
-                    duration: "",
-                    frequency: "months",
-                    outputDate: "",
-                  };
-                })(),
+                // Note: durationConverterData and enhancedCalculatorData are UI-only calculator state
+                // They are NOT stored in the database - just use default values
+                durationConverterData: {
+                  duration: "",
+                  frequency: "days",
+                  outputMonths: "",
+                },
+                enhancedCalculatorData: {
+                  date: "",
+                  duration: "",
+                  frequency: "months",
+                  outputDate: "",
+                },
                 references: (() => {
                   // Log timing data being loaded
                   console.log('Loading timing data from database:', {
@@ -2149,6 +2125,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     trial_registries.push({
                       id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "",
                       registry: parsedData.registry || "",
                       identifier: parsedData.identifier || "",
                       description: parsedData.description || parsedData.content || "",
@@ -2163,6 +2140,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     associated_studies.push({
                       id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "",
                       type: parsedData.studyType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
@@ -2852,8 +2830,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 result_published_date_estimated: formatDateForDB(formData.step5_4.estimated_result_published_date),
                 overall_duration_complete: formData.step5_4.overall_duration_complete || null,
                 overall_duration_publish: formData.step5_4.overall_duration_publish || null,
-                duration_converter_data: formData.step5_4.durationConverterData ? JSON.stringify(formData.step5_4.durationConverterData) : null,
-                enhanced_calculator_data: formData.step5_4.enhancedCalculatorData ? JSON.stringify(formData.step5_4.enhancedCalculatorData) : null,
+                // Note: durationConverterData and enhancedCalculatorData are UI-only calculator state
+                // and are NOT saved to the database - they are stored in localStorage only
                 timing_references: filteredTimingReferences.length > 0 ? filteredTimingReferences : null,
               };
 
@@ -3054,6 +3032,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   const sourceData = {
                     type: 'pipeline_data',
                     date: item.date,
+                    information: item.information,
                     url: item.url,
                     file: item.file,
                     fileUrl: item.fileUrl
@@ -3167,6 +3146,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'trial_registries',
+                    date: item.date,
                     registry: item.registry,
                     identifier: item.identifier,
                     description: item.description,
@@ -3205,6 +3185,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'associated_studies',
+                    date: item.date,
                     studyType: item.type,
                     title: item.title,
                     description: item.description,

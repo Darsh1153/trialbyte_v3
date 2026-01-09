@@ -577,23 +577,33 @@ export default function ResultsSection() {
                   />
                   {note.attachments && note.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {note.attachments.map((attachment: string, attachIndex: number) => (
-                        <div
-                          key={attachIndex}
-                          className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
-                        >
-                          <span className="truncate max-w-[200px]">{attachment}</span>
-                          <a
-                            href={attachment}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                      {note.attachments.map((attachment: any, attachIndex: number) => {
+                        // Handle both string and object attachments
+                        const attachmentName = typeof attachment === 'string' 
+                          ? attachment 
+                          : (attachment?.name || attachment?.url || `Attachment ${attachIndex + 1}`);
+                        const attachmentUrl = typeof attachment === 'string' 
+                          ? attachment 
+                          : (attachment?.url || '#');
+                        
+                        return (
+                          <div
+                            key={attachIndex}
+                            className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
                           >
-                            <LinkIcon className="h-3 w-3" />
-                            View
-                          </a>
-                        </div>
-                      ))}
+                            <span className="truncate max-w-[200px]">{attachmentName}</span>
+                            <a
+                              href={attachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 whitespace-nowrap"
+                            >
+                              <LinkIcon className="h-3 w-3" />
+                              View
+                            </a>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

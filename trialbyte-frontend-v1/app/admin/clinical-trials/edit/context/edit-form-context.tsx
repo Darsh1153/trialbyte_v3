@@ -1788,6 +1788,55 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               console.warn("Participation criteria update threw error:", criteriaError);
             }
 
+            // Update outcomes (step5_2) via API
+            try {
+              console.log("=== SAVING OUTCOMES DATA (step5_2) ===");
+              console.log("formData.step5_2:", formData.step5_2);
+              
+              // Helper to convert array to proper format for API
+              const arrayToJoinedString = (arr: string[]): string | null => {
+                if (!arr || arr.length === 0) return null;
+                const filtered = arr.filter(Boolean);
+                return filtered.length > 0 ? filtered.join("\n") : null;
+              };
+              
+              const outcomesPayload = {
+                purpose_of_trial: formData.step5_2.purpose_of_trial || null,
+                summary: formData.step5_2.summary || null,
+                primary_outcome_measure: arrayToJoinedString(formData.step5_2.primaryOutcomeMeasures),
+                other_outcome_measure: arrayToJoinedString(formData.step5_2.otherOutcomeMeasures),
+                study_design_keywords: formData.step5_2.study_design_keywords && formData.step5_2.study_design_keywords.length > 0 
+                  ? formData.step5_2.study_design_keywords.join(", ") 
+                  : null,
+                study_design: formData.step5_2.study_design || null,
+                treatment_regimen: formData.step5_2.treatment_regimen || null,
+                number_of_arms: formData.step5_2.number_of_arms ? parseInt(formData.step5_2.number_of_arms) : null,
+              };
+              
+              console.log("Outcomes payload:", outcomesPayload);
+
+              const outcomesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/outcome/trial/${trialId}`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(outcomesPayload),
+                credentials: "include",
+              }).catch(() => null);
+
+              if (outcomesResponse && outcomesResponse.ok) {
+                console.log("Outcomes updated successfully");
+              } else {
+                console.warn("Outcomes update failed");
+                if (outcomesResponse) {
+                  const errorText = await outcomesResponse.text().catch(() => "Unknown error");
+                  console.error("Outcomes update error:", outcomesResponse.status, errorText);
+                }
+              }
+            } catch (outcomesError) {
+              console.warn("Outcomes update threw error:", outcomesError);
+            }
+
             // Also update the sites data if we have a trial_id
             const filteredReferences = formData.step5_6.references.filter((ref: any) => ref.isVisible && (ref.date || ref.content));
             const sitesData = {

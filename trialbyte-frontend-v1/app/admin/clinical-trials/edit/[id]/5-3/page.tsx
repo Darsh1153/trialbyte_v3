@@ -180,9 +180,9 @@ export default function EditTherapeuticsStep5_3() {
               <Label>Subject Type</Label>
               <Input
                 placeholder="Enter subject type..."
-                value={form.ecog_performance_status || ""}
+                value={form.subject_type || ""}
                 onChange={(e) =>
-                  updateField("step5_3", "ecog_performance_status", e.target.value)
+                  updateField("step5_3", "subject_type", e.target.value)
                 }
                 className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
               />
@@ -258,13 +258,10 @@ export default function EditTherapeuticsStep5_3() {
                <Input
                  type="number"
                  placeholder="e.g., 50"
-                 value={form.biomarker_requirements[0] || ""}
-                 onChange={(e) => {
-                   const current = form.biomarker_requirements || [""];
-                   const updated = [...current];
-                   updated[0] = e.target.value;
-                   updateField("step5_3", "biomarker_requirements", updated);
-                 }}
+                 value={form.target_no_volunteers || ""}
+                 onChange={(e) =>
+                   updateField("step5_3", "target_no_volunteers", e.target.value)
+                 }
                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                />
              </div>
@@ -273,13 +270,10 @@ export default function EditTherapeuticsStep5_3() {
                <Input
                  type="number"
                  placeholder="e.g., 40"
-                 value={form.biomarker_requirements[1] || ""}
-                 onChange={(e) => {
-                   const current = form.biomarker_requirements || [""];
-                   const updated = [...current];
-                   updated[1] = e.target.value;
-                   updateField("step5_3", "biomarker_requirements", updated);
-                 }}
+                 value={form.actual_enrolled_volunteers || ""}
+                 onChange={(e) =>
+                   updateField("step5_3", "actual_enrolled_volunteers", e.target.value)
+                 }
                  className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                />
              </div>

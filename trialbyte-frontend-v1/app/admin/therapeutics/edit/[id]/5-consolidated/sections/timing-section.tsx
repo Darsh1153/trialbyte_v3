@@ -883,26 +883,33 @@ export default function TimingSection() {
                   />
                   {reference.attachments && reference.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {reference.attachments.map((attachment: string, attachIndex: number) => (
-                        <div
-                          key={attachIndex}
-                          className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
-                        >
-                          <span className="truncate max-w-[200px]">{attachment}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
-                            onClick={() => {
-                              const newAttachments = reference.attachments.filter((_: any, i: number) => i !== attachIndex);
-                              updateReference("step5_4", "references", index, { attachments: newAttachments });
-                            }}
+                      {reference.attachments.map((attachment: any, attachIndex: number) => {
+                        // Handle both string and object attachments
+                        const attachmentName = typeof attachment === 'string' 
+                          ? attachment 
+                          : (attachment?.name || attachment?.url || `Attachment ${attachIndex + 1}`);
+                        
+                        return (
+                          <div
+                            key={attachIndex}
+                            className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
                           >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
+                            <span className="truncate max-w-[200px]">{attachmentName}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
+                              onClick={() => {
+                                const newAttachments = reference.attachments.filter((_: any, i: number) => i !== attachIndex);
+                                updateReference("step5_4", "references", index, { attachments: newAttachments });
+                              }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
