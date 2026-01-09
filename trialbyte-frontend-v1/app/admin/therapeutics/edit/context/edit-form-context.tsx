@@ -1569,6 +1569,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                         date: note.date ? formatDateForInput(note.date) : "",
                         noteType: note.noteType || note.type || "", // Support both noteType and type
                         content: note.content || "",
+                        sourceLink: note.sourceLink || note.source_link || "", // Add sourceLink mapping
                         sourceType: note.sourceType || note.source || "",
                         attachments: note.attachments || [],
                         isVisible: note.isVisible !== false,
@@ -1585,6 +1586,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     date: "",
                     noteType: "",
                     content: "",
+                    sourceLink: "",
                     sourceType: "",
                     attachments: [],
                     isVisible: true,
@@ -2111,6 +2113,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     publications.push({
                       id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "", // Add date field for Publication Date
                       type: parsedData.publicationType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
@@ -3108,6 +3111,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'publications',
+                    date: item.date,
                     publicationType: item.type,
                     title: item.title,
                     description: item.description,

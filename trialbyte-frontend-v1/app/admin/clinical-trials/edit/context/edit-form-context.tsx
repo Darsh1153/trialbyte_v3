@@ -56,11 +56,20 @@ const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
 
   const criteria = formData.step5_3;
 
+  // Combine age value with unit (e.g., "18" + "years" -> "18 Years")
+  const formatAgeWithUnit = (ageValue: string, unit: string): string | null => {
+    if (!ageValue || ageValue.trim() === "") return null;
+    const unitFormatted = unit ? unit.charAt(0).toUpperCase() + unit.slice(1).toLowerCase() : "Years";
+    return `${ageValue} ${unitFormatted}`.trim();
+  };
+
+  const ageUnit = criteria.biomarker_requirements?.[0] || "years";
+
   const payload = {
     inclusion_criteria: toNullableString(joinArrayToString(criteria.inclusion_criteria, "; ")),
     exclusion_criteria: toNullableString(joinArrayToString(criteria.exclusion_criteria, "; ")),
-    age_from: toNullableString(criteria.age_min),
-    age_to: toNullableString(criteria.age_max),
+    age_from: formatAgeWithUnit(criteria.age_min, ageUnit),
+    age_to: formatAgeWithUnit(criteria.age_max, ageUnit),
     sex: toNullableString(criteria.gender),
     healthy_volunteers: toNullableString(criteria.healthy_volunteers?.[0]),
     subject_type: toNullableString(criteria.subject_type),
@@ -72,7 +81,6 @@ const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
     ),
     ecog_performance_status: toNullableString(criteria.ecog_performance_status),
     healthy_volunteers: toNullableString(joinArrayToString(criteria.healthy_volunteers, ", ")),
-    biomarker_requirements: toNullableString(joinArrayToString(criteria.biomarker_requirements, ", ")),
   };
 
   console.log("[ClinicalTrialsEditFormContext] buildCriteriaPayload output:", payload);
@@ -903,6 +911,28 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             return typeof value === "string" ? value : String(value);
           };
 
+          // Parse age field to extract just the number (e.g., "18 Years" -> "18")
+          const parseAgeValue = (value: unknown): string => {
+            if (value === null || value === undefined) return "";
+            const str = String(value).trim();
+            if (!str) return "";
+            // Extract just the numeric part
+            const parts = str.split(/\s+/);
+            return parts[0] || "";
+          };
+
+          // Parse age field to extract just the unit (e.g., "18 Years" -> "years")
+          const parseAgeUnit = (value: unknown): string => {
+            if (value === null || value === undefined) return "";
+            const str = String(value).trim();
+            if (!str) return "";
+            const parts = str.split(/\s+/);
+            if (parts.length >= 2) {
+              return parts[1].toLowerCase() || "";
+            }
+            return "";
+          };
+
           const mappedData: EditTherapeuticFormData = {
             step5_1: {
               therapeutic_area: foundTrial.overview?.therapeutic_area || "",
@@ -955,14 +985,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     ? foundTrial.criteria[0].exclusion_criteria.split("; ").filter(Boolean)
                     : [foundTrial.criteria[0].exclusion_criteria].filter(Boolean)
                 : [],
-              age_min: toStringOrEmpty(foundTrial.criteria?.[0]?.age_from),
-              age_max: toStringOrEmpty(foundTrial.criteria?.[0]?.age_to),
+              age_min: parseAgeValue(foundTrial.criteria?.[0]?.age_from),
+              age_max: parseAgeValue(foundTrial.criteria?.[0]?.age_to),
               gender: toStringOrEmpty(foundTrial.criteria?.[0]?.sex),
               ecog_performance_status: toStringOrEmpty(foundTrial.criteria?.[0]?.ecog_performance_status),
               healthy_volunteers: foundTrial.criteria?.[0]?.healthy_volunteers
                 ? [toStringOrEmpty(foundTrial.criteria[0].healthy_volunteers)]
                 : [],
-              biomarker_requirements: [],
+              biomarker_requirements: [parseAgeUnit(foundTrial.criteria?.[0]?.age_from) || "years"],
               subject_type: toStringOrEmpty(foundTrial.criteria?.[0]?.subject_type),
               target_no_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.target_no_volunteers),
               actual_enrolled_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.actual_enrolled_volunteers),
@@ -1202,6 +1232,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     date: note.date || "",
                     noteType: note.noteType || "",
                     content: note.content || "",
+                    sourceLink: note.sourceLink || note.source_link || "", // Add sourceLink mapping
                     sourceType: note.sourceType || "",
                     attachments: note.attachments || [],
                     isVisible: note.isVisible !== false,
@@ -1212,6 +1243,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   date: "",
                   noteType: "",
                   content: "",
+                  sourceLink: "",
                   sourceType: "",
                   attachments: [],
                   isVisible: true,
@@ -1395,6 +1427,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   } else if (itemType === 'publications') {
                     publications.push({
                       id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "", // Add date field for Publication Date
                       type: parsedData.publicationType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || "",
@@ -1405,6 +1438,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   } else if (itemType === 'trial_registries') {
                     trial_registries.push({
                       id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "", // Add date field for Registry Date
                       registry: parsedData.registry || "",
                       identifier: parsedData.identifier || "",
                       description: parsedData.description || "",
@@ -1415,6 +1449,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   } else if (itemType === 'associated_studies') {
                     associated_studies.push({
                       id: item.id || parsedData.id || Date.now().toString(),
+                      date: parsedData.date || "", // Add date field for Study Date
                       type: parsedData.studyType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || "",
@@ -2166,6 +2201,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 filteredItems.forEach((item: any) => {
                     const sourceData = {
                       type: 'publications',
+                      date: item.date,
                       publicationType: item.type,
                       title: item.title,
                       description: item.description,
@@ -2204,6 +2240,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 filteredItems.forEach((item: any) => {
                     const sourceData = {
                       type: 'trial_registries',
+                      date: item.date,
                       registry: item.registry,
                       identifier: item.identifier,
                       description: item.description,
@@ -2242,6 +2279,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 filteredItems.forEach((item: any) => {
                     const sourceData = {
                       type: 'associated_studies',
+                      date: item.date,
                       studyType: item.type,
                       title: item.title,
                       description: item.description,
