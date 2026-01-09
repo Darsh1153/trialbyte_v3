@@ -88,3 +88,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom scrollbar for table containers - always visible */
+.table-scroll-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: #64748b #e2e8f0;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.table-scroll-container::-webkit-scrollbar {
+  height: 10px;
+  display: block;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 5px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 5px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Table should fit in container with fixed layout */
+.table-scroll-container table {
+  table-layout: fixed;
+  width: 100%;
+}

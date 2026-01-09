@@ -279,18 +279,19 @@ export default function ClinicalTrialDashboard() {
   };
 
   // Helper function to get field value from trial object
+  // Returns empty string if value is null/undefined
   const getFieldValue = (trial: TherapeuticTrial, field: string): string => {
     switch (field) {
-      case "disease_type": return trial.overview.disease_type;
-      case "therapeutic_area": return trial.overview.therapeutic_area;
-      case "trial_phase": return trial.overview.trial_phase;
-      case "primary_drugs": return trial.overview.primary_drugs;
-      case "trial_status": return trial.overview.status;
-      case "sponsor_collaborators": return trial.overview.sponsor_collaborators;
-      case "countries": return trial.overview.countries;
-      case "patient_segment": return trial.overview.patient_segment;
-      case "line_of_therapy": return trial.overview.line_of_therapy;
-      case "trial_identifier": return trial.overview.trial_identifier.join(", ");
+      case "disease_type": return trial.overview.disease_type || "";
+      case "therapeutic_area": return trial.overview.therapeutic_area || "";
+      case "trial_phase": return trial.overview.trial_phase || "";
+      case "primary_drugs": return trial.overview.primary_drugs || "";
+      case "trial_status": return trial.overview.status || "";
+      case "sponsor_collaborators": return trial.overview.sponsor_collaborators || "";
+      case "countries": return trial.overview.countries || "";
+      case "patient_segment": return trial.overview.patient_segment || "";
+      case "line_of_therapy": return trial.overview.line_of_therapy || "";
+      case "trial_identifier": return trial.overview.trial_identifier?.join(", ") || "";
       case "enrollment": return trial.criteria[0]?.target_no_volunteers?.toString() || "0";
       default: return "";
     }
@@ -322,9 +323,14 @@ export default function ClinicalTrialDashboard() {
   };
 
   // Helper function to evaluate search criteria
-  const evaluateCriteria = (fieldValue: string, operator: string, searchValue: string): boolean => {
+  const evaluateCriteria = (fieldValue: string | null | undefined, operator: string, searchValue: string): boolean => {
+    // Handle null/undefined field values
+    if (fieldValue === null || fieldValue === undefined) {
+      return operator === "is_not" ? true : false;
+    }
+    
     const field = fieldValue.toLowerCase();
-    const value = searchValue.toLowerCase();
+    const value = (searchValue || '').toLowerCase();
     
     switch (operator) {
       case "contains": return field.includes(value);
@@ -341,19 +347,22 @@ export default function ClinicalTrialDashboard() {
     return formatDateToMMDDYYYY(dateString);
   };
 
+  // Status colors with color psychology - vibrant solid colors
+  // Handles both lowercase and capitalized status values
   const getStatusColor = (status: string) => {
+    const normalizedStatus = status?.toLowerCase() || '';
     const statusColors: Record<string, string> = {
-      Confirmed: "bg-orange-100 text-orange-700",
-      Terminated: "bg-red-100 text-red-700",
-      Open: "bg-green-100 text-green-700",
-      Closed: "bg-purple-100 text-purple-700",
-      Completed: "bg-teal-100 text-teal-700",
-      Active: "bg-emerald-100 text-emerald-700",
-      Planned: "bg-amber-100 text-amber-700",
-      Suspended: "bg-orange-100 text-orange-700",
-      Draft: "bg-gray-100 text-gray-700",
+      confirmed: "bg-orange-500 text-white",      // Orange = Attention, confirmed
+      terminated: "bg-red-500 text-white",        // Red = Stop, danger, terminated
+      open: "bg-green-500 text-white",            // Green = Go, active, open
+      closed: "bg-gray-600 text-white",           // Gray = Inactive, closed
+      completed: "bg-emerald-500 text-white",     // Emerald = Success, completed
+      active: "bg-green-500 text-white",          // Green = Active, ongoing
+      planned: "bg-blue-500 text-white",          // Blue = Planned, upcoming
+      suspended: "bg-amber-500 text-white",       // Amber = Warning, suspended
+      draft: "bg-slate-400 text-white",           // Slate = Draft, pending
     };
-    return statusColors[status] || "bg-gray-100 text-gray-700";
+    return statusColors[normalizedStatus] || "bg-gray-400 text-white";
   };
 
   // Apply filters and search criteria, then sort
@@ -505,124 +514,130 @@ export default function ClinicalTrialDashboard() {
     }));
   };
 
-  // Render card view
+  // Render card view - horizontal layout matching reference design
   const renderCardView = () => {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col gap-4">
         {filteredTrials.map((trial) => (
           <Card 
             key={trial.trial_id} 
-            className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+            className="p-5 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 bg-white"
             onClick={() => {
               router.push(`/user/clinical_trial/trials?trialId=${trial.trial_id}`);
             }}
           >
-            <div className="space-y-4">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    className="rounded" 
-                    onClick={(e) => e.stopPropagation()} // Prevent card click when clicking checkbox
-                  />
-                  <span className="text-blue-600 font-medium">
-                    {trial.overview.trial_id || `#${trial.trial_id.slice(0, 6)}`}
-                  </span>
-                </div>
-                <Badge className={getStatusColor(trial.overview.status)}>
-                  {trial.overview.status}
-                </Badge>
+            <div className="flex items-start gap-4">
+              {/* Checkbox */}
+              <div className="flex items-center pt-1">
+                <input 
+                  type="checkbox" 
+                  className="w-4 h-4 rounded border-gray-300" 
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
 
-              {/* Title */}
-              <h3 className="font-semibold text-gray-900 line-clamp-2">
-                {trial.overview.title}
-              </h3>
-
-              {/* Key Information */}
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-600">Therapeutic Area:</span>
-                  <span className="text-sm font-medium ml-2">{trial.overview.therapeutic_area}</span>
-                </div>
-                
-                <div className="text-sm">
-                  <span className="text-gray-600">Disease Type:</span>
-                  <span className="font-medium ml-2">{trial.overview.disease_type}</span>
-                </div>
-                
-                <div className="text-sm">
-                  <span className="text-gray-600">Primary Drug:</span>
-                  <span className="font-medium ml-2">{trial.overview.primary_drugs}</span>
-                </div>
-                
-                <div className="text-sm">
-                  <span className="text-gray-600">Phase:</span>
-                  <span className="font-medium ml-2">{trial.overview.trial_phase}</span>
-                </div>
-                
-                <div className="text-sm">
-                  <span className="text-gray-600">Sponsor:</span>
-                  <span className="font-medium ml-2 truncate">
-                    {trial.overview.sponsor_collaborators || "N/A"}
-                  </span>
+              {/* Card Content */}
+              <div className="flex-1 min-w-0">
+                {/* Row 1: Trial ID + Therapeutic Area */}
+                <div className="flex flex-wrap items-center gap-4 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 text-sm font-medium">Trial ID :</span>
+                    <Badge className="bg-green-600 text-white hover:bg-green-700 px-3 py-1 text-xs font-medium">
+                      {trial.overview.trial_id?.replace('TB-', '') || trial.trial_id.slice(0, 6)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 text-sm font-medium">Therapeutic Area :</span>
+                    <div className="flex items-center gap-1.5">
+                      {/* Red Ribbon Icon */}
+                      <svg className="w-5 h-5" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M50 5C35 5 25 20 25 35C25 50 35 65 50 80C65 65 75 50 75 35C75 20 65 5 50 5Z" fill="#FCA5A5"/>
+                        <path d="M50 80L30 115" stroke="#EF4444" strokeWidth="8" strokeLinecap="round"/>
+                        <path d="M50 80L70 115" stroke="#EF4444" strokeWidth="8" strokeLinecap="round"/>
+                        <path d="M50 5C42 5 35 12 35 22C35 32 42 42 50 52C58 42 65 32 65 22C65 12 58 5 50 5Z" fill="#EF4444"/>
+                      </svg>
+                      <span className="text-sm font-medium text-gray-900">{trial.overview.therapeutic_area}</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Enrollment info */}
-                {trial.criteria[0] && (
-                  <div className="text-sm">
-                    <span className="text-gray-600">Target Enrollment:</span>
-                    <span className="font-medium ml-2">
-                      {trial.criteria[0].target_no_volunteers} volunteers
+                {/* Row 2: Disease Type + Primary Drug + Trial Status + Sponsor + Phase */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-sm">Disease Type :</span>
+                    <span className="text-sm font-medium text-gray-900">{trial.overview.disease_type}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-sm">Primary Drug :</span>
+                    <span className="text-sm font-medium text-gray-900">{trial.overview.primary_drugs || 'N/A'}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-sm">Trial Status :</span>
+                    <Badge className={`px-3 py-1 text-xs font-medium ${getStatusColorCard(trial.overview.status)}`}>
+                      {trial.overview.status}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-sm">Sponsor :</span>
+                    <span className="text-sm font-medium text-gray-900 truncate max-w-[120px]">
+                      {trial.overview.sponsor_collaborators || 'N/A'}
                     </span>
                   </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Updated: {formatDate(trial.overview.updated_at)}</span>
-                  <div className="flex items-center space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click when clicking favorite button
-                        toggleFavoriteTrial(trial.trial_id);
-                      }}
-                      className="h-6 w-6 p-0 hover:bg-red-50"
-                    >
-                      <Heart 
-                        className={`h-3 w-3 ${
-                          favoriteTrials.includes(trial.trial_id) 
-                            ? 'fill-red-500 text-red-500' 
-                            : 'text-gray-400 hover:text-red-500'
-                        }`}
-                      />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-6 px-2"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click when clicking view button
-                        router.push(`/user/clinical_trial/trials?trialId=${trial.trial_id}`);
-                      }}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-sm">Phase :</span>
+                    <span className="text-sm font-medium text-gray-900">{trial.overview.trial_phase}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Favorite Button */}
+              <div className="flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavoriteTrial(trial.trial_id);
+                  }}
+                  className="h-8 w-8 p-0 hover:bg-red-50"
+                >
+                  <Heart 
+                    className={`h-4 w-4 ${
+                      favoriteTrials.includes(trial.trial_id) 
+                        ? 'fill-red-500 text-red-500' 
+                        : 'text-gray-400 hover:text-red-500'
+                    }`}
+                  />
+                </Button>
               </div>
             </div>
           </Card>
         ))}
       </div>
     );
+  };
+
+  // Status colors for card view - more vibrant
+  // Handles both lowercase and capitalized status values
+  const getStatusColorCard = (status: string) => {
+    const normalizedStatus = status?.toLowerCase() || '';
+    const statusColors: Record<string, string> = {
+      confirmed: "bg-orange-500 text-white hover:bg-orange-600",
+      terminated: "bg-red-500 text-white hover:bg-red-600",
+      open: "bg-green-500 text-white hover:bg-green-600",
+      closed: "bg-gray-600 text-white hover:bg-gray-700",
+      completed: "bg-emerald-500 text-white hover:bg-emerald-600",
+      active: "bg-green-500 text-white hover:bg-green-600",
+      planned: "bg-blue-500 text-white hover:bg-blue-600",
+      suspended: "bg-amber-500 text-white hover:bg-amber-600",
+      draft: "bg-slate-400 text-white hover:bg-slate-500",
+    };
+    return statusColors[normalizedStatus] || "bg-gray-400 text-white";
   };
 
   if (loading) {
@@ -784,9 +799,9 @@ export default function ClinicalTrialDashboard() {
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex overflow-hidden">
         {/* Sidebar */}
-        <div className="w-64 bg-slate-700 min-h-screen">
+        <div className="w-64 flex-shrink-0 bg-slate-700 min-h-screen">
           <div className="p-4">
             <Button className="w-full justify-start bg-slate-600 hover:bg-slate-500 text-white">
               <MoreHorizontal className="h-4 w-4 mr-2" />
@@ -968,7 +983,7 @@ export default function ClinicalTrialDashboard() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-6">
+        <div className="flex-1 min-w-0 overflow-hidden p-6">
           {/* Search */}
           <div className="mb-6">
             <div className="flex items-center space-x-4 mb-4">
@@ -1021,12 +1036,13 @@ export default function ClinicalTrialDashboard() {
 
           {/* Conditional Rendering: Table or Card View */}
           {viewType === 'list' ? (
-            <Card className="overflow-hidden">
-              <Table>
+            <Card className="overflow-hidden border">
+              <div className="table-scroll-container">
+              <Table className="w-full">
                 <TableHeader className="bg-slate-700">
                   <TableRow>
                     {columnSettings.trialId && (
-                      <TableHead className="text-white">
+                      <TableHead className="text-white w-[140px]">
                         <div className="flex items-center space-x-2">
                           <input type="checkbox" className="rounded" />
                           <span>Trial ID</span>
@@ -1035,42 +1051,41 @@ export default function ClinicalTrialDashboard() {
                       </TableHead>
                     )}
                     {columnSettings.therapeuticArea && (
-                      <TableHead className="text-white">
+                      <TableHead className="text-white w-[200px]">
                         <span>Therapeutic Area</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
                     {columnSettings.diseaseType && (
-                      <TableHead className="text-white">
+                      <TableHead className="text-white w-[150px]">
                         <span>Disease Type</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
                     {columnSettings.primaryDrug && (
-                      <TableHead className="text-white">
+                      <TableHead className="text-white w-[120px]">
                         <span>Primary Drug</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
-                    {columnSettings.trialRecordStatus && (
-                      <TableHead className="text-white">
-                        <span>Trial Status</span>
-                        <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
-                      </TableHead>
-                    )}
+                    {/* Trial Status - Always visible */}
+                    <TableHead className="text-white w-[120px]">
+                      <span>Trial Status</span>
+                      <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
+                    </TableHead>
                     {columnSettings.sponsorsCollaborators && (
-                      <TableHead className="text-white">
+                      <TableHead className="text-white w-[120px]">
                         <span>Sponsor</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
                     {columnSettings.trialPhase && (
-                      <TableHead className="text-white">
+                      <TableHead className="text-white w-[80px]">
                         <span>Phase</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
                       </TableHead>
                     )}
-                    <TableHead className="text-white w-12">
+                    <TableHead className="text-white w-[50px]">
                       <Heart className="h-4 w-4" />
                     </TableHead>
                   </TableRow>
@@ -1086,47 +1101,62 @@ export default function ClinicalTrialDashboard() {
                       }}
                     >
                       {columnSettings.trialId && (
-                        <TableCell>
+                        <TableCell className="w-[140px]">
                           <div className="flex items-center space-x-2">
                             <input 
                               type="checkbox" 
                               className="rounded" 
-                              onClick={(e) => e.stopPropagation()} // Prevent row click when clicking checkbox
+                              onClick={(e) => e.stopPropagation()}
                             />
-                            <span className="text-blue-600 font-medium">
-                              {trial.overview.trial_id || '#' + trial.trial_id.slice(0, 6)}
-                            </span>
+                            <Badge className="bg-green-600 text-white hover:bg-green-700 px-2 py-0.5 text-xs font-medium">
+                              {trial.overview.trial_id || trial.trial_id.slice(0, 6)}
+                            </Badge>
                           </div>
                         </TableCell>
                       )}
                       {columnSettings.therapeuticArea && (
-                        <TableCell>
-                          <div className="flex items-center">
-                            <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                            {trial.overview.therapeutic_area}
+                        <TableCell className="w-[200px] max-w-[200px]">
+                          <div className="flex items-center" title={trial.overview.therapeutic_area}>
+                            {/* Red Ribbon Icon */}
+                            <svg className="w-5 h-5 mr-2 flex-shrink-0" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M50 5C35 5 25 20 25 35C25 50 35 65 50 80C65 65 75 50 75 35C75 20 65 5 50 5Z" fill="#FCA5A5"/>
+                              <path d="M50 80L30 115" stroke="#EF4444" strokeWidth="8" strokeLinecap="round"/>
+                              <path d="M50 80L70 115" stroke="#EF4444" strokeWidth="8" strokeLinecap="round"/>
+                              <path d="M50 5C42 5 35 12 35 22C35 32 42 42 50 52C58 42 65 32 65 22C65 12 58 5 50 5Z" fill="#EF4444"/>
+                            </svg>
+                            <span className="truncate">{trial.overview.therapeutic_area}</span>
                           </div>
                         </TableCell>
                       )}
                       {columnSettings.diseaseType && (
-                        <TableCell>{trial.overview.disease_type}</TableCell>
-                      )}
-                      {columnSettings.primaryDrug && (
-                        <TableCell>{trial.overview.primary_drugs}</TableCell>
-                      )}
-                      {columnSettings.trialRecordStatus && (
-                        <TableCell>
-                          <Badge className={getStatusColor(trial.overview.status)}>
-                            {trial.overview.status}
-                          </Badge>
+                        <TableCell className="w-[150px] max-w-[150px]">
+                          <span className="truncate block" title={trial.overview.disease_type}>
+                            {trial.overview.disease_type}
+                          </span>
                         </TableCell>
                       )}
+                      {columnSettings.primaryDrug && (
+                        <TableCell className="w-[120px] max-w-[120px]">
+                          <span className="truncate block" title={trial.overview.primary_drugs}>
+                            {trial.overview.primary_drugs}
+                          </span>
+                        </TableCell>
+                      )}
+                      {/* Trial Status - Always visible with color badges */}
+                      <TableCell className="w-[120px]">
+                        <Badge className={`${getStatusColor(trial.overview.status)} px-3 py-1`}>
+                          {trial.overview.status}
+                        </Badge>
+                      </TableCell>
                       {columnSettings.sponsorsCollaborators && (
-                        <TableCell className="max-w-[150px] truncate">
-                          {trial.overview.sponsor_collaborators || "N/A"}
+                        <TableCell className="w-[120px] max-w-[120px]">
+                          <span className="truncate block" title={trial.overview.sponsor_collaborators || "N/A"}>
+                            {trial.overview.sponsor_collaborators || "N/A"}
+                          </span>
                         </TableCell>
                       )}
                       {columnSettings.trialPhase && (
-                        <TableCell>{trial.overview.trial_phase}</TableCell>
+                        <TableCell className="w-[80px]">{trial.overview.trial_phase}</TableCell>
                       )}
                       <TableCell>
                         <Button
@@ -1154,6 +1184,7 @@ export default function ClinicalTrialDashboard() {
                   Showing {filteredTrials.length} of {trials.length} trials
                 </TableCaption>
               </Table>
+              </div>
             </Card>
           ) : (
             <div>

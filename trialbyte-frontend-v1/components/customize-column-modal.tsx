@@ -90,7 +90,7 @@ const DEFAULT_COLUMN_SETTINGS: ColumnSettings = {
   trialTags: false,
   otherDrugs: false,
   regions: false,
-  trialRecordStatus: false,
+  trialRecordStatus: true,  // Trial Status - enabled by default
   // Eligibility Section
   inclusionCriteria: false,
   exclusionCriteria: false,
