@@ -12,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Plus, X, Check, ChevronsUpDown, Eye, EyeOff, Link as LinkIcon } from "lucide-react";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
+import { PreviewLink } from "@/components/ui/preview-link";
 import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useMemo } from "react";
@@ -424,15 +425,14 @@ export default function ResultsSection() {
                     {attachmentDisplayInfo.name}
                   </span>
                   {attachmentDisplayInfo.url ? (
-                    <a
+                    <PreviewLink
                       href={attachmentDisplayInfo.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      title={attachmentDisplayInfo.name}
                       className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm whitespace-nowrap"
                     >
                       <LinkIcon className="h-3 w-3" />
                       View
-                    </a>
+                    </PreviewLink>
                   ) : (
                     <span className="text-xs text-gray-500 whitespace-nowrap">
                       Preview unavailable
@@ -592,15 +592,14 @@ export default function ResultsSection() {
                             className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
                           >
                             <span className="truncate max-w-[200px]">{attachmentName}</span>
-                            <a
+                            <PreviewLink
                               href={attachmentUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              title={attachmentName}
                               className="flex items-center gap-1 text-blue-600 hover:text-blue-800 whitespace-nowrap"
                             >
                               <LinkIcon className="h-3 w-3" />
                               View
-                            </a>
+                            </PreviewLink>
                           </div>
                         );
                       })}

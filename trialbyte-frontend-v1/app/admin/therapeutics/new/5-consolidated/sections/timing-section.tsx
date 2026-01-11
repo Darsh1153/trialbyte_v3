@@ -12,6 +12,7 @@ import { useTherapeuticForm } from "../../context/therapeutic-form-context";
 import { Calculator, Plus, X, Eye, EyeOff, ArrowLeft, ArrowRight, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEdgeStore } from "@/lib/edgestore";
+import { PreviewLink } from "@/components/ui/preview-link";
 
 export default function TimingSection() {
   const {
@@ -660,7 +661,7 @@ export default function TimingSection() {
           <Label className="whitespace-nowrap">Overall duration to Complete</Label>
           <Input
             type="number"
-            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             placeholder="Months"
             value={form.overall_duration_complete || ""}
             onChange={(e) => updateField("step5_4", "overall_duration_complete", e.target.value)}
@@ -671,7 +672,7 @@ export default function TimingSection() {
           <Label className="whitespace-nowrap">Overall duration to publish result</Label>
           <Input
             type="number"
-            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             placeholder="Months"
             value={form.overall_duration_publish || ""}
             onChange={(e) => updateField("step5_4", "overall_duration_publish", e.target.value)}
@@ -776,7 +777,7 @@ export default function TimingSection() {
               </div>
               {/* Duration Input */}
               <div className="space-y-2">
-                <Label>Duration (in months)</Label>
+                <Label>Duration</Label>
                 <Input
                   type="number"
                   value={enhancedCalculatorData.duration}
@@ -1129,14 +1130,13 @@ export default function TimingSection() {
                       <p className="text-gray-800 whitespace-pre-wrap">{reference.content}</p>
                       {reference.viewSource && (
                         <div className="mt-2">
-                          <a
+                          <PreviewLink
                             href={reference.viewSource}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            title="Reference Source"
                             className="text-blue-600 hover:text-blue-800 underline text-sm"
                           >
                             View Source →
-                          </a>
+                          </PreviewLink>
                         </div>
                       )}
                     </div>

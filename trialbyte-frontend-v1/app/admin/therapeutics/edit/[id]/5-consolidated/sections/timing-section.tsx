@@ -11,6 +11,7 @@ import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { Calculator, Plus, X, Eye, EyeOff, ArrowLeft, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PreviewLink } from "@/components/ui/preview-link";
 
 export default function TimingSection() {
   const {
@@ -42,6 +43,13 @@ export default function TimingSection() {
     frequency: "months",
     outputDate: ""
   };
+
+  // State for Difference Calculator (Calculation)
+  const [diffCalculatorData, setDiffCalculatorData] = useState({
+    startDate: "",
+    endDate: "",
+    resultMonths: ""
+  });
 
   console.log("TimingSection - Current form data:", form);
 
@@ -367,6 +375,43 @@ export default function TimingSection() {
     });
   };
 
+  // Difference Calculator functions
+  const calculateDifferenceInMonths = () => {
+    console.log("Calculating date difference:", diffCalculatorData);
+    if (!diffCalculatorData.startDate || !diffCalculatorData.endDate) return;
+
+    const start = new Date(diffCalculatorData.startDate);
+    const end = new Date(diffCalculatorData.endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      toast({
+        title: "Invalid Dates",
+        description: "Please enter valid start and end dates.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Calculate difference in milliseconds
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    // Convert to months (using average days per month: 30.44)
+    const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44);
+
+    setDiffCalculatorData(prev => ({
+      ...prev,
+      resultMonths: diffMonths.toFixed(2)
+    }));
+    console.log("Difference calculated:", diffMonths.toFixed(2));
+  };
+
+  const clearDiffCalculator = () => {
+    setDiffCalculatorData({
+      startDate: "",
+      endDate: "",
+      resultMonths: ""
+    });
+  };
+
   const columns = [
     "Start Date",
     "Inclusion Period",
@@ -539,7 +584,7 @@ export default function TimingSection() {
           <Label className="whitespace-nowrap">Overall duration to Complete</Label>
           <Input
             type="number"
-            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             placeholder="Months"
             value={form.overall_duration_complete || ""}
             onChange={(e) => updateField("step5_4", "overall_duration_complete", e.target.value)}
@@ -550,7 +595,7 @@ export default function TimingSection() {
           <Label className="whitespace-nowrap">Overall duration to publish result</Label>
           <Input
             type="number"
-            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            className="w-24 border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             placeholder="Months"
             value={form.overall_duration_publish || ""}
             onChange={(e) => updateField("step5_4", "overall_duration_publish", e.target.value)}
@@ -655,7 +700,7 @@ export default function TimingSection() {
               </div>
               {/* Duration Input */}
               <div className="space-y-2">
-                <Label>Duration (in months)</Label>
+                <Label>Duration</Label>
                 <Input
                   type="number"
                   value={enhancedCalculatorData.duration}
@@ -719,6 +764,71 @@ export default function TimingSection() {
                 type="button"
                 variant="outline"
                 onClick={clearEnhancedCalculator}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear All
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Calculation (Difference Calculator) */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Calculator className="h-5 w-5 text-orange-600" />
+            <h4 className="text-lg font-semibold text-orange-800">Calculation</h4>
+          </div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+              {/* Start Date */}
+              <div className="space-y-2">
+                <Label>Start Date</Label>
+                <CustomDateInput
+                  value={diffCalculatorData.startDate}
+                  onChange={(value) => setDiffCalculatorData(prev => ({ ...prev, startDate: value }))}
+                  placeholder="Select start date"
+                  className="w-full"
+                />
+              </div>
+              {/* End Date */}
+              <div className="space-y-2">
+                <Label>End Date</Label>
+                <CustomDateInput
+                  value={diffCalculatorData.endDate}
+                  onChange={(value) => setDiffCalculatorData(prev => ({ ...prev, endDate: value }))}
+                  placeholder="Select end date"
+                  className="w-full"
+                />
+              </div>
+              {/* Output */}
+              <div className="space-y-2">
+                <Label>Output (in decimal in months)</Label>
+                <Input
+                  value={diffCalculatorData.resultMonths}
+                  readOnly
+                  className="w-full bg-gray-100"
+                  placeholder="Calculated months"
+                />
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-center gap-4">
+              <Button
+                type="button"
+                onClick={calculateDifferenceInMonths}
+                className="bg-orange-600 hover:bg-orange-700 text-white min-w-[120px]"
+                disabled={!diffCalculatorData.startDate || !diffCalculatorData.endDate}
+              >
+                Calculate
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={clearDiffCalculator}
                 className="flex items-center gap-2"
               >
                 <X className="h-4 w-4" />
@@ -922,14 +1032,13 @@ export default function TimingSection() {
                       <p className="text-gray-800 whitespace-pre-wrap">{reference.content}</p>
                       {reference.viewSource && (
                         <div className="mt-2">
-                          <a
+                          <PreviewLink
                             href={reference.viewSource}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            title="Reference Source"
                             className="text-blue-600 hover:text-blue-800 underline text-sm"
                           >
                             View Source →
-                          </a>
+                          </PreviewLink>
                         </div>
                       )}
                     </div>

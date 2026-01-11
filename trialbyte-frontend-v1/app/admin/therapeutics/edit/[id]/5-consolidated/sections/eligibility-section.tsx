@@ -384,7 +384,7 @@ export default function EligibilitySection() {
             placeholder="e.g., 50"
             value={form.target_no_volunteers || ""}
             onChange={(e) => updateField("step5_3", "target_no_volunteers", e.target.value)}
-            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
         <div className="space-y-2">
@@ -394,7 +394,7 @@ export default function EligibilitySection() {
             placeholder="e.g., 40"
             value={form.actual_enrolled_volunteers || ""}
             onChange={(e) => updateField("step5_3", "actual_enrolled_volunteers", e.target.value)}
-            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+            className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
       </div>

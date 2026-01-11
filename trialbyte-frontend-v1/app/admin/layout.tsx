@@ -8,6 +8,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { LinkPreviewProvider } from "@/components/ui/link-preview-panel";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -21,22 +22,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   
   if (isDetailPage) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {children}
-      </div>
+      <LinkPreviewProvider>
+        <div className="min-h-screen bg-gray-50">
+          {children}
+        </div>
+      </LinkPreviewProvider>
     );
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger />
-          <div className="ml-auto text-sm text-muted-foreground">Admin</div>
-        </header>
-        <div className="p-6">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+    <LinkPreviewProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+            <SidebarTrigger />
+            <div className="ml-auto text-sm text-muted-foreground">Admin</div>
+          </header>
+          <div className="p-6">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+    </LinkPreviewProvider>
   );
 }

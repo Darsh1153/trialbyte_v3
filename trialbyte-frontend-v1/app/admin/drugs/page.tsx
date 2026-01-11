@@ -1082,7 +1082,20 @@ export default function DrugsDashboardPage() {
             )}
             Refresh
           </Button>
-          <Button onClick={() => router.push("/admin/drugs/new")}>
+          <Button onClick={() => {
+            const popup = window.open(
+              "/admin/drugs/new",
+              "add_new_drug",
+              "width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no"
+            );
+            if (!popup) {
+              toast({
+                title: "Popup blocked",
+                description: "Please allow popups for this site to add new drugs.",
+                variant: "destructive",
+              });
+            }
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             New Drug
           </Button>

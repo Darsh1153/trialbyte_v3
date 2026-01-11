@@ -1330,14 +1330,20 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
                 .filter(key => categoryLabels[key as keyof TherapeuticFilterState])
                 .map((key) => {
                   const category = key as keyof TherapeuticFilterState
+                  const selectedCount = filters[category]?.length || 0
                   return (
                     <button
                       key={category}
                       onClick={() => setActiveCategory(category)}
-                      className={`w-full text-left px-3 py-2 rounded text-sm ${activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
+                      className={`w-full text-left px-3 py-2 rounded text-sm flex items-center justify-between ${activeCategory === category ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100"
                         }`}
                     >
-                      {categoryLabels[category]}
+                      <span>{categoryLabels[category]}</span>
+                      {selectedCount > 0 && (
+                        <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded-full">
+                          {selectedCount}
+                        </span>
+                      )}
                     </button>
                   )
                 })}
