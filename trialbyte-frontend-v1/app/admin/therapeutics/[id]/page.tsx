@@ -1341,7 +1341,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">
                       Scientific Title
                     </h3>
-                    <p className="text-gray-700 text-sm leading-relaxed">
+                    <p className="text-black text-sm leading-relaxed">
                       {trial.outcomes[0]?.purpose_of_trial ||
                         "No scientific title available"}
                     </p>
@@ -1352,7 +1352,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">
                       Summary
                     </h3>
-                    <p className="text-gray-700 text-sm leading-relaxed">
+                    <p className="text-black text-sm leading-relaxed">
                       {trial.outcomes[0]?.summary ||
                         "No summary available"}
                     </p>
@@ -1563,8 +1563,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     </div>
                     </div>
 
-                    {/* Right Column - Europe Map */}
-                    <div className="flex justify-center items-center">
+                    {/* Right Column - Europe Map - Temporarily Commented */}
+                    {/* <div className="flex justify-center items-center">
                       <div className="relative w-full max-w-xs">
                         <Image
                           src="/europe.png"
@@ -1574,7 +1574,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           className="object-contain"
                         />
                   </div>
-                    </div>
+                    </div> */}
                   </div>
 
                 </CardContent>
@@ -1596,7 +1596,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       <h3 className="text-base font-semibold text-gray-700 mb-4">
                         Purpose of the trial
                       </h3>
-                      <p className="text-sm text-gray-700 leading-relaxed">
+                      <p className="text-sm text-black leading-relaxed">
                         {trial.outcomes[0]?.purpose_of_trial ||
                           "No purpose description available"}
                       </p>
@@ -1614,7 +1614,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="text-sm font-medium text-gray-600">
                               Outcome Measure :
                             </span>
-                            <p className="text-sm text-gray-700 mt-1">
+                            <p className="text-sm text-black mt-1">
                               {trial.outcomes[0]
                                 ?.primary_outcome_measure ||
                                 "No primary outcome measure available"}
@@ -1625,7 +1625,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="text-sm font-medium text-gray-600">
                               Measure Description :
                             </span>
-                            <p className="text-sm text-gray-700 mt-1 leading-relaxed">
+                            <p className="text-sm text-black mt-1 leading-relaxed">
                               {trial.outcomes[0]?.summary ||
                                 "No measure description available"}
                             </p>
@@ -1635,7 +1635,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="text-sm font-medium text-gray-600">
                               Other Outcome Measures :
                             </span>
-                            <p className="text-sm text-gray-700 mt-1">
+                            <p className="text-sm text-black mt-1">
                               {trial.outcomes[0]
                                 ?.other_outcome_measure ||
                                 "No other outcome measures available"}
@@ -1655,7 +1655,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="text-sm font-medium text-gray-600">
                               Study Design :
                             </span>
-                            <p className="text-sm text-gray-700 mt-1">
+                            <p className="text-sm text-black mt-1">
                               {trial.outcomes[0]?.study_design ||
                                 "No study design available"}
                             </p>
@@ -1665,7 +1665,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="text-sm font-medium text-gray-600">
                               Study Design Keywords :
                             </span>
-                            <p className="text-sm text-gray-700 mt-1">
+                            <p className="text-sm text-black mt-1">
                               {trial.outcomes[0]
                                 ?.study_design_keywords ||
                                 "No study design keywords available"}
@@ -1676,7 +1676,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="text-sm font-medium text-gray-600">
                               Number of Arms :
                             </span>
-                            <p className="text-sm text-gray-700 mt-1">
+                            <p className="text-sm text-black mt-1">
                               {trial.outcomes[0]?.number_of_arms ||
                                 "N/A"}
                             </p>
@@ -1734,7 +1734,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Study Design :
                           </span>
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-black">
                             {trial.outcomes[0]?.study_design || "N/A"}
                           </span>
                         </div>
@@ -1742,7 +1742,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Keywords :
                           </span>
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-black">
                             {trial.outcomes[0]?.study_design_keywords ||
                               "N/A"}
                           </span>
@@ -1751,12 +1751,12 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Number of Arms :
                           </span>
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-black">
                             {trial.outcomes[0]?.number_of_arms || "N/A"}
                           </span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-700 mt-4 leading-relaxed">
+                      <p className="text-sm text-black mt-4 leading-relaxed">
                         {trial.outcomes[0]?.summary ||
                           "No detailed study design description available"}
                       </p>
@@ -1772,7 +1772,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <span className="text-sm font-medium text-gray-700">
                             Treatment Description :
                           </span>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-black mt-1">
                             {trial.outcomes[0]?.treatment_regimen ||
                               "No treatment regimen description available"}
                               </p>
@@ -1809,9 +1809,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           Inclusion Criteria
                         </h3>
                         {trial.criteria[0]?.inclusion_criteria ? (
-                          <div className="text-sm text-gray-700">
+                          <div className="text-sm text-black">
                             <span className="text-blue-600 mr-2">•</span>
-                            <span>
+                            <span className="whitespace-pre-wrap">
                               {trial.criteria[0].inclusion_criteria}
                             </span>
                           </div>
@@ -1828,9 +1828,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           Exclusion Criteria
                         </h3>
                         {trial.criteria[0]?.exclusion_criteria ? (
-                          <div className="text-sm text-gray-700">
+                          <div className="text-sm text-black">
                             <span className="text-blue-600 mr-2">•</span>
-                            <span>
+                            <span className="whitespace-pre-wrap">
                               {trial.criteria[0].exclusion_criteria}
                             </span>
                             </div>
@@ -2291,7 +2291,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <h4 className="text-sm font-semibold text-gray-800 mb-2">
                             Trial Outcome Results Content:
                           </h4>
-                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
                             {trial.results[0].trial_outcome_content}
                           </p>
                         </div>
@@ -2349,7 +2349,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
 
                       {/* Reference Text */}
                       {trial.results[0]?.reference && trial.results[0].reference !== "N/A" && (
-                        <p className="text-sm text-gray-700 leading-relaxed">
+                        <p className="text-sm text-black leading-relaxed">
                           {trial.results[0].reference}
                         </p>
                       )}
@@ -2388,12 +2388,12 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             Adverse Events:
                           </h4>
                           {trial.results[0]?.adverse_event_type && (
-                            <p className="text-sm text-gray-700 mb-1">
+                            <p className="text-sm text-black mb-1">
                               Type: {trial.results[0].adverse_event_type}
                             </p>
                           )}
                           {trial.results[0]?.treatment_for_adverse_events && (
-                            <p className="text-sm text-gray-700">
+                            <p className="text-sm text-black">
                               Treatment: {trial.results[0].treatment_for_adverse_events}
                             </p>
                           )}
@@ -2458,7 +2458,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                               {content && (
                                 <div>
                                   <Label className="text-sm font-medium text-gray-600">Content</Label>
-                                  <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{content}</p>
+                                  <p className="text-sm text-black mt-1 whitespace-pre-wrap">{content}</p>
                                 </div>
                               )}
 
@@ -2519,7 +2519,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                               {note.treatment_for_adverse_events && (
                                 <div>
                                   <Label className="text-sm font-medium text-gray-600">Treatment For Adverse Events</Label>
-                                  <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">{note.treatment_for_adverse_events}</p>
+                                  <p className="text-sm text-black mt-1 whitespace-pre-wrap">{note.treatment_for_adverse_events}</p>
                                 </div>
                               )}
                             </CardContent>
@@ -2580,7 +2580,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                   <h4 className="text-sm font-semibold text-gray-800 mb-2">
                                     Content:
                                   </h4>
-                                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                  <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
                                     {content}
                                   </p>
                                 </div>
@@ -2592,17 +2592,17 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                       Adverse Event Information:
                                     </h4>
                                     {note.adverse_event_reported && (
-                                      <p className="text-sm text-gray-700 mb-1">
+                                      <p className="text-sm text-black mb-1">
                                         Reported: {note.adverse_event_reported}
                                       </p>
                                     )}
                                     {note.adverse_event_type && (
-                                      <p className="text-sm text-gray-700 mb-1">
+                                      <p className="text-sm text-black mb-1">
                                         Type: {note.adverse_event_type}
                                       </p>
                                     )}
                                     {note.treatment_for_adverse_events && (
-                                      <p className="text-sm text-gray-700">
+                                      <p className="text-sm text-black">
                                         Treatment: {note.treatment_for_adverse_events}
                                       </p>
                                     )}
@@ -2768,7 +2768,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                   {note.content && (
                                     <div>
                                       <Label className="text-sm font-medium text-gray-600">Content</Label>
-                                      <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">
+                                      <p className="text-sm text-black mt-1 whitespace-pre-wrap">
                                         {note.content}
                                       </p>
                                     </div>
@@ -3257,7 +3257,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             : "N/A"}
                         </span>
               </div>
-                      <p className="text-sm text-gray-700 mb-2">
+                      <p className="text-sm text-black mb-2">
                         {log.trial_changes_log}
                       </p>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
@@ -3312,7 +3312,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           Note #{index + 1} - {note.date_type}
                         </span>
             </div>
-                      <p className="text-sm text-gray-700 mb-2">{note.notes}</p>
+                      <p className="text-sm text-black mb-2 whitespace-pre-wrap">{note.notes}</p>
                       {note.link && (
                         <a
                           href={note.link}

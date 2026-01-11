@@ -1627,7 +1627,7 @@ export default function DrugsPage() {
                                 <span className="text-sm font-medium text-gray-600 min-w-[140px]">
                                   Notes :
                                 </span>
-                                <span className="text-sm text-gray-800 font-medium">
+                                <span className="text-sm text-gray-800 font-medium whitespace-pre-wrap">
                                   {log.notes}
                                 </span>
                               </div>
@@ -1693,7 +1693,7 @@ export default function DrugsPage() {
                           {log.last_modified_user && ` | Modified by: ${log.last_modified_user}`}
                         </div>
                         {log.notes && (
-                          <div className="text-xs text-gray-600 mt-1">Notes: {log.notes}</div>
+                          <div className="text-xs text-gray-600 mt-1 whitespace-pre-wrap">Notes: {log.notes}</div>
                         )}
                       </div>
                     ))}

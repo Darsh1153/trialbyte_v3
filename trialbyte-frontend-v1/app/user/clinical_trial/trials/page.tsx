@@ -1750,7 +1750,7 @@ function ClinicalTrialsPage() {
                         {currentTrial.criteria[0]?.inclusion_criteria ? (
                           <div className="text-sm text-gray-700">
                             <span className="text-blue-600 mr-2">•</span>
-                            <span>
+                            <span className="whitespace-pre-wrap">
                               {currentTrial.criteria[0].inclusion_criteria}
                             </span>
                           </div>
@@ -1769,7 +1769,7 @@ function ClinicalTrialsPage() {
                         {currentTrial.criteria[0]?.exclusion_criteria ? (
                           <div className="text-sm text-gray-700">
                             <span className="text-blue-600 mr-2">•</span>
-                            <span>
+                            <span className="whitespace-pre-wrap">
                               {currentTrial.criteria[0].exclusion_criteria}
                             </span>
                           </div>
@@ -2386,7 +2386,7 @@ function ClinicalTrialsPage() {
                             <p className="text-sm font-medium text-gray-800">
                               Site Notes
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-600 whitespace-pre-wrap">
                               {currentTrial.sites[0].notes}
                             </p>
                           </div>
@@ -2421,7 +2421,7 @@ function ClinicalTrialsPage() {
                             <p className="text-sm font-medium text-gray-800">
                               Source {index + 1}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-gray-600 whitespace-pre-wrap">
                               {source.data}
                             </p>
                           </div>
@@ -2547,7 +2547,7 @@ function ClinicalTrialsPage() {
                             : "N/A"}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 mb-2">
+                      <p className="text-sm text-gray-700 mb-2 whitespace-pre-wrap">
                         {log.trial_changes_log}
                       </p>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
