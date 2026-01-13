@@ -1018,9 +1018,9 @@ export default function DrugsDashboardPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="space-y-4 w-0 min-w-full">
+      <div className="flex items-start justify-between flex-wrap gap-2">
+        <div className="shrink-0">
           <h1 className="text-2xl font-bold">Drugs</h1>
           <p className="text-sm text-muted-foreground">
             Browse and manage all drugs. Total: {drugs.length}
@@ -1036,23 +1036,7 @@ export default function DrugsDashboardPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => setSaveQueryModalOpen(true)}
-            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Query
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setQueryHistoryModalOpen(true)}
-            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Saved Queries
-          </Button>
+        <div className="flex items-center flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => setIsAdvancedSearchOpen(true)}
@@ -1068,6 +1052,22 @@ export default function DrugsDashboardPage() {
           >
             <Filter className="h-4 w-4 mr-2" />
             Filter
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setSaveQueryModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Query
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setQueryHistoryModalOpen(true)}
+            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Saved Queries
           </Button>
           <Button
             variant="outline"

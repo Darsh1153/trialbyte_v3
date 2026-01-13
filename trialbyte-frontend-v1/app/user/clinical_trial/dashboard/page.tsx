@@ -4,15 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableCaption,
-} from "@/components/ui/table";
+// Using native HTML table elements for sticky header support
 import {
   Select,
   SelectContent,
@@ -36,6 +28,8 @@ import {
   User,
   ChevronDown,
   Heart,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -158,6 +152,7 @@ export default function ClinicalTrialDashboard() {
   const router = useRouter();
   const [trials, setTrials] = useState<TherapeuticTrial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [advancedSearchModalOpen, setAdvancedSearchModalOpen] = useState(false);
@@ -170,6 +165,7 @@ export default function ClinicalTrialDashboard() {
     statuses: [],
     diseaseTypes: [],
     primaryDrugs: [],
+    otherDrugs: [],
     trialPhases: [],
     patientSegments: [],
     lineOfTherapy: [],
@@ -193,9 +189,13 @@ export default function ClinicalTrialDashboard() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Fetch trials data using the therapeutics API
-  const fetchTrials = async () => {
+  const fetchTrials = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
         {
@@ -213,6 +213,13 @@ export default function ClinicalTrialDashboard() {
 
       const data: ApiResponse = await response.json();
       setTrials(data.trials);
+      
+      if (isRefresh) {
+        toast({
+          title: "Refreshed",
+          description: "Clinical trials data has been updated",
+        });
+      }
     } catch (error) {
       console.error("Error fetching trials:", error);
       toast({
@@ -222,6 +229,7 @@ export default function ClinicalTrialDashboard() {
       });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -759,6 +767,20 @@ export default function ClinicalTrialDashboard() {
             >
               Saved Queries
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchTrials(true)}
+              disabled={loading || refreshing}
+              className="flex items-center gap-2"
+            >
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Refresh
+            </Button>
             {hasActiveFilters() && (
               <Button 
                 variant="outline" 
@@ -1038,70 +1060,71 @@ export default function ClinicalTrialDashboard() {
           {viewType === 'list' ? (
             <Card className="overflow-hidden border">
               <div className="table-scroll-container">
-              <Table className="w-full">
-                <TableHeader className="bg-slate-700">
-                  <TableRow>
+              {/* Sticky Header - Separate from table body */}
+              <table className="w-full caption-bottom text-sm" style={{ tableLayout: 'fixed' }}>
+                <thead className="bg-slate-700">
+                  <tr className="border-b">
                     {columnSettings.trialId && (
-                      <TableHead className="text-white w-[140px]">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-white w-[140px] sticky top-0 z-10 bg-slate-700">
                         <div className="flex items-center space-x-2">
                           <input type="checkbox" className="rounded" />
                           <span>Trial ID</span>
                           <ChevronLeft className="h-3 w-3 rotate-180" />
                         </div>
-                      </TableHead>
+                      </th>
                     )}
                     {columnSettings.therapeuticArea && (
-                      <TableHead className="text-white w-[200px]">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-white w-[200px] sticky top-0 z-10 bg-slate-700">
                         <span>Therapeutic Area</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
-                      </TableHead>
+                      </th>
                     )}
                     {columnSettings.diseaseType && (
-                      <TableHead className="text-white w-[150px]">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-white w-[150px] sticky top-0 z-10 bg-slate-700">
                         <span>Disease Type</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
-                      </TableHead>
+                      </th>
                     )}
                     {columnSettings.primaryDrug && (
-                      <TableHead className="text-white w-[120px]">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-white w-[120px] sticky top-0 z-10 bg-slate-700">
                         <span>Primary Drug</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
-                      </TableHead>
+                      </th>
                     )}
                     {/* Trial Status - Always visible */}
-                    <TableHead className="text-white w-[120px]">
+                    <th className="h-12 px-4 text-left align-middle font-medium text-white w-[120px] sticky top-0 z-10 bg-slate-700">
                       <span>Trial Status</span>
                       <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
-                    </TableHead>
+                    </th>
                     {columnSettings.sponsorsCollaborators && (
-                      <TableHead className="text-white w-[120px]">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-white w-[120px] sticky top-0 z-10 bg-slate-700">
                         <span>Sponsor</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
-                      </TableHead>
+                      </th>
                     )}
                     {columnSettings.trialPhase && (
-                      <TableHead className="text-white w-[80px]">
+                      <th className="h-12 px-4 text-left align-middle font-medium text-white w-[80px] sticky top-0 z-10 bg-slate-700">
                         <span>Phase</span>
                         <ChevronLeft className="h-3 w-3 rotate-180 inline ml-1" />
-                      </TableHead>
+                      </th>
                     )}
-                    <TableHead className="text-white w-[50px]">
+                    <th className="h-12 px-4 text-left align-middle font-medium text-white w-[50px] sticky top-0 z-10 bg-slate-700">
                       <Heart className="h-4 w-4" />
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="[&_tr:last-child]:border-0">
                   {filteredTrials.map((trial) => (
-                    <TableRow 
+                    <tr 
                       key={trial.trial_id} 
-                      className="hover:bg-gray-50 cursor-pointer"
+                      className="border-b transition-colors hover:bg-gray-50 cursor-pointer"
                       onClick={() => {
                         // Navigate to trials page with trial data
                         router.push(`/user/clinical_trial/trials?trialId=${trial.trial_id}`);
                       }}
                     >
                       {columnSettings.trialId && (
-                        <TableCell className="w-[140px]">
+                        <td className="p-4 align-middle w-[140px]">
                           <div className="flex items-center space-x-2">
                             <input 
                               type="checkbox" 
@@ -1112,10 +1135,10 @@ export default function ClinicalTrialDashboard() {
                               {trial.overview.trial_id || trial.trial_id.slice(0, 6)}
                             </Badge>
                           </div>
-                        </TableCell>
+                        </td>
                       )}
                       {columnSettings.therapeuticArea && (
-                        <TableCell className="w-[200px] max-w-[200px]">
+                        <td className="p-4 align-middle w-[200px] max-w-[200px]">
                           <div className="flex items-center" title={trial.overview.therapeutic_area}>
                             {/* Red Ribbon Icon */}
                             <svg className="w-5 h-5 mr-2 flex-shrink-0" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1126,39 +1149,39 @@ export default function ClinicalTrialDashboard() {
                             </svg>
                             <span className="truncate">{trial.overview.therapeutic_area}</span>
                           </div>
-                        </TableCell>
+                        </td>
                       )}
                       {columnSettings.diseaseType && (
-                        <TableCell className="w-[150px] max-w-[150px]">
+                        <td className="p-4 align-middle w-[150px] max-w-[150px]">
                           <span className="truncate block" title={trial.overview.disease_type}>
                             {trial.overview.disease_type}
                           </span>
-                        </TableCell>
+                        </td>
                       )}
                       {columnSettings.primaryDrug && (
-                        <TableCell className="w-[120px] max-w-[120px]">
+                        <td className="p-4 align-middle w-[120px] max-w-[120px]">
                           <span className="truncate block" title={trial.overview.primary_drugs}>
                             {trial.overview.primary_drugs}
                           </span>
-                        </TableCell>
+                        </td>
                       )}
                       {/* Trial Status - Always visible with color badges */}
-                      <TableCell className="w-[120px]">
+                      <td className="p-4 align-middle w-[120px]">
                         <Badge className={`${getStatusColor(trial.overview.status)} px-3 py-1`}>
                           {trial.overview.status}
                         </Badge>
-                      </TableCell>
+                      </td>
                       {columnSettings.sponsorsCollaborators && (
-                        <TableCell className="w-[120px] max-w-[120px]">
+                        <td className="p-4 align-middle w-[120px] max-w-[120px]">
                           <span className="truncate block" title={trial.overview.sponsor_collaborators || "N/A"}>
                             {trial.overview.sponsor_collaborators || "N/A"}
                           </span>
-                        </TableCell>
+                        </td>
                       )}
                       {columnSettings.trialPhase && (
-                        <TableCell className="w-[80px]">{trial.overview.trial_phase}</TableCell>
+                        <td className="p-4 align-middle w-[80px]">{trial.overview.trial_phase}</td>
                       )}
-                      <TableCell>
+                      <td className="p-4 align-middle">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1176,14 +1199,14 @@ export default function ClinicalTrialDashboard() {
                             }`}
                           />
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-                <TableCaption>
+                </tbody>
+                <caption className="mt-4 text-sm text-muted-foreground caption-bottom">
                   Showing {filteredTrials.length} of {trials.length} trials
-                </TableCaption>
-              </Table>
+                </caption>
+              </table>
               </div>
             </Card>
           ) : (

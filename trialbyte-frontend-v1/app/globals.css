@@ -92,15 +92,18 @@
 /* Custom scrollbar for table containers - always visible */
 .table-scroll-container {
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #64748b #e2e8f0;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
+  max-height: calc(100vh - 280px);
+  position: relative;
 }
 
 .table-scroll-container::-webkit-scrollbar {
   height: 10px;
+  width: 10px;
   display: block;
 }
 
@@ -122,4 +125,24 @@
 .table-scroll-container table {
   table-layout: fixed;
   width: 100%;
+}
+
+/* Remove nested scroll container when inside table-scroll-container */
+.table-scroll-container > div {
+  overflow: visible !important;
+}
+
+/* Sticky header for clinical trials table */
+.table-scroll-container thead,
+.table-scroll-container [data-slot="table-header"] {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.table-scroll-container thead tr th,
+.table-scroll-container [data-slot="table-header"] tr th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }

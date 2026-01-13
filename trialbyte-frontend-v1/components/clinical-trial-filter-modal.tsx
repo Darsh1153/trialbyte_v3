@@ -1,11 +1,12 @@
 "use client"
 
 import { formatDateToMMDDYYYY } from "@/lib/date-utils";
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { X } from "lucide-react"
+import { useDrugNames } from "@/hooks/use-drug-names"
 
 interface ClinicalTrialFilterModalProps {
   open: boolean
@@ -19,6 +20,7 @@ export interface ClinicalTrialFilterState {
   statuses: string[]
   diseaseTypes: string[]
   primaryDrugs: string[]
+  otherDrugs: string[]
   trialPhases: string[]
   patientSegments: string[]
   lineOfTherapy: string[]
@@ -31,19 +33,53 @@ export interface ClinicalTrialFilterState {
   healthyVolunteers: string[]
 }
 
-const filterCategories = {
-  therapeuticAreas: ["Oncology", "Cardiology", "Neurology", "Endocrinology", "Immunology", "Dermatology"],
-  statuses: ["Phase I", "Phase I/II", "Phase II", "Phase II/III", "Phase III", "Phase IV"],
-  diseaseTypes: ["Lung Cancer", "Breast Cancer", "Colorectal Cancer", "Melanoma", "Lymphoma", "Leukemia"],
-  primaryDrugs: ["Paclitaxel", "Carboplatin", "Pembrolizumab", "Nivolumab", "Atezolizumab", "Bevacizumab"],
-  trialPhases: ["Phase I", "Phase I/II", "Phase II", "Phase II/III", "Phase III", "Phase IV"],
-  patientSegments: ["Adults", "Elderly", "Pediatric", "Treatment Naive", "Treatment Experienced"],
-  lineOfTherapy: ["First Line", "Second Line", "Third Line", "At least first line", "At least second line"],
-  countries: ["United States", "Germany", "France", "United Kingdom", "Italy", "Spain", "Canada", "Japan"],
-  sponsorsCollaborators: ["Novartis", "Pfizer", "Roche", "Bristol Myers Squibb", "Merck", "Johnson & Johnson"],
-  sponsorFieldActivity: ["Pharmaceutical Company", "Biotechnology Company", "Academic Institution", "Contract Research Organization"],
-  associatedCro: ["IQVIA", "Covance", "PPD", "Icon", "Syneos Health", "Parexel"],
-  trialTags: ["Targeted", "Immunotherapy", "Combination", "Biomarker", "Precision Medicine"],
+// Static filter options that match the add trial form
+const staticFilterCategories = {
+  therapeuticAreas: [
+    "Autoimmune", "Cardiovascular", "Endocrinology", "Gastrointestinal", "Infectious",
+    "Oncology", "Gastroenterology", "Dermatology", "Vaccines", "CNS/Neurology",
+    "Ophthalmology", "Immunology", "Rheumatology", "Haematology", "Nephrology", "Urology"
+  ],
+  statuses: ["Planned", "Open", "Closed", "Completed", "Terminated"],
+  diseaseTypes: [
+    "Acute Lymphocytic Leukemia", "Acute Myelogenous Leukemia", "Anal", "Appendiceal",
+    "Basal Skin Cell Carcinoma", "Bladder", "Breast", "Cervical", "Cholangiocarcinoma (Bile duct)",
+    "Chronic Lymphocytic Leukemia", "Chronic Myelomonositic Leukemia", "Astrocytoma",
+    "Brain Stem Glioma", "Carniopharyngioma", "Choroid Plexus Tumors", "Embryonal Tumors",
+    "Epedymoma", "Germ Cell Tumors", "Glioblastoma", "Hemangioblastoma", "Medulloblastoma",
+    "Meningioma", "Oligodendroglioma", "Pineal Tumor", "Pituitary Tumor", "Colorectal",
+    "Endometrial", "Esophageal", "Fallopian Tube", "Gall Bladder", "Gastric", "GIST",
+    "Head/Neck", "Hodgkin's Lymphoma", "Leukemia, Chronic Myelogenous", "Liver",
+    "Lung Non-small cell", "Lung Small Cell", "Melanoma", "Mesothelioma", "Metastatic Cancer",
+    "Multiple Myeloma", "Myelodysplastic Syndrome", "Myeloproliferative Neoplasms",
+    "Neuroblastoma", "Neuroendocrine", "Non-Hodgkin's Lymphoma", "Osteosarcoma", "Ovarian",
+    "Pancreas", "Penile", "Primary Peritoneal", "Prostate", "Renal", "Small Intestine",
+    "Soft Tissue Carcinoma", "Solid Tumor, Unspecified", "Squamous Skin Cell Carcinoma",
+    "Supportive care", "Tenosynovial Giant Cell Tumor", "Testicular", "Thymus", "Thyroid",
+    "Unspecified Cancer", "Unspecified Haematological Cancer", "Vaginal", "Vulvar"
+  ],
+  trialPhases: ["Phase I", "Phase I/II", "Phase II", "Phase II/III", "Phase III", "Phase III/IV", "Phase IV"],
+  patientSegments: ["Children", "Adults", "Healthy Volunteers", "Unknown", "First Line", "Second Line", "Adjuvant"],
+  lineOfTherapy: [
+    "1 – First Line", "2 – Second Line", "Unknown", "2+ - At least second line",
+    "3+ - At least third line", "Neo-Adjuvant", "Adjuvant", "Maintenance/Consolidation",
+    "1+ - At least first line"
+  ],
+  countries: [
+    "United States", "Canada", "United Kingdom", "Germany", "France", "Italy", "Spain",
+    "Japan", "China", "India", "Australia", "Brazil", "Mexico", "South Korea",
+    "Switzerland", "Netherlands", "Belgium", "Sweden", "Norway", "Denmark"
+  ],
+  sponsorsCollaborators: ["Pfizer", "Novartis", "AstraZeneca"],
+  sponsorFieldActivity: ["Pharmaceutical Company", "University/Academy", "Investigator", "CRO", "Hospital"],
+  associatedCro: ["IQVIA", "Syneos", "PPD"],
+  trialTags: [
+    "Biomarker-Efficacy", "Biomarker-Toxicity", "Expanded Access", "Expanded Indication",
+    "First in Human", "Investigator-Initiated", "IO/Cytotoxic Combination", "IO/Hormonal Combination",
+    "IO/IO Combination", "IO/Other Combination", "IO/Radiotherapy Combination", "IO/Targeted Combination",
+    "Microdosing", "PGX-Biomarker Identification/Evaluation", "PGX-Pathogen",
+    "PGX-Patient Preselection/Stratification", "Post-Marketing Commitment", "Registration"
+  ],
   sex: ["Male", "Female", "Both"],
   healthyVolunteers: ["Yes", "No"]
 }
@@ -51,6 +87,19 @@ const filterCategories = {
 export function ClinicalTrialFilterModal({ open, onOpenChange, onApplyFilters, currentFilters }: ClinicalTrialFilterModalProps) {
   const [filters, setFilters] = useState<ClinicalTrialFilterState>(currentFilters)
   const [activeCategory, setActiveCategory] = useState<keyof ClinicalTrialFilterState>("therapeuticAreas")
+  const { getPrimaryDrugsOptions, isLoading: isDrugsLoading } = useDrugNames()
+
+  // Build filter categories with dynamic drug data from API
+  const filterCategories = useMemo(() => {
+    const drugOptions = getPrimaryDrugsOptions()
+    const drugLabels = drugOptions.map(drug => drug.label)
+    
+    return {
+      ...staticFilterCategories,
+      primaryDrugs: drugLabels.length > 0 ? drugLabels : ["No drugs available - add drugs in the drug module"],
+      otherDrugs: drugLabels.length > 0 ? drugLabels : ["No drugs available - add drugs in the drug module"],
+    }
+  }, [getPrimaryDrugsOptions])
 
   const handleSelectAll = (category: keyof ClinicalTrialFilterState) => {
     setFilters((prev) => ({
@@ -106,7 +155,8 @@ export function ClinicalTrialFilterModal({ open, onOpenChange, onApplyFilters, c
     therapeuticAreas: "Therapeutic Area",
     statuses: "Status", 
     diseaseTypes: "Disease Type",
-    primaryDrugs: "Primary Drug",
+    primaryDrugs: "Primary Drugs",
+    otherDrugs: "Other Drugs",
     trialPhases: "Trial Phase",
     patientSegments: "Patient Segment",
     lineOfTherapy: "Line of Therapy",
