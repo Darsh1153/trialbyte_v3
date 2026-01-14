@@ -112,14 +112,33 @@ export default function EligibilitySection() {
   // Use react-query to fetch trial data
   const { data: trialData, isLoading: isTrialLoading } = useTherapeuticTrial(trialId);
 
-  // Auto-fill fields from fetched data
+  // Auto-fill fields from fetched data - only run once when data is first loaded and form is empty
+  // This is a backup in case the form context didn't load the data properly
   useEffect(() => {
-    if (!trialData || hasAutoFilledRef.current) {
+    if (!trialData || hasAutoFilledRef.current || isTrialLoading) {
+      return;
+    }
+
+    // Only auto-fill if form fields are actually empty (not just initialized)
+    // This prevents overriding data that was already loaded by the form context
+    const hasAnyData = form.subject_type || 
+                      form.target_no_volunteers || 
+                      form.actual_enrolled_volunteers ||
+                      (form.age_min && form.age_min[0]) ||
+                      (form.age_max && form.age_max[0]) ||
+                      form.gender ||
+                      (form.healthy_volunteers && form.healthy_volunteers[0]);
+
+    if (hasAnyData) {
+      console.log("✅ Eligibility form already has data, skipping auto-fill");
+      hasAutoFilledRef.current = true;
       return;
     }
 
     const criteria = Array.isArray(trialData.criteria) ? trialData.criteria[0] : trialData.criteria;
     if (!criteria) {
+      console.log("⚠️ No criteria data found in trialData");
+      hasAutoFilledRef.current = true;
       return;
     }
 
@@ -142,7 +161,7 @@ export default function EligibilitySection() {
     const targetVolunteers = resolveVolunteerValue(trialData, "target");
     const actualVolunteers = resolveVolunteerValue(trialData, "actual");
 
-    console.log("🔄 Auto-filling eligibility fields from react-query data:", {
+    console.log("🔄 Auto-filling eligibility fields from react-query data (form was empty):", {
       subject_type: criteria.subject_type,
       age_from: criteria.age_from,
       age_to: criteria.age_to,
@@ -151,52 +170,40 @@ export default function EligibilitySection() {
       actual_enrolled_volunteers: actualVolunteers,
     });
 
-    if (criteria.subject_type && form.subject_type !== criteria.subject_type) {
+    // Only update if field is empty or not set
+    if (criteria.subject_type && (!form.subject_type || form.subject_type === "")) {
       updateField("step5_3", "subject_type", criteria.subject_type);
     }
-    if (targetVolunteers !== "" && form.target_no_volunteers !== targetVolunteers) {
+    if (targetVolunteers !== "" && (!form.target_no_volunteers || form.target_no_volunteers === "")) {
       updateField("step5_3", "target_no_volunteers", targetVolunteers);
     }
-    if (actualVolunteers !== "" && form.actual_enrolled_volunteers !== actualVolunteers) {
+    if (actualVolunteers !== "" && (!form.actual_enrolled_volunteers || form.actual_enrolled_volunteers === "")) {
       updateField("step5_3", "actual_enrolled_volunteers", actualVolunteers);
     }
 
     // Handle Age fields which are now arrays [value, unit]
-    if (criteria.age_from) {
+    // Only update if current is empty
+    if (criteria.age_from && (!form.age_min || !form.age_min[0] || form.age_min[0] === "")) {
       const parsed = parseAgeToTuple(criteria.age_from);
-      // Only update if current is empty or different
-      if (!form.age_min || form.age_min[0] === "" || (form.age_min[0] !== parsed[0] || form.age_min[1] !== parsed[1])) {
-        updateField("step5_3", "age_min", parsed);
-      }
+      updateField("step5_3", "age_min", parsed);
     }
-    if (criteria.age_to) {
+    if (criteria.age_to && (!form.age_max || !form.age_max[0] || form.age_max[0] === "")) {
       const parsed = parseAgeToTuple(criteria.age_to);
-      if (!form.age_max || form.age_max[0] === "" || (form.age_max[0] !== parsed[0] || form.age_max[1] !== parsed[1])) {
-        updateField("step5_3", "age_max", parsed);
-      }
+      updateField("step5_3", "age_max", parsed);
     }
 
-    if (criteria.sex && form.gender !== criteria.sex) {
+    // Only update gender if it's empty or not set
+    if (criteria.sex && (!form.gender || form.gender === "")) {
       updateField("step5_3", "gender", criteria.sex);
     }
 
     const healthyVolunteers = asString(criteria.healthy_volunteers);
-    if (healthyVolunteers !== "" && form.healthy_volunteers[0] !== healthyVolunteers) {
+    if (healthyVolunteers !== "" && (!form.healthy_volunteers || !form.healthy_volunteers[0] || form.healthy_volunteers[0] === "")) {
       updateField("step5_3", "healthy_volunteers", [healthyVolunteers]);
     }
 
     hasAutoFilledRef.current = true;
-  }, [
-    trialData,
-    updateField,
-    form.age_min,
-    form.age_max,
-    form.gender,
-    form.target_no_volunteers,
-    form.actual_enrolled_volunteers,
-    form.healthy_volunteers,
-    form.subject_type
-  ]);
+  }, [trialData, isTrialLoading]); // Only depend on trialData and loading state
 
   const ageNumberOptions: SearchableSelectOption[] = Array.from({ length: 151 }, (_, i) => ({
     value: i.toString(),
@@ -245,6 +252,16 @@ export default function EligibilitySection() {
   // Helper to safely get age parts
   const getAgeValue = (field: string | string[]) => Array.isArray(field) ? field[0] : "";
   const getAgeUnit = (field: string | string[]) => Array.isArray(field) ? (field[1] || "Years") : "Years";
+
+  // Debug logging for age fields
+  console.log('🔍 EligibilitySection - Current form age values:', {
+    age_min: form.age_min,
+    age_max: form.age_max,
+    age_min_value: getAgeValue(form.age_min),
+    age_min_unit: getAgeUnit(form.age_min),
+    age_max_value: getAgeValue(form.age_max),
+    age_max_unit: getAgeUnit(form.age_max),
+  });
 
   return (
     <div className="space-y-6">

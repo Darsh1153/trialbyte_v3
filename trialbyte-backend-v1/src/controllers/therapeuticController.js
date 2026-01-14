@@ -499,11 +499,44 @@ const createWithAllData = async (req, res) => {
     // Create other sources data if provided
     // Handle both old 'other' and new 'other_sources' format
     const otherSourcesData = req.body.other_sources || other;
+    console.log('=== OTHER SOURCES DATA RECEIVED ===');
+    console.log('req.body keys:', Object.keys(req.body || {}));
+    console.log('req.body.other_sources exists:', !!req.body.other_sources);
+    console.log('req.body.other exists:', !!other);
+    console.log('otherSourcesData:', JSON.stringify(otherSourcesData, null, 2));
+    console.log('otherSourcesData type:', typeof otherSourcesData);
+    console.log('otherSourcesData is null/undefined:', otherSourcesData === null || otherSourcesData === undefined);
+    if (otherSourcesData) {
+      console.log('otherSourcesData keys:', Object.keys(otherSourcesData));
+      console.log('Has pipeline_data:', !!otherSourcesData?.pipeline_data, 'Count:', otherSourcesData?.pipeline_data?.length);
+      console.log('Has press_releases:', !!otherSourcesData?.press_releases, 'Count:', otherSourcesData?.press_releases?.length);
+      console.log('Has publications:', !!otherSourcesData?.publications, 'Count:', otherSourcesData?.publications?.length);
+      console.log('Has trial_registries:', !!otherSourcesData?.trial_registries, 'Count:', otherSourcesData?.trial_registries?.length);
+      console.log('Has associated_studies:', !!otherSourcesData?.associated_studies, 'Count:', otherSourcesData?.associated_studies?.length);
+    } else {
+      console.log('⚠️ otherSourcesData is falsy - not processing other sources');
+    }
+    
     if (otherSourcesData) {
       // Check if other_sources is an object with multiple arrays (new format)
-      if (otherSourcesData.pipeline_data || otherSourcesData.press_releases ||
-        otherSourcesData.publications || otherSourcesData.trial_registries ||
-        otherSourcesData.associated_studies) {
+      // IMPORTANT: Check if arrays exist AND have items (not just empty arrays)
+      const hasPipelineData = otherSourcesData.pipeline_data && Array.isArray(otherSourcesData.pipeline_data) && otherSourcesData.pipeline_data.length > 0;
+      const hasPressReleases = otherSourcesData.press_releases && Array.isArray(otherSourcesData.press_releases) && otherSourcesData.press_releases.length > 0;
+      const hasPublications = otherSourcesData.publications && Array.isArray(otherSourcesData.publications) && otherSourcesData.publications.length > 0;
+      const hasTrialRegistries = otherSourcesData.trial_registries && Array.isArray(otherSourcesData.trial_registries) && otherSourcesData.trial_registries.length > 0;
+      const hasAssociatedStudies = otherSourcesData.associated_studies && Array.isArray(otherSourcesData.associated_studies) && otherSourcesData.associated_studies.length > 0;
+      
+      const hasNewFormat = hasPipelineData || hasPressReleases || hasPublications || hasTrialRegistries || hasAssociatedStudies;
+      
+      console.log('Checking new format arrays:');
+      console.log('  - pipeline_data:', hasPipelineData, `(${otherSourcesData.pipeline_data?.length || 0} items)`);
+      console.log('  - press_releases:', hasPressReleases, `(${otherSourcesData.press_releases?.length || 0} items)`);
+      console.log('  - publications:', hasPublications, `(${otherSourcesData.publications?.length || 0} items)`);
+      console.log('  - trial_registries:', hasTrialRegistries, `(${otherSourcesData.trial_registries?.length || 0} items)`);
+      console.log('  - associated_studies:', hasAssociatedStudies, `(${otherSourcesData.associated_studies?.length || 0} items)`);
+      console.log('Has new format arrays with data:', hasNewFormat);
+      
+      if (hasNewFormat) {
 
         // Process each type of other source
         const allOtherSources = [];
@@ -547,61 +580,89 @@ const createWithAllData = async (req, res) => {
 
         // Publications
         if (otherSourcesData.publications && Array.isArray(otherSourcesData.publications)) {
+          console.log(`Processing ${otherSourcesData.publications.length} publications`);
           for (const item of otherSourcesData.publications) {
+            console.log('Publication item:', JSON.stringify(item, null, 2));
             const sourceData = {
               type: 'publications',
+              date: item.date || "", // Include date field
               publicationType: item.type,
               title: item.title,
               description: item.description,
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({
-              trial_id,
-              data: JSON.stringify(sourceData)
-            });
-            allOtherSources.push(created);
+            console.log('Creating publication with sourceData:', JSON.stringify(sourceData, null, 2));
+            try {
+              const created = await otherRepo.create({
+                trial_id,
+                data: JSON.stringify(sourceData)
+              });
+              console.log('✅ Created publication:', created.id);
+              allOtherSources.push(created);
+            } catch (error) {
+              console.error('❌ Error creating publication:', error);
+            }
           }
         }
 
         // Trial Registries
         if (otherSourcesData.trial_registries && Array.isArray(otherSourcesData.trial_registries)) {
+          console.log(`Processing ${otherSourcesData.trial_registries.length} trial registries`);
           for (const item of otherSourcesData.trial_registries) {
+            console.log('Trial registry item:', JSON.stringify(item, null, 2));
             const sourceData = {
               type: 'trial_registries',
+              date: item.date || "", // Include date field
               registry: item.registry,
               identifier: item.identifier,
               description: item.description,
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({
-              trial_id,
-              data: JSON.stringify(sourceData)
-            });
-            allOtherSources.push(created);
+            console.log('Creating trial registry with sourceData:', JSON.stringify(sourceData, null, 2));
+            try {
+              const created = await otherRepo.create({
+                trial_id,
+                data: JSON.stringify(sourceData)
+              });
+              console.log('✅ Created trial registry:', created.id);
+              allOtherSources.push(created);
+            } catch (error) {
+              console.error('❌ Error creating trial registry:', error);
+            }
           }
         }
 
         // Associated Studies
         if (otherSourcesData.associated_studies && Array.isArray(otherSourcesData.associated_studies)) {
+          console.log(`Processing ${otherSourcesData.associated_studies.length} associated studies`);
           for (const item of otherSourcesData.associated_studies) {
+            console.log('Associated study item:', JSON.stringify(item, null, 2));
             const sourceData = {
               type: 'associated_studies',
+              date: item.date || "", // Include date field
               studyType: item.type,
               title: item.title,
               description: item.description,
               url: item.url,
               file: item.file
             };
-            const created = await otherRepo.create({
-              trial_id,
-              data: JSON.stringify(sourceData)
-            });
-            allOtherSources.push(created);
+            console.log('Creating associated study with sourceData:', JSON.stringify(sourceData, null, 2));
+            try {
+              const created = await otherRepo.create({
+                trial_id,
+                data: JSON.stringify(sourceData)
+              });
+              console.log('✅ Created associated study:', created.id);
+              allOtherSources.push(created);
+            } catch (error) {
+              console.error('❌ Error creating associated study:', error);
+            }
           }
         }
 
+        console.log(`Total other sources created: ${allOtherSources.length}`);
         if (allOtherSources.length > 0) {
           await logTherapeuticActivity(
             "INSERT",
@@ -611,6 +672,9 @@ const createWithAllData = async (req, res) => {
             user_id
           );
           createdData.other_sources = allOtherSources;
+          console.log('✅ Successfully saved other_sources to database');
+        } else {
+          console.log('⚠️ No other sources were created (all arrays were empty or filtered out)');
         }
       } else {
         // Old format - single other source
@@ -1262,8 +1326,33 @@ const deleteSitesByTrial = async (req, res) => {
 
 // Other sources
 const createOther = async (req, res) => {
-  const created = await otherRepo.create(req.body || {});
-  return res.status(StatusCodes.CREATED).json({ other: created });
+  try {
+    console.log('=== CREATE OTHER SOURCE ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('trial_id:', req.body?.trial_id);
+    console.log('data:', req.body?.data);
+    console.log('data type:', typeof req.body?.data);
+    
+    if (!req.body || !req.body.trial_id) {
+      console.error('❌ Missing trial_id in request body');
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        message: "trial_id is required",
+        error: "Missing trial_id in request body"
+      });
+    }
+    
+    const created = await otherRepo.create(req.body || {});
+    console.log('✅ Successfully created other source:', created.id);
+    console.log('Created data:', JSON.stringify(created, null, 2));
+    return res.status(StatusCodes.CREATED).json({ other: created });
+  } catch (error) {
+    console.error('❌ Error creating other source:', error);
+    console.error('Error stack:', error.stack);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      message: "Failed to create other source",
+      error: error.message 
+    });
+  }
 };
 const listOther = async (req, res) => {
   const items = await otherRepo.findAll({ trial_id: req.query.trial_id });

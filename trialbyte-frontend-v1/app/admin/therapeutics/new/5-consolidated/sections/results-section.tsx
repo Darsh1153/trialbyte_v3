@@ -223,7 +223,12 @@ export default function ResultsSection() {
   const handleRemoveSiteNote = (index: number) => removeSiteNote("step5_5", "site_notes", index);
   const handleUpdateSiteNote = (index: number, field: string, value: any) => {
     console.log(`Updating site note ${index}, field: ${field}, value:`, value);
+    console.log(`Current note before update:`, form.site_notes[index]);
     updateSiteNote("step5_5", "site_notes", index, { [field]: value });
+    // Log after a short delay to see if the update took effect
+    setTimeout(() => {
+      console.log(`Current note after update:`, form.site_notes[index]);
+    }, 100);
   };
 
   return (
@@ -505,8 +510,8 @@ export default function ResultsSection() {
                     id={`site-note-source-${index}`}
                     type="url"
                     placeholder="Enter source link"
-                    value={note.source || ""}
-                    onChange={(e) => handleUpdateSiteNote(index, "source", e.target.value)}
+                    value={note.viewSource || note.source || ""}
+                    onChange={(e) => handleUpdateSiteNote(index, "viewSource", e.target.value)}
                     className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
                 </div>

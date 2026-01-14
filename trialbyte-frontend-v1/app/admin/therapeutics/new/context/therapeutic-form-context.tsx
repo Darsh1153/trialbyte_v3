@@ -146,6 +146,7 @@ export interface TherapeuticFormData {
       noteType: string;
       content: string;
       viewSource: string;
+      sourceLink?: string; // Also support sourceLink for consistency with edit form
       sourceType: string;
       attachments: (string | { url: string; name: string; size: number; type: string })[];
       isVisible: boolean;
@@ -1601,16 +1602,27 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           adverse_event_type: ensureString(allFormData.step5_5.adverse_event_type) || (allFormData.step5_7.adverse_events.filter(Boolean).join(", ") || null),
           treatment_for_adverse_events: ensureString(allFormData.step5_5.treatment_for_adverse_events) || ensureString(allFormData.step5_7.safety_results) || null,
           site_notes: allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).length > 0
-            ? allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).map(note => ({
-              date: formatDate(note.date),
-              type: note.noteType,
-              content: note.content,
-              sourceLink: note.viewSource,
-              sourceType: note.sourceType,
-              attachments: (note.attachments || []).map((att: any) =>
-                typeof att === 'string' ? att : (att.url || att.name || att)
-              )
-            }))
+            ? allFormData.step5_5.site_notes.filter(note => note.isVisible && (note.date || note.content)).map(note => {
+                // Debug logging
+                console.log('Mapping site note for save:', {
+                  id: note.id,
+                  viewSource: note.viewSource,
+                  sourceLink: note.sourceLink,
+                  source: note.source,
+                  finalSourceLink: note.sourceLink || note.viewSource || note.source || ""
+                });
+                
+                return {
+                  date: formatDate(note.date),
+                  type: note.noteType,
+                  content: note.content,
+                  sourceLink: note.sourceLink || note.viewSource || note.source || "", // Check all possible field names: sourceLink, viewSource, source
+                  sourceType: note.sourceType,
+                  attachments: (note.attachments || []).map((att: any) =>
+                    typeof att === 'string' ? att : (att.url || att.name || att)
+                  )
+                };
+              })
             : null
         },
         sites: {
@@ -1663,11 +1675,80 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
           }))
         },
         other_sources: {
-          pipeline_data: allFormData.step5_7.pipeline_data.filter(item => item.isVisible && (item.date || item.information || item.url || item.fileUrl)),
-          press_releases: allFormData.step5_7.press_releases.filter(item => item.isVisible && (item.date || item.title || item.url || item.fileUrl)),
-          publications: allFormData.step5_7.publications.filter(item => item.isVisible && (item.date || item.type || item.title || item.url || item.fileUrl)),
-          trial_registries: allFormData.step5_7.trial_registries.filter(item => item.isVisible && (item.date || item.registry || item.identifier || item.url || item.fileUrl)),
-          associated_studies: allFormData.step5_7.associated_studies.filter(item => item.isVisible && (item.date || item.type || item.title || item.url || item.fileUrl)),
+          pipeline_data: (allFormData.step5_7.pipeline_data || []).filter(item => {
+            const isVisible = item.isVisible !== false;
+            return isVisible && (item.date || item.information || item.url || item.fileUrl);
+          }).map(item => ({
+            ...item,
+            date: formatDate(item.date) // Format date from MM-DD-YYYY to YYYY-MM-DD
+          })),
+          press_releases: (allFormData.step5_7.press_releases || []).filter(item => {
+            const isVisible = item.isVisible !== false;
+            return isVisible && (item.date || item.title || item.url || item.fileUrl);
+          }).map(item => ({
+            ...item,
+            date: formatDate(item.date) // Format date from MM-DD-YYYY to YYYY-MM-DD
+          })),
+          publications: (allFormData.step5_7.publications || []).filter(item => {
+            // Default isVisible to true if not set
+            const isVisible = item.isVisible !== false;
+            // Include item if it's visible and has at least one field filled (including date)
+            const hasData = isVisible && (
+              (item.date && item.date.trim() !== "") || 
+              (item.type && item.type.trim() !== "") || 
+              (item.title && item.title.trim() !== "") || 
+              (item.url && item.url.trim() !== "") || 
+              (item.fileUrl && item.fileUrl.trim() !== "") ||
+              (item.file && item.file.trim() !== "")
+            );
+            if (!hasData) {
+              console.log('Filtering out publication item (no data):', item);
+            }
+            return hasData;
+          }).map(item => ({
+            ...item,
+            date: formatDate(item.date) // Format date from MM-DD-YYYY to YYYY-MM-DD
+          })),
+          trial_registries: (allFormData.step5_7.trial_registries || []).filter(item => {
+            // Default isVisible to true if not set
+            const isVisible = item.isVisible !== false;
+            // Include item if it's visible and has at least one field filled (including date)
+            const hasData = isVisible && (
+              (item.date && item.date.trim() !== "") || 
+              (item.registry && item.registry.trim() !== "") || 
+              (item.identifier && item.identifier.trim() !== "") || 
+              (item.url && item.url.trim() !== "") || 
+              (item.fileUrl && item.fileUrl.trim() !== "") ||
+              (item.file && item.file.trim() !== "")
+            );
+            if (!hasData) {
+              console.log('Filtering out trial registry item (no data):', item);
+            }
+            return hasData;
+          }).map(item => ({
+            ...item,
+            date: formatDate(item.date) // Format date from MM-DD-YYYY to YYYY-MM-DD
+          })),
+          associated_studies: (allFormData.step5_7.associated_studies || []).filter(item => {
+            // Default isVisible to true if not set
+            const isVisible = item.isVisible !== false;
+            // Include item if it's visible and has at least one field filled (including date)
+            const hasData = isVisible && (
+              (item.date && item.date.trim() !== "") || 
+              (item.type && item.type.trim() !== "") || 
+              (item.title && item.title.trim() !== "") || 
+              (item.url && item.url.trim() !== "") || 
+              (item.fileUrl && item.fileUrl.trim() !== "") ||
+              (item.file && item.file.trim() !== "")
+            );
+            if (!hasData) {
+              console.log('Filtering out associated study item (no data):', item);
+            }
+            return hasData;
+          }).map(item => ({
+            ...item,
+            date: formatDate(item.date) // Format date from MM-DD-YYYY to YYYY-MM-DD
+          })),
         },
         logs: {
           trial_changes_log: allFormData.step5_8.changesLog.length > 0
@@ -1772,6 +1853,32 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
       console.log("🔍 Individual Sections Check:");
       console.log("  - Overview:", therapeuticPayload.overview ? "✅ Present" : "❌ Missing");
       console.log("  - Outcome:", therapeuticPayload.outcome ? "✅ Present" : "❌ Missing");
+      console.log("  - Other Sources:", therapeuticPayload.other_sources ? "✅ Present" : "❌ Missing");
+      if (therapeuticPayload.other_sources) {
+        console.log("  - Other Sources Details:", {
+          pipeline_data: therapeuticPayload.other_sources.pipeline_data?.length || 0,
+          press_releases: therapeuticPayload.other_sources.press_releases?.length || 0,
+          publications: therapeuticPayload.other_sources.publications?.length || 0,
+          trial_registries: therapeuticPayload.other_sources.trial_registries?.length || 0,
+          associated_studies: therapeuticPayload.other_sources.associated_studies?.length || 0,
+        });
+        console.log("  - Publications sample:", therapeuticPayload.other_sources.publications?.[0]);
+        console.log("  - Trial Registries sample:", therapeuticPayload.other_sources.trial_registries?.[0]);
+        console.log("  - Associated Studies sample:", therapeuticPayload.other_sources.associated_studies?.[0]);
+        console.log("  - Full Other Sources payload:", JSON.stringify(therapeuticPayload.other_sources, null, 2));
+      } else {
+        console.log("  - ⚠️ Other Sources is missing from payload!");
+      }
+      
+      // Log raw form data before filtering
+      console.log("  - Raw form step5_7 data:", {
+        publications_count: allFormData.step5_7.publications?.length || 0,
+        trial_registries_count: allFormData.step5_7.trial_registries?.length || 0,
+        associated_studies_count: allFormData.step5_7.associated_studies?.length || 0,
+        publications_sample: allFormData.step5_7.publications?.[0],
+        trial_registries_sample: allFormData.step5_7.trial_registries?.[0],
+        associated_studies_sample: allFormData.step5_7.associated_studies?.[0],
+      });
       console.log("  - Criteria:", therapeuticPayload.criteria ? "✅ Present" : "❌ Missing");
       console.log("  - Timing:", therapeuticPayload.timing ? "✅ Present" : "❌ Missing");
       console.log("  - Results:", therapeuticPayload.results ? "✅ Present" : "❌ Missing");

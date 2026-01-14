@@ -63,18 +63,67 @@ const toNullableNumber = (value: unknown): number | null => {
 };
 
 const parseAgeField = (value: unknown): string[] => {
-  if (!value) return ["", "Years"];
-  const str = String(value).trim();
-  if (!str) return ["", "Years"];
-  // Try to split by space, but keep words together if multiple
-  // e.g. "18 Years" -> ["18", "Years"]
-  // e.g. "18" -> ["18", "Years"]
-  const parts = str.split(/\s+/);
-  if (parts.length >= 2) {
-    // value is first part, unit is the rest
-    return [parts[0], parts.slice(1).join(" ")];
+  console.log('[parseAgeField] Input value:', value, 'Type:', typeof value);
+  
+  if (value === null || value === undefined) {
+    console.log('[parseAgeField] Value is null/undefined, returning default');
+    return ["", "Years"];
   }
-  return [str, "Years"];
+  
+  const str = String(value).trim();
+  if (!str || str === "null" || str === "undefined") {
+    console.log('[parseAgeField] String is empty or null-like, returning default');
+    return ["", "Years"];
+  }
+  
+  console.log('[parseAgeField] Processing string:', str);
+  
+  // Handle comma-separated format (e.g., "10,years" or "10, years")
+  // Also handle space-separated format (e.g., "10 Years" or "10  Years")
+  let parts: string[] = [];
+  
+  // First try comma separation (database format: "10,years")
+  if (str.includes(',')) {
+    parts = str.split(',').map(p => p.trim()).filter(Boolean);
+    console.log('[parseAgeField] Split by comma:', parts);
+  } else {
+    // Try space separation (UI format: "10 Years")
+    parts = str.split(/\s+/).filter(Boolean);
+    console.log('[parseAgeField] Split by space:', parts);
+  }
+  
+  if (parts.length >= 2) {
+    // value is first part, unit is the rest (capitalize first letter of unit)
+    const ageValue = parts[0];
+    const ageUnit = parts.slice(1).join(" ").trim();
+    // Capitalize first letter and lowercase the rest for consistency
+    const formattedUnit = ageUnit 
+      ? ageUnit.charAt(0).toUpperCase() + ageUnit.slice(1).toLowerCase()
+      : "Years";
+    const result = [ageValue, formattedUnit];
+    console.log('[parseAgeField] Returning parsed result:', result);
+    return result;
+  }
+  
+  // If only one part, check if it's a number
+  if (parts.length === 1) {
+    const singlePart = parts[0];
+    // If it's a number, use it as the value with default "Years" unit
+    if (/^\d+$/.test(singlePart)) {
+      const result = [singlePart, "Years"];
+      console.log('[parseAgeField] Returning number with default unit:', result);
+      return result;
+    }
+    // Otherwise, treat the whole string as the value with default unit
+    const result = [singlePart, "Years"];
+    console.log('[parseAgeField] Returning single value with default unit:', result);
+    return result;
+  }
+  
+  // Fallback: return empty with default unit
+  const result = ["", "Years"];
+  console.log('[parseAgeField] Returning fallback default:', result);
+  return result;
 };
 
 const joinAgeField = (value: string[] | string): string | null => {
@@ -1206,7 +1255,15 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               trial_tags: stringToArray(foundTrial.overview?.trial_tags),
               sponsor_collaborators: stringToArray(foundTrial.overview?.sponsor_collaborators),
               sponsor_field_activity: stringToArray(foundTrial.overview?.sponsor_field_activity),
-              associated_cro: stringToArray(foundTrial.overview?.associated_cro),
+              associated_cro: (() => {
+                const croValue = foundTrial.overview?.associated_cro;
+                console.log('=== LOADING ASSOCIATED CRO ===');
+                console.log('Raw associated_cro from API:', croValue);
+                console.log('Type:', typeof croValue);
+                const result = stringToArray(croValue);
+                console.log('Mapped associated_cro:', result);
+                return result;
+              })(),
               countries: stringToArray(foundTrial.overview?.countries),
               region: stringToArray(foundTrial.overview?.region),
               trial_record_status: foundTrial.overview?.trial_record_status || "",
@@ -1227,31 +1284,54 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               treatment_regimen: foundTrial.outcomes?.[0]?.treatment_regimen || "",
               number_of_arms: foundTrial.outcomes?.[0]?.number_of_arms?.toString() || "",
             },
-            step5_3: {
-              inclusion_criteria: foundTrial.criteria?.[0]?.inclusion_criteria
-                ? Array.isArray(foundTrial.criteria[0].inclusion_criteria)
-                  ? foundTrial.criteria[0].inclusion_criteria.filter(Boolean)
-                  : typeof foundTrial.criteria[0].inclusion_criteria === 'string'
-                    ? foundTrial.criteria[0].inclusion_criteria.split("; ").filter(Boolean)
-                    : [foundTrial.criteria[0].inclusion_criteria].filter(Boolean)
-                : [],
-              exclusion_criteria: foundTrial.criteria?.[0]?.exclusion_criteria
-                ? Array.isArray(foundTrial.criteria[0].exclusion_criteria)
-                  ? foundTrial.criteria[0].exclusion_criteria.filter(Boolean)
-                  : typeof foundTrial.criteria[0].exclusion_criteria === 'string'
-                    ? foundTrial.criteria[0].exclusion_criteria.split("; ").filter(Boolean)
-                    : [foundTrial.criteria[0].exclusion_criteria].filter(Boolean)
-                : [],
-              age_min: parseAgeField(foundTrial.criteria?.[0]?.age_from),
-              age_max: parseAgeField(foundTrial.criteria?.[0]?.age_to),
-              gender: toStringOrEmpty(foundTrial.criteria?.[0]?.sex),
-              healthy_volunteers: foundTrial.criteria?.[0]?.healthy_volunteers
-                ? [toStringOrEmpty(foundTrial.criteria[0].healthy_volunteers)]
-                : [],
-              subject_type: toStringOrEmpty(foundTrial.criteria?.[0]?.subject_type),
-              target_no_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.target_no_volunteers),
-              actual_enrolled_volunteers: toStringOrEmpty(foundTrial.criteria?.[0]?.actual_enrolled_volunteers),
-            },
+            step5_3: (() => {
+              const criteria = foundTrial.criteria?.[0];
+              console.log('=== LOADING ELIGIBILITY DATA ===');
+              console.log('Raw criteria data:', criteria);
+              console.log('criteria?.age_from:', criteria?.age_from, 'Type:', typeof criteria?.age_from);
+              console.log('criteria?.age_to:', criteria?.age_to, 'Type:', typeof criteria?.age_to);
+              console.log('sex:', criteria?.sex);
+              console.log('target_no_volunteers:', criteria?.target_no_volunteers);
+              console.log('actual_enrolled_volunteers:', criteria?.actual_enrolled_volunteers);
+              
+              // Parse age fields with detailed logging
+              const ageMinParsed = parseAgeField(criteria?.age_from);
+              const ageMaxParsed = parseAgeField(criteria?.age_to);
+              
+              console.log('Parsed age_min:', ageMinParsed);
+              console.log('Parsed age_max:', ageMaxParsed);
+              
+              const eligibilityData = {
+                inclusion_criteria: criteria?.inclusion_criteria
+                  ? Array.isArray(criteria.inclusion_criteria)
+                    ? criteria.inclusion_criteria.filter(Boolean)
+                    : typeof criteria.inclusion_criteria === 'string'
+                      ? criteria.inclusion_criteria.split("; ").filter(Boolean)
+                      : [criteria.inclusion_criteria].filter(Boolean)
+                  : [],
+                exclusion_criteria: criteria?.exclusion_criteria
+                  ? Array.isArray(criteria.exclusion_criteria)
+                    ? criteria.exclusion_criteria.filter(Boolean)
+                    : typeof criteria.exclusion_criteria === 'string'
+                      ? criteria.exclusion_criteria.split("; ").filter(Boolean)
+                      : [criteria.exclusion_criteria].filter(Boolean)
+                  : [],
+                age_min: ageMinParsed,
+                age_max: ageMaxParsed,
+                gender: toStringOrEmpty(criteria?.sex),
+                healthy_volunteers: criteria?.healthy_volunteers
+                  ? [toStringOrEmpty(criteria.healthy_volunteers)]
+                  : [],
+                subject_type: toStringOrEmpty(criteria?.subject_type),
+                target_no_volunteers: toStringOrEmpty(criteria?.target_no_volunteers),
+                actual_enrolled_volunteers: toStringOrEmpty(criteria?.actual_enrolled_volunteers),
+              };
+              
+              console.log('✅ Final mapped eligibility data:', eligibilityData);
+              console.log('Age min value:', eligibilityData.age_min[0], 'Age min unit:', eligibilityData.age_min[1]);
+              console.log('Age max value:', eligibilityData.age_max[0], 'Age max unit:', eligibilityData.age_max[1]);
+              return eligibilityData;
+            })(),
             step5_4: (() => {
               console.log('=== LOADING TIMING DATA ===');
 
@@ -1532,10 +1612,18 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               console.log('Loaded Results Data from API (toggles and date):', loadedData);
 
-              return {
+              const resultsMapped = {
                 ...loadedData,
                 trial_outcome_content: resultsData?.trial_outcome_content || "",
-                trial_outcome_link: resultsData?.trial_outcome_link || "",
+                trial_outcome_link: (() => {
+                  const linkValue = resultsData?.trial_outcome_link;
+                  console.log('=== LOADING TRIAL OUTCOME LINK ===');
+                  console.log('Raw trial_outcome_link from API:', linkValue);
+                  console.log('Type:', typeof linkValue);
+                  const result = linkValue || "";
+                  console.log('Mapped trial_outcome_link:', result);
+                  return result;
+                })(),
                 trial_outcome_attachment: resultsData?.trial_outcome_attachment || "",
                 trial_results: Array.isArray(resultsData?.trial_results)
                   ? resultsData.trial_results
@@ -1543,6 +1631,12 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 adverse_event_reported: resultsData?.adverse_event_reported || "",
                 adverse_event_type: resultsData?.adverse_event_type || "",
                 treatment_for_adverse_events: resultsData?.treatment_for_adverse_events || "",
+              };
+              
+              console.log('Final mapped results data:', resultsMapped);
+              
+              return {
+                ...resultsMapped,
                 site_notes: (() => {
                   let siteNotes = resultsData?.site_notes || foundTrial.results?.[0]?.site_notes;
                   console.log('=== SITE NOTES DEBUG ===');
@@ -1831,6 +1925,37 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               console.log('Loading Other Sources from API...');
 
+              // Helper function to format date from database (YYYY-MM-DD) to UI (MM-DD-YYYY)
+              const formatDateForUI = (dateStr: string): string => {
+                if (!dateStr) return "";
+
+                try {
+                  // Handle YYYY-MM-DD format (from database)
+                  if (dateStr.includes('-') && dateStr.length === 10) {
+                    const parts = dateStr.split('-');
+                    if (parts.length === 3 && parts[0].length === 4) {
+                      // Convert YYYY-MM-DD to MM-DD-YYYY
+                      const [year, month, day] = parts;
+                      return `${month}-${day}-${year}`;
+                    }
+                  }
+
+                  // Try to parse as Date object
+                  const date = new Date(dateStr);
+                  if (!isNaN(date.getTime())) {
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${month}-${day}-${year}`;
+                  }
+
+                  return dateStr; // Return as-is if can't parse
+                } catch (e) {
+                  console.warn('Error formatting date for UI:', dateStr, e);
+                  return dateStr;
+                }
+              };
+
               // Parse other_sources data
               // API returns it as 'other', localStorage returns it as 'other_sources'
               // Each item from API has a 'data' field with JSON string
@@ -2113,14 +2238,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     publications.push({
                       id: item.id || parsedData.id || Date.now().toString(),
-                      date: parsedData.date || "", // Add date field for Publication Date
+                      date: formatDateForUI(parsedData.date || ""), // Format date from YYYY-MM-DD to MM-DD-YYYY
                       type: parsedData.publicationType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
                       url: parsedData.url || "",
                       file: normalizedFile.fileName || "",
                       fileUrl: parsedData.fileUrl || normalizedFile.fileUrl || "",
-                      isVisible: parsedData.isVisible !== false
+                      isVisible: parsedData.isVisible !== false // Default to true if not explicitly false
                     });
                   } else if (itemType === 'trial_registries') {
                     console.log(`📄 Loading trial registry ${index}:`, parsedData);
@@ -2128,14 +2253,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     trial_registries.push({
                       id: item.id || parsedData.id || Date.now().toString(),
-                      date: parsedData.date || "",
+                      date: formatDateForUI(parsedData.date || ""), // Format date from YYYY-MM-DD to MM-DD-YYYY
                       registry: parsedData.registry || "",
                       identifier: parsedData.identifier || "",
                       description: parsedData.description || parsedData.content || "",
                       url: parsedData.url || "",
                       file: normalizedFile.fileName || "",
                       fileUrl: parsedData.fileUrl || normalizedFile.fileUrl || "",
-                      isVisible: parsedData.isVisible !== false
+                      isVisible: parsedData.isVisible !== false // Default to true if not explicitly false
                     });
                   } else if (itemType === 'associated_studies') {
                     console.log(`📄 Loading associated study ${index}:`, parsedData);
@@ -2143,14 +2268,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
                     associated_studies.push({
                       id: item.id || parsedData.id || Date.now().toString(),
-                      date: parsedData.date || "",
+                      date: formatDateForUI(parsedData.date || ""), // Format date from YYYY-MM-DD to MM-DD-YYYY
                       type: parsedData.studyType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
                       url: parsedData.url || "",
                       file: normalizedFile.fileName || "",
                       fileUrl: parsedData.fileUrl || normalizedFile.fileUrl || "",
-                      isVisible: parsedData.isVisible !== false
+                      isVisible: parsedData.isVisible !== false // Default to true if not explicitly false
                     });
                   }
                 } catch (e) {
@@ -2930,9 +3055,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               const filteredSiteNotes = formData.step5_5.site_notes.filter((note: any) => note.isVisible && (note.date || note.content));
 
               // Format site notes dates for database
+              // Ensure sourceLink is included in the saved data
               const formattedSiteNotes = filteredSiteNotes.map((note: any) => ({
-                ...note,
                 date: note.date ? formatDateForDB(note.date) : note.date,
+                type: note.noteType || note.type || "",
+                content: note.content || "",
+                sourceLink: note.sourceLink || "", // Explicitly include sourceLink
+                sourceType: note.sourceType || "",
+                attachments: note.attachments || [],
               }));
 
               const resultsData = {
@@ -2978,22 +3108,48 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             // Small delay to ensure database transaction completes
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // Mark that data was successfully saved to DB
-            try {
-              localStorage.setItem(`trial_db_saved_${trialId}`, new Date().toISOString());
-              console.log('✅ Marked trial as saved to DB:', trialId);
-            } catch (e) {
-              console.warn('Failed to mark trial as saved:', e);
-            }
+            // IMPORTANT: Save other_sources BEFORE reloading data, as reload might overwrite formData
+            // Helper function to format date from MM-DD-YYYY to YYYY-MM-DD for database
+            const formatDateForDB = (dateStr: string): string | null => {
+              if (!dateStr) return null;
 
-            // Force reload trial data to show updated results
-            // Pass skipLocalStorage=true to ensure fresh DB data is used
-            await loadTrialData(trialId, true);
-            console.log("[EditTherapeuticFormContext] Reloaded trial data from DB after save");
+              try {
+                // Handle MM-DD-YYYY format (from UI)
+                if (dateStr.includes('-') && dateStr.length === 10) {
+                  const parts = dateStr.split('-');
+                  if (parts.length === 3) {
+                    // Check if it's MM-DD-YYYY or YYYY-MM-DD
+                    if (parts[0].length === 4) {
+                      // Already YYYY-MM-DD
+                      return dateStr;
+                    } else {
+                      // Convert MM-DD-YYYY to YYYY-MM-DD
+                      const [month, day, year] = parts;
+                      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    }
+                  }
+                }
+
+                // Try to parse as Date object
+                const date = new Date(dateStr);
+                if (!isNaN(date.getTime())) {
+                  const year = date.getFullYear();
+                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                  const day = String(date.getDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`;
+                }
+
+                return null;
+              } catch (e) {
+                console.warn('Error formatting date for DB:', dateStr, e);
+                return null;
+              }
+            };
 
             // Update other_sources section via API
             try {
               console.log('=== OTHER SOURCES SAVE DEBUG ===');
+              console.log('⚠️ Saving other sources BEFORE reload to preserve formData');
               console.log('step5_7 data:', {
                 pipeline_data: formData.step5_7.pipeline_data,
                 press_releases: formData.step5_7.press_releases,
@@ -3001,6 +3157,11 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 trial_registries: formData.step5_7.trial_registries,
                 associated_studies: formData.step5_7.associated_studies
               });
+              console.log('step5_7 pipeline_data count:', formData.step5_7.pipeline_data?.length || 0);
+              console.log('step5_7 press_releases count:', formData.step5_7.press_releases?.length || 0);
+              console.log('step5_7 publications count:', formData.step5_7.publications?.length || 0);
+              console.log('step5_7 trial_registries count:', formData.step5_7.trial_registries?.length || 0);
+              console.log('step5_7 associated_studies count:', formData.step5_7.associated_studies?.length || 0);
 
               // SAVE TO LOCALSTORAGE FIRST (for immediate persistence)
               try {
@@ -3026,15 +3187,29 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               const otherSourcesPromises: Promise<Response | null>[] = [];
 
               if (formData.step5_7.pipeline_data && formData.step5_7.pipeline_data.length > 0) {
+                console.log('Raw pipeline_data array:', formData.step5_7.pipeline_data);
                 const filteredItems = formData.step5_7.pipeline_data
-                  .filter((item: any) => item.isVisible && (item.date || item.information || item.url || item.file));
+                  .filter((item: any) => {
+                    const isVisible = item.isVisible !== false;
+                    const hasDate = item.date && String(item.date).trim() !== "";
+                    const hasInformation = item.information && String(item.information).trim() !== "";
+                    const hasUrl = item.url && String(item.url).trim() !== "";
+                    const hasFile = item.file && String(item.file).trim() !== "";
+                    const hasData = hasDate || hasInformation || hasUrl || hasFile;
+                    const shouldInclude = isVisible && hasData;
+                    
+                    if (!shouldInclude) {
+                      console.log('❌ Filtering out pipeline_data item:', item);
+                    }
+                    return shouldInclude;
+                  });
 
                 console.log('Pipeline data to save:', filteredItems);
 
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'pipeline_data',
-                    date: item.date,
+                    date: formatDateForDB(item.date) || "", // Format date from MM-DD-YYYY to YYYY-MM-DD
                     information: item.information,
                     url: item.url,
                     file: item.file,
@@ -3064,15 +3239,30 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               }
 
               if (formData.step5_7.press_releases && formData.step5_7.press_releases.length > 0) {
+                console.log('Raw press_releases array:', formData.step5_7.press_releases);
                 const filteredItems = formData.step5_7.press_releases
-                  .filter((item: any) => item.isVisible && (item.date || item.title || item.url || item.file));
+                  .filter((item: any) => {
+                    const isVisible = item.isVisible !== false;
+                    const hasDate = item.date && String(item.date).trim() !== "";
+                    const hasTitle = item.title && String(item.title).trim() !== "";
+                    const hasUrl = item.url && String(item.url).trim() !== "";
+                    const hasFile = item.file && String(item.file).trim() !== "";
+                    const hasDescription = item.description && String(item.description).trim() !== "";
+                    const hasData = hasDate || hasTitle || hasUrl || hasFile || hasDescription;
+                    const shouldInclude = isVisible && hasData;
+                    
+                    if (!shouldInclude) {
+                      console.log('❌ Filtering out press_releases item:', item);
+                    }
+                    return shouldInclude;
+                  });
 
                 console.log('Press releases to save:', filteredItems);
 
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'press_releases',
-                    date: item.date,
+                    date: formatDateForDB(item.date) || "", // Format date from MM-DD-YYYY to YYYY-MM-DD
                     title: item.title,
                     description: item.description,
                     url: item.url,
@@ -3103,15 +3293,48 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               }
 
               if (formData.step5_7.publications && formData.step5_7.publications.length > 0) {
+                console.log('Raw publications array:', formData.step5_7.publications);
                 const filteredItems = formData.step5_7.publications
-                  .filter((item: any) => item.isVisible && (item.type || item.title || item.url || item.file));
+                  .filter((item: any) => {
+                    // Default isVisible to true if not set
+                    const isVisible = item.isVisible !== false;
+                    // Include item if it's visible and has at least one field filled (including date)
+                    const hasDate = item.date && String(item.date).trim() !== "";
+                    const hasType = item.type && String(item.type).trim() !== "";
+                    const hasTitle = item.title && String(item.title).trim() !== "";
+                    const hasUrl = item.url && String(item.url).trim() !== "";
+                    const hasFile = item.file && String(item.file).trim() !== "";
+                    const hasDescription = item.description && String(item.description).trim() !== "";
+                    
+                    const hasData = hasDate || hasType || hasTitle || hasUrl || hasFile || hasDescription;
+                    const shouldInclude = isVisible && hasData;
+                    
+                    console.log('Publication item check:', {
+                      id: item.id,
+                      isVisible,
+                      hasDate,
+                      hasType,
+                      hasTitle,
+                      hasUrl,
+                      hasFile,
+                      hasDescription,
+                      hasData,
+                      shouldInclude,
+                      item
+                    });
+                    
+                    if (!shouldInclude) {
+                      console.log('❌ Filtering out publication item (no data or not visible):', item);
+                    }
+                    return shouldInclude;
+                  });
 
                 console.log('Publications to save:', filteredItems);
 
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'publications',
-                    date: item.date,
+                    date: formatDateForDB(item.date) || "", // Format date from MM-DD-YYYY to YYYY-MM-DD
                     publicationType: item.type,
                     title: item.title,
                     description: item.description,
@@ -3142,15 +3365,48 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               }
 
               if (formData.step5_7.trial_registries && formData.step5_7.trial_registries.length > 0) {
+                console.log('Raw trial_registries array:', formData.step5_7.trial_registries);
                 const filteredItems = formData.step5_7.trial_registries
-                  .filter((item: any) => item.isVisible && (item.registry || item.identifier || item.url || item.file));
+                  .filter((item: any) => {
+                    // Default isVisible to true if not set
+                    const isVisible = item.isVisible !== false;
+                    // Include item if it's visible and has at least one field filled (including date)
+                    const hasDate = item.date && String(item.date).trim() !== "";
+                    const hasRegistry = item.registry && String(item.registry).trim() !== "";
+                    const hasIdentifier = item.identifier && String(item.identifier).trim() !== "";
+                    const hasUrl = item.url && String(item.url).trim() !== "";
+                    const hasFile = item.file && String(item.file).trim() !== "";
+                    const hasDescription = item.description && String(item.description).trim() !== "";
+                    
+                    const hasData = hasDate || hasRegistry || hasIdentifier || hasUrl || hasFile || hasDescription;
+                    const shouldInclude = isVisible && hasData;
+                    
+                    console.log('Trial registry item check:', {
+                      id: item.id,
+                      isVisible,
+                      hasDate,
+                      hasRegistry,
+                      hasIdentifier,
+                      hasUrl,
+                      hasFile,
+                      hasDescription,
+                      hasData,
+                      shouldInclude,
+                      item
+                    });
+                    
+                    if (!shouldInclude) {
+                      console.log('❌ Filtering out trial registry item (no data or not visible):', item);
+                    }
+                    return shouldInclude;
+                  });
 
                 console.log('Trial registries to save:', filteredItems);
 
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'trial_registries',
-                    date: item.date,
+                    date: formatDateForDB(item.date) || "", // Format date from MM-DD-YYYY to YYYY-MM-DD
                     registry: item.registry,
                     identifier: item.identifier,
                     description: item.description,
@@ -3181,15 +3437,48 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               }
 
               if (formData.step5_7.associated_studies && formData.step5_7.associated_studies.length > 0) {
+                console.log('Raw associated_studies array:', formData.step5_7.associated_studies);
                 const filteredItems = formData.step5_7.associated_studies
-                  .filter((item: any) => item.isVisible && (item.type || item.title || item.url || item.file));
+                  .filter((item: any) => {
+                    // Default isVisible to true if not set
+                    const isVisible = item.isVisible !== false;
+                    // Include item if it's visible and has at least one field filled (including date)
+                    const hasDate = item.date && String(item.date).trim() !== "";
+                    const hasType = item.type && String(item.type).trim() !== "";
+                    const hasTitle = item.title && String(item.title).trim() !== "";
+                    const hasUrl = item.url && String(item.url).trim() !== "";
+                    const hasFile = item.file && String(item.file).trim() !== "";
+                    const hasDescription = item.description && String(item.description).trim() !== "";
+                    
+                    const hasData = hasDate || hasType || hasTitle || hasUrl || hasFile || hasDescription;
+                    const shouldInclude = isVisible && hasData;
+                    
+                    console.log('Associated study item check:', {
+                      id: item.id,
+                      isVisible,
+                      hasDate,
+                      hasType,
+                      hasTitle,
+                      hasUrl,
+                      hasFile,
+                      hasDescription,
+                      hasData,
+                      shouldInclude,
+                      item
+                    });
+                    
+                    if (!shouldInclude) {
+                      console.log('❌ Filtering out associated study item (no data or not visible):', item);
+                    }
+                    return shouldInclude;
+                  });
 
                 console.log('Associated studies to save:', filteredItems);
 
                 filteredItems.forEach((item: any) => {
                   const sourceData = {
                     type: 'associated_studies',
-                    date: item.date,
+                    date: formatDateForDB(item.date) || "", // Format date from MM-DD-YYYY to YYYY-MM-DD
                     studyType: item.type,
                     title: item.title,
                     description: item.description,
@@ -3221,9 +3510,22 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               // Wait for all other_sources updates to complete
               console.log(`Total other_sources requests to process: ${otherSourcesPromises.length}`);
-              const results = await Promise.all(otherSourcesPromises);
-              const successCount = results.filter(r => r && r.ok).length;
-              console.log(`Other sources updated: ${successCount}/${otherSourcesPromises.length} successful`);
+              if (otherSourcesPromises.length === 0) {
+                console.warn('⚠️ No other sources requests to process! This means all arrays were empty or filtered out.');
+                console.log('Check if items have data and isVisible is set correctly.');
+              } else {
+                const results = await Promise.all(otherSourcesPromises);
+                const successCount = results.filter(r => r && r.ok).length;
+                const failedCount = results.filter(r => !r || !r.ok).length;
+                console.log(`Other sources updated: ${successCount}/${otherSourcesPromises.length} successful, ${failedCount} failed`);
+                
+                // Log failed responses
+                results.forEach((result, index) => {
+                  if (!result || !result.ok) {
+                    console.error(`Failed request ${index}:`, result?.status, result?.statusText);
+                  }
+                });
+              }
               console.log('=== END OTHER SOURCES SAVE DEBUG ===');
             } catch (otherError) {
               console.warn('Other sources update failed, but overview updated successfully');
