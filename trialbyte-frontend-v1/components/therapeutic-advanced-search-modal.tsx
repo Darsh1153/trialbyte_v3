@@ -331,15 +331,29 @@ const fieldOptions: Record<string, { value: string; label: string }[]> = {
     { value: "vaginal", label: "Vaginal" },
     { value: "vulvar", label: "Vulvar" }
   ],
-  // Patient Segment - Exact options from creation phase
+  // Patient Segment - Includes general options plus disease-specific options
   patient_segment: [
+    // General patient segments
     { value: "children", label: "Children" },
     { value: "adults", label: "Adults" },
     { value: "healthy_volunteers", label: "Healthy Volunteers" },
     { value: "unknown", label: "Unknown" },
     { value: "first_line", label: "First Line" },
     { value: "second_line", label: "Second Line" },
-    { value: "adjuvant", label: "Adjuvant" }
+    { value: "adjuvant", label: "Adjuvant" },
+    // Breast Cancer specific patient segments
+    { value: "her2_positive_breast_cancer", label: "HER2+ Breast Cancer" },
+    { value: "her2_negative_breast_cancer", label: "HER2− Breast Cancer" },
+    { value: "hr_positive_breast_cancer", label: "HR+ Breast Cancer (ER+ and/or PR+)" },
+    { value: "triple_negative_breast_cancer", label: "Triple-Negative Breast Cancer (TNBC)" },
+    { value: "early_stage_breast_cancer", label: "Early-Stage Breast Cancer" },
+    { value: "locally_advanced_breast_cancer", label: "Locally Advanced Breast Cancer" },
+    { value: "metastatic_breast_cancer", label: "Metastatic Breast Cancer" },
+    { value: "recurrent_breast_cancer", label: "Recurrent Breast Cancer" },
+    { value: "advanced_breast_cancer", label: "Advanced Breast Cancer (Non-Metastatic)" },
+    { value: "premenopausal_breast_cancer", label: "Premenopausal Breast Cancer Patients" },
+    { value: "postmenopausal_breast_cancer", label: "Postmenopausal Breast Cancer Patients" },
+    { value: "breast_cancer_nos", label: "Breast Cancer (NOS)" }
   ],
   // Line of Therapy - Exact options from creation phase
   line_of_therapy: [
