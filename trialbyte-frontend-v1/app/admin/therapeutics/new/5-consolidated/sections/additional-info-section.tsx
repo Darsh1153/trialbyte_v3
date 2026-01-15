@@ -65,10 +65,10 @@ export default function AdditionalInfoSection() {
 
   const tabs = [
     { key: "pipeline_data", label: "Pipeline Data" },
-    { key: "press_releases", label: "Press Releases" },
-    { key: "publications", label: "Publications" },
-    { key: "trial_registries", label: "Trial Registries" },
-    { key: "associated_studies", label: "Associated Studies" },
+    { key: "press_releases", label: "Press Release" },
+    { key: "publications", label: "Publication" },
+    { key: "trial_registries", label: "Trial Registry" },
+    { key: "associated_studies", label: "Associated Study" },
   ];
 
   const currentItems = (form as any)[activeTab] || [];
@@ -205,8 +205,8 @@ export default function AdditionalInfoSection() {
                   {activeTab === "pipeline_data" && `Pipeline ${idx + 1}`}
                   {activeTab === "press_releases" && `Press Release ${idx + 1}`}
                   {activeTab === "publications" && `Publication ${idx + 1}`}
-                  {activeTab === "trial_registries" && `Registry ${idx + 1}`}
-                  {activeTab === "associated_studies" && `Study ${idx + 1}`}
+                  {activeTab === "trial_registries" && `Trial Registry ${idx + 1}`}
+                  {activeTab === "associated_studies" && `Associated Study ${idx + 1}`}
                 </h4>
                 <Button
                   type="button"

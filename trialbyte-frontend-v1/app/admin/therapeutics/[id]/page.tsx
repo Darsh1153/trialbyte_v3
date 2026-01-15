@@ -48,6 +48,15 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  Bell,
+  Clipboard,
+  ClipboardList,
+  Clock,
+  Target,
+  BarChart3,
+  MapPin,
+  Settings,
+  BookOpen,
 } from "lucide-react";
 import { Suspense } from "react";
 import { useTherapeuticTrialDetail } from "@/hooks/use-therapeutic-trial-detail";
@@ -210,6 +219,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const [expandedReferences, setExpandedReferences] = useState<Record<number, boolean>>({});
   const [expandedPublishedResults, setExpandedPublishedResults] = useState<Record<number, boolean>>({});
   const [expandedSiteNotes, setExpandedSiteNotes] = useState<Record<number, boolean>>({});
+  const [expandedOtherSources, setExpandedOtherSources] = useState<Record<number, boolean>>({ 0: true });
   const [selectedRefForAttachments, setSelectedRefForAttachments] = useState<any>(null);
 
   const toggleReference = (index: number) => {
@@ -228,6 +238,13 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
 
   const toggleSiteNote = (index: number) => {
     setExpandedSiteNotes(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const toggleOtherSource = (index: number) => {
+    setExpandedOtherSources(prev => ({
       ...prev,
       [index]: !prev[index]
     }));
@@ -532,6 +549,61 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showBackendView, setShowBackendView] = useState(false);
+  const [otherSourcesExpanded, setOtherSourcesExpanded] = useState(false);
+
+  // Trial tabs state for quick switching between trials - shows ALL trials
+  const [allTrialTabs, setAllTrialTabs] = useState<Array<{ id: string; identifier: string }>>([]);
+
+  // Fetch ALL trials for the tab bar
+  useEffect(() => {
+    const fetchAllTrials = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.trials) {
+            setAllTrialTabs(data.trials.map((t: any) => ({
+              id: t.trial_id,
+              identifier: t.overview?.trial_identifier?.[0] || t.trial_id
+            })));
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching trials list:", error);
+      }
+    };
+    fetchAllTrials();
+  }, []);
+
+  // Handle switching to a different trial tab
+  const switchToTrial = (trialId: string) => {
+    if (trialId !== resolvedParams.id) {
+      router.push(`/admin/therapeutics/${trialId}`);
+    }
+  };
+
+  // Handle closing/removing a trial tab from view
+  const closeTrialTab = (e: React.MouseEvent, trialId: string) => {
+    e.stopPropagation();
+    // If closing current tab, switch to the next one or go back to list
+    if (trialId === resolvedParams.id) {
+      const currentIndex = allTrialTabs.findIndex(t => t.id === trialId);
+      if (allTrialTabs.length > 1) {
+        // Switch to next trial, or previous if at end
+        const nextIndex = currentIndex < allTrialTabs.length - 1 ? currentIndex + 1 : currentIndex - 1;
+        router.push(`/admin/therapeutics/${allTrialTabs[nextIndex].id}`);
+      } else {
+        router.push('/admin/therapeutics');
+      }
+    }
+  };
 
   // Refs for each section
   const overviewRef = useRef<HTMLDivElement>(null);
@@ -543,6 +615,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const publishedResultsRef = useRef<HTMLDivElement>(null);
   const sitesRef = useRef<HTMLDivElement>(null);
   const otherSourcesRef = useRef<HTMLDivElement>(null);
+  const logsRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
 
@@ -988,190 +1061,223 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row">
-        {/* Left Sidebar */}
-        <div className="w-full lg:w-64 bg-white border-r min-h-screen">
-          <div className="p-4 space-y-2">
-            {isSectionVisible("overview") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("overview")}
-                className={`w-full justify-start ${activeSection === "overview"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+      {/* Trial Tabs Bar - Shows ALL available trials */}
+      <div className="bg-[#D7EFFF] px-6 py-3 border-b border-[#2B4863]/10">
+        <div className="flex items-center gap-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent pb-1">
+          {allTrialTabs.map((tab) => (
+            <div
+              key={tab.id}
+              onClick={() => switchToTrial(tab.id)}
+              className={`flex items-center gap-3 px-5 py-2 rounded-full text-sm font-bold cursor-pointer transition-all whitespace-nowrap flex-shrink-0 ${tab.id === resolvedParams.id
+                  ? "bg-[#2B4863] text-white shadow-md"
+                  : "bg-transparent text-[#2B4863] hover:bg-[#2B4863]/10"
+                }`}
+            >
+              <span>{tab.identifier}</span>
+              <button
+                onClick={(e) => closeTrialTab(e, tab.id)}
+                className={`flex items-center justify-center w-5 h-5 rounded-full transition-colors ${tab.id === resolvedParams.id
+                    ? "bg-white/20 text-white hover:bg-white/30"
+                    : "bg-[#2B4863]/10 text-[#2B4863] hover:bg-[#2B4863]/20"
                   }`}
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Overview
-              </Button>
-            )}
-            {isSectionVisible("objectives") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("objectives")}
-                className={`w-full justify-start ${activeSection === "objectives"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded-full border-2 ${activeSection === "objectives"
-                    ? "border-blue-600"
-                    : "border-gray-400"
-                    }`}
-                ></div>
-                Objectives
-              </Button>
-            )}
-            {isSectionVisible("treatmentPlan") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("treatmentPlan")}
-                className={`w-full justify-start ${activeSection === "treatmentPlan"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Treatment Plan
-              </Button>
-            )}
-            {isSectionVisible("patientDescription") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("patientDescription")}
-                className={`w-full justify-start ${activeSection === "patientDescription"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Patient Description
-              </Button>
-            )}
-            {isSectionVisible("timing") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("timing")}
-                className={`w-full justify-start ${activeSection === "timing"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "timing"
-                    ? "border-blue-600"
-                    : "border-gray-400"
-                    }`}
-                ></div>
-                Timing
-              </Button>
-            )}
-            {isSectionVisible("outcome") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("outcome")}
-                className={`w-full justify-start ${activeSection === "outcome"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Outcome
-              </Button>
-            )}
-            {isSectionVisible("publishedResults") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("publishedResults")}
-                className={`w-full justify-start ${activeSection === "publishedResults"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Published Results
-              </Button>
-            )}
-            {isSectionVisible("sites") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("sites")}
-                className={`w-full justify-start ${activeSection === "sites"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "sites"
-                    ? "border-blue-600"
-                    : "border-gray-400"
-                    }`}
-                ></div>
-                Sites
-              </Button>
-            )}
-            {isSectionVisible("otherSources") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("otherSources")}
-                className={`w-full justify-start ${activeSection === "otherSources"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded ${activeSection === "otherSources"
-                    ? "bg-blue-600"
-                    : "bg-gray-400"
-                    }`}
-                ></div>
-                Other Sources
-              </Button>
-            )}
-          </div>
-
-          <div className="px-4 py-6 border-t">
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600">Pipeline Data</div>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                onClick={() => {
-                  toast({
-                    title: "Feature Coming Soon",
-                    description:
-                      "Associated Studies functionality will be available in the next update.",
-                  });
-                }}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Associated Studies
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                onClick={() => {
-                  if (trial.logs && trial.logs.length > 0) {
-                    const logMessages = trial.logs
-                      .map((log) => log.trial_changes_log)
-                      .join("\n");
-                    toast({
-                      title: "Trial Logs",
-                      description: logMessages,
-                    });
-                  } else {
-                    toast({
-                      title: "No Logs Available",
-                      description: "No log entries found for this trial.",
-                    });
-                  }
-                }}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Logs
-              </Button>
+                <X className="h-3 w-3" />
+              </button>
             </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row">
+        {/* Left Sidebar - Sticky */}
+        <div className="w-full lg:w-64 bg-white border-r border-[#2B4863] lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto">
+          <div className="py-2">
+            {/* Main Navigation Items */}
+            {isSectionVisible("overview") && (
+              <button
+                onClick={() => scrollToSection("overview")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "overview"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <Clipboard className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Overview</span>
+              </button>
+            )}
+
+            {isSectionVisible("objectives") && (
+              <button
+                onClick={() => scrollToSection("objectives")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "objectives"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <Target className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Objectives</span>
+              </button>
+            )}
+
+            {isSectionVisible("treatmentPlan") && (
+              <button
+                onClick={() => scrollToSection("treatmentPlan")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "treatmentPlan"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <ClipboardList className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Treatment Plan</span>
+              </button>
+            )}
+
+            {isSectionVisible("patientDescription") && (
+              <button
+                onClick={() => scrollToSection("patientDescription")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "patientDescription"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <FileText className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Patient Description</span>
+              </button>
+            )}
+
+            {isSectionVisible("timing") && (
+              <button
+                onClick={() => scrollToSection("timing")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "timing"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <Clock className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Timing</span>
+              </button>
+            )}
+
+            {isSectionVisible("outcome") && (
+              <button
+                onClick={() => scrollToSection("outcome")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "outcome"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <BarChart3 className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Outcome</span>
+              </button>
+            )}
+
+            {isSectionVisible("publishedResults") && (
+              <button
+                onClick={() => scrollToSection("publishedResults")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "publishedResults"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <FileText className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Published Results</span>
+              </button>
+            )}
+
+            {isSectionVisible("sites") && (
+              <button
+                onClick={() => scrollToSection("sites")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "sites"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <MapPin className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Sites</span>
+              </button>
+            )}
+
+            {/* Other Sources - Expandable */}
+            {isSectionVisible("otherSources") && (
+              <div>
+                <button
+                  onClick={() => {
+                    setOtherSourcesExpanded(!otherSourcesExpanded);
+                    scrollToSection("otherSources");
+                  }}
+                  className={`w-full flex items-center justify-between px-5 py-3 text-left transition-colors ${activeSection === "otherSources" || otherSourcesExpanded
+                    ? "bg-[#2B4863] text-white"
+                    : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Settings className="h-5 w-5 flex-shrink-0" />
+                    <span className="text-sm font-medium">Other Sources</span>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${otherSourcesExpanded ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {/* Sub-items */}
+                {otherSourcesExpanded && (
+                  <div className="bg-white py-2">
+                    <button
+                      onClick={() => scrollToSection("otherSources")}
+                      className="w-full flex items-center gap-3 pl-14 pr-5 py-2 text-left text-sm text-gray-700 hover:text-[#2B4863] hover:bg-gray-50 transition-colors"
+                    >
+                      Pipeline Data
+                    </button>
+                    <button
+                      onClick={() => scrollToSection("otherSources")}
+                      className="w-full flex items-center gap-3 pl-14 pr-5 py-2 text-left text-sm text-gray-400 hover:text-[#2B4863] hover:bg-gray-50 transition-colors"
+                    >
+                      Press Release
+                    </button>
+                    <button
+                      onClick={() => scrollToSection("otherSources")}
+                      className="w-full flex items-center gap-3 pl-14 pr-5 py-2 text-left text-sm text-gray-400 hover:text-[#2B4863] hover:bg-gray-50 transition-colors"
+                    >
+                      Publications
+                    </button>
+                    <button
+                      onClick={() => scrollToSection("otherSources")}
+                      className="w-full flex items-center gap-3 pl-14 pr-5 py-2 text-left text-sm text-gray-400 hover:text-[#2B4863] hover:bg-gray-50 transition-colors"
+                    >
+                      Trial Registries
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Associated Studies */}
+            <button
+              onClick={() => {
+                toast({
+                  title: "Feature Coming Soon",
+                  description: "Associated Studies functionality will be available in the next update.",
+                });
+              }}
+              className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 border-l-transparent text-gray-600 hover:bg-gray-50"
+            >
+              <BookOpen className="h-5 w-5 flex-shrink-0" />
+              <span className="text-sm font-medium">Associated Studies</span>
+            </button>
+
+            {/* Logs */}
+            {isSectionVisible("logs") && (
+              <button
+                onClick={() => scrollToSection("logs")}
+                className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors border-l-4 ${activeSection === "logs"
+                  ? "border-l-[#2B4863] bg-blue-50 text-[#2B4863]"
+                  : "border-l-transparent text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                <FileText className="h-5 w-5 flex-shrink-0" />
+                <span className="text-sm font-medium">Logs</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -2559,11 +2665,11 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           );
                         }
 
-                         return (
+                        return (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {visibleNotes.map((note: any, index: number) => {
                               const isExpanded = expandedSiteNotes[index];
-                              
+
                               return (
                                 <Card key={note.id || index} className="border border-gray-100 rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-all duration-200 bg-white">
                                   <CardContent className="p-6 flex-1 flex flex-col">
@@ -2581,7 +2687,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                           </div>
                                         )}
                                       </div>
-                                      <button 
+                                      <button
                                         onClick={() => toggleSiteNote(index)}
                                         className="bg-[#204B73] text-white p-1 rounded-full hover:bg-[#1a3d5e] transition-colors shadow-sm flex-shrink-0"
                                       >
@@ -2615,7 +2721,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                           })}
                                         </div>
                                       )}
-                                      
+
                                       {isExpanded && (
                                         <div className="pt-4 space-y-3 border-t border-gray-50 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                           {note.attachments && Array.isArray(note.attachments) && note.attachments.length > 0 && (
@@ -2691,192 +2797,204 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
 
                     {/* Display Other Sources from step 5-7 */}
                     {trial.other && trial.other.length > 0 ? (
-                      trial.other.map((source, index) => {
-                        // Parse the JSON data
-                        let parsedData;
-                        try {
-                          parsedData = typeof source.data === 'string' ? JSON.parse(source.data) : source.data;
-                          console.log(`Other Source ${index}:`, parsedData);
-                        } catch (error) {
-                          console.error(`Failed to parse source data:`, source.data);
-                          // If not JSON, treat as plain text
-                          parsedData = { type: 'legacy', data: source.data };
-                        }
-
-                        // Helper function to check if URL is an image
-                        const isImageUrl = (url: string) => {
-                          if (!url || typeof url !== 'string') return false;
-                          const imageExtensions = /\.(jpg|jpeg|png|gif|webp|svg|bmp|tiff?)(\?.*)?$/i;
-                          if (imageExtensions.test(url)) return true;
-                          if (url.includes('utfs.io')) return true;
-                          if (url.startsWith('data:image/')) return true;
-                          if (url.startsWith('blob:')) return true;
-                          return false;
-                        };
-
-                        // Determine the source type label
-                        const getTypeLabel = (type: string) => {
-                          const labels: Record<string, string> = {
-                            'pipeline_data': 'Pipeline Data',
-                            'press_releases': 'Press Release',
-                            'publications': 'Publication',
-                            'trial_registries': 'Trial Registry',
-                            'associated_studies': 'Associated Study',
-                            'legacy': 'Other Source'
+                      [...trial.other]
+                        .sort((a, b) => {
+                          const order = {
+                            'pipeline_data': 1,
+                            'press_releases': 2,
+                            'publications': 3,
+                            'trial_registries': 4,
+                            'associated_studies': 5,
+                            'legacy': 6
                           };
-                          return labels[type] || 'Other Source';
-                        };
 
-                        return (
-                          <div key={index} className="bg-gray-50 rounded-lg p-4">
-                            <div className="space-y-3">
-                              <div className="flex justify-between items-start">
-                                <div className="space-y-1">
-                                  <p className="text-sm font-medium text-gray-800">
-                                    {getTypeLabel(parsedData.type)} #{index + 1}
-                                  </p>
-                                  {parsedData.date && (
-                                    <p className="text-xs text-gray-500">
-                                      Date: {formatDateToMMDDYYYY(parsedData.date)}
-                                    </p>
-                                  )}
+                          let typeA = 'legacy';
+                          let typeB = 'legacy';
+
+                          try {
+                            const dataA = typeof a.data === 'string' ? JSON.parse(a.data) : a.data;
+                            typeA = dataA.type || 'legacy';
+                          } catch (e) { }
+
+                          try {
+                            const dataB = typeof b.data === 'string' ? JSON.parse(b.data) : b.data;
+                            typeB = dataB.type || 'legacy';
+                          } catch (e) { }
+
+                          return (order[typeA as keyof typeof order] || 99) - (order[typeB as keyof typeof order] || 99);
+                        })
+                        .map((source, index) => {
+                          // Parse the JSON data
+                          let parsedData: any;
+                          try {
+                            parsedData = typeof source.data === 'string' ? JSON.parse(source.data) : source.data;
+                            console.log(`Other Source ${index}:`, parsedData);
+                          } catch (error) {
+                            console.error(`Failed to parse source data:`, source.data);
+                            // If not JSON, treat as plain text
+                            parsedData = { type: 'legacy', data: source.data };
+                          }
+
+                          const isExpanded = expandedOtherSources[index];
+
+                          // Helper function for header labels
+                          const getTypeHeaderLabel = (data: any) => {
+                            const type = data.type || 'legacy';
+                            const labels: Record<string, string> = {
+                              'pipeline_data': 'Pipeline Data',
+                              'press_releases': 'Press Release',
+                              'publications': 'Publication',
+                              'trial_registries': 'Trial Registry',
+                              'associated_studies': 'Associated Study',
+                              'legacy': 'Other Source'
+                            };
+
+                            const label = labels[type] || 'Other Source';
+
+                            if (type === 'trial_registries' && data.registry) return `Trial Registry : ${data.registry}`;
+                            if (type === 'publications' && data.type && data.type !== 'publications') return `Publication : ${data.type}`;
+                            if (type === 'associated_studies' && data.type && data.type !== 'associated_studies') return `Associated Study : ${data.type}`;
+
+                            return label;
+                          };
+
+                          const Row = ({ label, value }: { label: string; value: any }) => (
+                            <div className="flex text-xs py-1">
+                              <span className="font-bold text-[#204B73] min-w-[150px]">{label} :</span>
+                              <span className="text-gray-700 whitespace-pre-wrap">{value || "N/A"}</span>
+                            </div>
+                          );
+
+                          return (
+                            <div
+                              key={index}
+                              className={`border rounded-xl transition-all duration-300 overflow-hidden mb-4 ${isExpanded ? 'bg-white shadow-md' : 'bg-white'}`}
+                              style={{ borderColor: isExpanded ? '#2B4863' : '#E2E8F0' }}
+                            >
+                              {/* Header */}
+                              <div
+                                className="p-4 flex items-center justify-between transition-colors"
+                                style={{ backgroundColor: isExpanded ? '#2B4863' : 'transparent' }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="secondary" className={`${isExpanded ? 'bg-white text-[#2B4863]' : 'bg-gray-100 text-gray-800'} hover:bg-gray-100 font-medium px-3 py-1 text-xs`}>
+                                    Date : {parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"}
+                                  </Badge>
+                                  <Badge variant="secondary" className={`${isExpanded ? 'bg-white text-[#2B4863]' : 'bg-gray-100 text-gray-800'} hover:bg-gray-100 font-medium px-3 py-1 text-xs`}>
+                                    {getTypeHeaderLabel(parsedData)}
+                                  </Badge>
                                 </div>
+                                <button
+                                  onClick={() => toggleOtherSource(index)}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                                  style={{
+                                    backgroundColor: isExpanded ? 'white' : '#2B4863',
+                                    color: isExpanded ? '#2B4863' : 'white'
+                                  }}
+                                >
+                                  {isExpanded ? <Minus size={14} strokeWidth={3} /> : <Plus size={14} strokeWidth={3} />}
+                                </button>
                               </div>
 
-                              {/* Display type-specific information */}
-                              {parsedData.type === 'pipeline_data' && parsedData.information && (
-                                <div className="bg-white p-3 rounded border border-gray-200">
-                                  <p className="text-xs font-medium text-gray-600 mb-1">Information:</p>
-                                  <p className="text-sm text-gray-700">{parsedData.information}</p>
-                                </div>
-                              )}
+                              {/* Content */}
+                              {isExpanded && (
+                                <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                  <div className="space-y-1 border-t pt-3">
+                                    {parsedData.type === 'pipeline_data' && (
+                                      <>
+                                        <Row label="Pipeline Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Information" value={parsedData.information} />
+                                      </>
+                                    )}
 
-                              {parsedData.type === 'press_releases' && parsedData.title && (
-                                <div className="bg-white p-3 rounded border border-gray-200">
-                                  <p className="text-xs font-medium text-gray-600 mb-1">Title:</p>
-                                  <p className="text-sm text-gray-700">{parsedData.title}</p>
-                                </div>
-                              )}
+                                    {parsedData.type === 'press_releases' && (
+                                      <>
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Title" value={parsedData.title} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
 
-                              {parsedData.type === 'publications' && (
-                                <div className="bg-white p-3 rounded border border-gray-200">
-                                  {parsedData.publicationType && (
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Type: {parsedData.publicationType}
-                                    </p>
-                                  )}
-                                  {parsedData.title && (
-                                    <>
-                                      <p className="text-xs font-medium text-gray-600 mb-1">Title:</p>
-                                      <p className="text-sm text-gray-700">{parsedData.title}</p>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                                    {parsedData.type === 'publications' && (
+                                      <>
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Title" value={parsedData.title} />
+                                        <Row label="Publication Type" value={parsedData.publicationType || (parsedData.type !== 'publications' ? parsedData.type : "")} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
 
-                              {parsedData.type === 'trial_registries' && (
-                                <div className="bg-white p-3 rounded border border-gray-200">
-                                  {parsedData.registry && (
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Registry: {parsedData.registry}
-                                    </p>
-                                  )}
-                                  {parsedData.identifier && (
-                                    <>
-                                      <p className="text-xs font-medium text-gray-600 mb-1">Identifier:</p>
-                                      <p className="text-sm text-gray-700">{parsedData.identifier}</p>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                                    {parsedData.type === 'trial_registries' && (
+                                      <>
+                                        <Row label="Registry Name" value={parsedData.registry} />
+                                        <Row label="Registry Identifier" value={parsedData.identifier} />
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
 
-                              {parsedData.type === 'associated_studies' && (
-                                <div className="bg-white p-3 rounded border border-gray-200">
-                                  {parsedData.studyType && (
-                                    <p className="text-xs text-gray-500 mb-1">
-                                      Study Type: {parsedData.studyType}
-                                    </p>
-                                  )}
-                                  {parsedData.title && (
-                                    <>
-                                      <p className="text-xs font-medium text-gray-600 mb-1">Title:</p>
-                                      <p className="text-sm text-gray-700">{parsedData.title}</p>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                                    {parsedData.type === 'associated_studies' && (
+                                      <>
+                                        <Row label="Study Type" value={parsedData.studyType || (parsedData.type !== 'associated_studies' ? parsedData.type : "")} />
+                                        <Row label="Title" value={parsedData.title} />
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
 
-                              {/* Legacy format */}
-                              {parsedData.type === 'legacy' && parsedData.data && parsedData.data !== "N/A" && (
-                                <p className="text-sm text-gray-700">{parsedData.data}</p>
-                              )}
-
-                              {/* Display URL as link if not an image */}
-                              {parsedData.url && parsedData.url !== "N/A" && !isImageUrl(parsedData.url) && (
-                                <div className="mt-2">
-                                  <PreviewLink
-                                    href={parsedData.url}
-                                    title="Source Link"
-                                    className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
-                                  >
-                                    <LinkIcon className="h-3 w-3" />
-                                    View Source Link
-                                  </PreviewLink>
-                                </div>
-                              )}
-
-                              {/* Display uploaded images */}
-                              {parsedData.url && isImageUrl(parsedData.url) && (
-                                <div className="mt-3">
-                                  <p className="text-xs font-medium text-gray-600 mb-2">
-                                    Uploaded File:
-                                  </p>
-                                  <div className="flex flex-wrap gap-4">
-                                    <div className="relative group w-full max-w-4xl">
-                                      <div className="aspect-[2/1] bg-white rounded-lg border border-gray-200 overflow-hidden relative">
-                                        <img
-                                          src={parsedData.url}
-                                          alt={`${getTypeLabel(parsedData.type)} Image`}
-                                          className="w-full h-full object-cover hover:border-blue-400 transition-all cursor-pointer"
-                                          onClick={() => openLinkPreview(parsedData.url, "Source Image")}
-                                          onLoad={() => console.log(`Image loaded successfully: ${parsedData.url}`)}
-                                          onError={(e) => {
-                                            console.error(`Image failed to load: ${parsedData.url}`);
-                                            e.currentTarget.style.display = 'none';
-                                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                            if (fallback) fallback.style.display = 'flex';
-                                          }}
-                                        />
-                                        <div className="hidden absolute inset-0 bg-gray-100 items-center justify-center flex-col gap-2">
-                                          <Upload className="h-8 w-8 text-gray-400" />
-                                          <span className="text-xs text-gray-500">Failed to load image</span>
-                                          <a
-                                            href={parsedData.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-xs text-blue-600 hover:underline"
-                                          >
-                                            Open in new tab
-                                          </a>
-                                        </div>
-                                        {/* Overlay on hover */}
-                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                          <Maximize2 className="h-6 w-6 text-white drop-shadow-lg" />
-                                        </div>
-                                      </div>
-                                    </div>
+                                    {parsedData.type === 'legacy' && (
+                                      <Row label="Data" value={parsedData.data} />
+                                    )}
                                   </div>
-                                  {parsedData.file && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      File: {parsedData.file}
-                                    </p>
-                                  )}
+
+                                  {/* Buttons */}
+                                  <div className="flex items-center gap-2 pt-2">
+                                    {parsedData.url && parsedData.url !== "N/A" && (
+                                      <Button
+                                        size="sm"
+                                        className="h-8 px-4 text-xs font-medium text-white shadow-sm bg-[#204B73] hover:bg-[#204B73]/90"
+                                        onClick={() => openLinkPreview(parsedData.url, "View Source")}
+                                      >
+                                        View source
+                                      </Button>
+                                    )}
+
+                                    {(parsedData.fileUrl || (parsedData.url && (parsedData.url.includes('utfs.io') || parsedData.url.includes('edgestore')))) && (
+                                      <div className="flex items-center h-8 rounded-md shadow-sm overflow-hidden bg-[#204B73]">
+                                        <Button
+                                          size="sm"
+                                          className="h-full px-3 text-xs font-medium text-white border-r border-[#ffffff33] rounded-none bg-transparent hover:bg-white/10"
+                                          onClick={() => {
+                                            const url = parsedData.fileUrl || parsedData.url;
+                                            if (url) window.open(url, '_blank');
+                                          }}
+                                        >
+                                          Attachments
+                                          <FileText className="ml-2 h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          className="h-full px-2 text-white rounded-none bg-transparent hover:bg-white/10"
+                                          onClick={() => {
+                                            const url = parsedData.fileUrl || parsedData.url;
+                                            if (url) {
+                                              const link = document.createElement('a');
+                                              link.href = url;
+                                              link.download = parsedData.file || 'attachment';
+                                              link.click();
+                                            }
+                                          }}
+                                        >
+                                          <Download className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                             </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })
                     ) : (
                       <div className="text-center py-8">
                         <p className="text-sm text-gray-600">
@@ -2884,6 +3002,42 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         </p>
                       </div>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {/* Logs Section */}
+            {isSectionVisible("logs") && (
+              <Card className="mt-6 border border-gray-200 shadow-sm overflow-hidden" ref={logsRef}>
+                <div className="bg-[#D7EFFF] px-4 py-2 flex items-center justify-between">
+                  <h2 className="text-[17px] font-bold text-gray-800">Logs</h2>
+                  <div className="flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                    <div className="px-4 py-1.5 text-sm font-medium text-gray-600 border-r border-gray-200">
+                      Alert
+                    </div>
+                    <div className="px-3 py-1.5 text-[#2B4863]">
+                      <Bell size={18} fill="#2B4863" className="opacity-80" />
+                    </div>
+                  </div>
+                </div>
+                <CardContent className="p-6 bg-white">
+                  <div className="flex flex-wrap gap-x-24 gap-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-bold text-[#204B73]">Trial added Date :</span>
+                      <span className="text-[15px] text-gray-700">
+                        {trial?.logs && trial.logs.length > 0 && trial.logs[0].trial_added_date
+                          ? formatDateToMMDDYYYY(trial.logs[0].trial_added_date)
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-bold text-[#204B73]">Last Modified Date :</span>
+                      <span className="text-[15px] text-gray-700">
+                        {trial?.logs && trial.logs.length > 0 && trial.logs[0].last_modified_date
+                          ? formatDateToMMDDYYYY(trial.logs[0].last_modified_date)
+                          : "N/A"}
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -3010,6 +3164,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                 { id: "publishedResults", label: "Published Results" },
                 { id: "sites", label: "Sites" },
                 { id: "otherSources", label: "Other Sources" },
+                { id: "logs", label: "Logs" },
               ].map((section) => (
                 <div key={section.id} className="flex items-center space-x-2">
                   <Checkbox

@@ -44,8 +44,11 @@ import {
   Loader2,
   ChevronDown,
   LogOut,
+  Bell,
 } from "lucide-react";
 import { Suspense } from "react";
+import { useLinkPreview } from "@/components/ui/link-preview-panel";
+import { PreviewLink } from "@/components/ui/preview-link";
 
 // API Response interface
 interface ApiResponse {
@@ -166,9 +169,18 @@ function ClinicalTrialsPage() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [expandedOtherSources, setExpandedOtherSources] = useState<Record<number, boolean>>({ 0: true });
+
+  const toggleOtherSource = (index: number) => {
+    setExpandedOtherSources(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { openLinkPreview } = useLinkPreview();
 
   // Refs for each section
   const overviewRef = useRef<HTMLDivElement>(null);
@@ -180,6 +192,7 @@ function ClinicalTrialsPage() {
   const publishedResultsRef = useRef<HTMLDivElement>(null);
   const sitesRef = useRef<HTMLDivElement>(null);
   const otherSourcesRef = useRef<HTMLDivElement>(null);
+  const logsRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch trials data
@@ -370,9 +383,8 @@ function ClinicalTrialsPage() {
       }
 
       const currentTrial = trials[currentTrialIndex];
-      const fileName = `trial_${currentTrial?.trial_id || "export"}_${
-        new Date().toISOString().split("T")[0]
-      }.pdf`;
+      const fileName = `trial_${currentTrial?.trial_id || "export"}_${new Date().toISOString().split("T")[0]
+        }.pdf`;
 
       pdf.save(fileName);
 
@@ -470,10 +482,9 @@ function ClinicalTrialsPage() {
 
     toast({
       title: "Tab Closed",
-      description: `Trial ${
-        trials[indexToClose].overview.trial_identifier[0] ||
+      description: `Trial ${trials[indexToClose].overview.trial_identifier[0] ||
         trials[indexToClose].trial_id
-      } has been closed`,
+        } has been closed`,
     });
   };
 
@@ -684,9 +695,8 @@ function ClinicalTrialsPage() {
 
   return (
     <div
-      className={`min-h-screen bg-gray-50 overflow-x-hidden ${
-        isMaximized ? "fixed inset-0 z-50 overflow-auto" : ""
-      }`}
+      className={`min-h-screen bg-gray-50 overflow-x-hidden ${isMaximized ? "fixed inset-0 z-50 overflow-auto" : ""
+        }`}
     >
       {/* Top Navigation */}
       <div className="bg-white border-b">
@@ -733,9 +743,8 @@ function ClinicalTrialsPage() {
                     <User className="h-4 w-4 text-gray-600" />
                   </div>
                   <ChevronDown
-                    className={`h-4 w-4 text-gray-400 transition-transform ${
-                      showLogoutDropdown ? "rotate-180" : ""
-                    }`}
+                    className={`h-4 w-4 text-gray-400 transition-transform ${showLogoutDropdown ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -809,11 +818,10 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("overview")}
-                className={`w-full justify-start ${
-                  activeSection === "overview"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "overview"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Overview
@@ -823,18 +831,16 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("objectives")}
-                className={`w-full justify-start ${
-                  activeSection === "objectives"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "objectives"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded-full border-2 ${
-                    activeSection === "objectives"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded-full border-2 ${activeSection === "objectives"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Objectives
               </Button>
@@ -843,11 +849,10 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("treatmentPlan")}
-                className={`w-full justify-start ${
-                  activeSection === "treatmentPlan"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "treatmentPlan"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Treatment Plan
@@ -857,11 +862,10 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("patientDescription")}
-                className={`w-full justify-start ${
-                  activeSection === "patientDescription"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "patientDescription"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Patient Description
@@ -871,18 +875,16 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("timing")}
-                className={`w-full justify-start ${
-                  activeSection === "timing"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "timing"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded border ${
-                    activeSection === "timing"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "timing"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Timing
               </Button>
@@ -891,11 +893,10 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("outcome")}
-                className={`w-full justify-start ${
-                  activeSection === "outcome"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "outcome"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Outcome
@@ -905,11 +906,10 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("publishedResults")}
-                className={`w-full justify-start ${
-                  activeSection === "publishedResults"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "publishedResults"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Published Results
@@ -919,18 +919,16 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("sites")}
-                className={`w-full justify-start ${
-                  activeSection === "sites"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "sites"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded border ${
-                    activeSection === "sites"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "sites"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Sites
               </Button>
@@ -939,18 +937,16 @@ function ClinicalTrialsPage() {
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("otherSources")}
-                className={`w-full justify-start ${
-                  activeSection === "otherSources"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "otherSources"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded ${
-                    activeSection === "otherSources"
-                      ? "bg-blue-600"
-                      : "bg-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded ${activeSection === "otherSources"
+                    ? "bg-blue-600"
+                    : "bg-gray-400"
+                    }`}
                 ></div>
                 Other Sources
               </Button>
@@ -1005,9 +1001,8 @@ function ClinicalTrialsPage() {
         <div className="flex-1">
           {/* Trial Tabs */}
           <div
-            className={`bg-white border-b ${
-              isMinimized ? "px-2 py-1" : "px-6 py-2"
-            }`}
+            className={`bg-white border-b ${isMinimized ? "px-2 py-1" : "px-6 py-2"
+              }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1 flex-1 flex-wrap">
@@ -1027,11 +1022,10 @@ function ClinicalTrialsPage() {
                             { scroll: false }
                           );
                         }}
-                        className={`flex items-center ${
-                          index === currentTrialIndex
-                            ? "bg-gray-600 text-white pr-8"
-                            : "text-gray-600 hover:bg-gray-100"
-                        }`}
+                        className={`flex items-center ${index === currentTrialIndex
+                          ? "bg-gray-600 text-white pr-8"
+                          : "text-gray-600 hover:bg-gray-100"
+                          }`}
                       >
                         <span>
                           {trial.overview.trial_identifier?.[0] || trial.trial_id}
@@ -1116,9 +1110,8 @@ function ClinicalTrialsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={handleFilter}
-                className={`${
-                  filteredSections.length > 0 ? "bg-blue-100 text-blue-600" : ""
-                }`}
+                className={`${filteredSections.length > 0 ? "bg-blue-100 text-blue-600" : ""
+                  }`}
                 title="Filter sections"
               >
                 <Filter className="h-4 w-4" />
@@ -1420,7 +1413,7 @@ function ClinicalTrialsPage() {
                         </span>
                         <div className="space-y-1">
                           {currentTrial.overview.reference_links &&
-                          currentTrial.overview.reference_links.length > 0 ? (
+                            currentTrial.overview.reference_links.length > 0 ? (
                             currentTrial.overview.reference_links.map(
                               (link, index) => (
                                 <div key={index}>
@@ -1817,12 +1810,12 @@ function ClinicalTrialsPage() {
                         </h4>
                         <p className="text-sm text-gray-600">
                           {currentTrial.criteria[0]?.healthy_volunteers ===
-                          "false"
+                            "false"
                             ? "No"
                             : currentTrial.criteria[0]?.healthy_volunteers ===
                               "true"
-                            ? "Yes"
-                            : "N/A"}
+                              ? "Yes"
+                              : "N/A"}
                         </p>
                       </div>
 
@@ -2137,22 +2130,22 @@ function ClinicalTrialsPage() {
 
                       {currentTrial.results[0]?.adverse_event_reported ===
                         "true" && (
-                        <div className="mb-4">
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Adverse Events:
-                          </h4>
-                          <p className="text-sm text-gray-700">
-                            Type:{" "}
-                            {currentTrial.results[0]?.adverse_event_type ||
-                              "Not specified"}
-                          </p>
-                          <p className="text-sm text-gray-700">
-                            Treatment:{" "}
-                            {currentTrial.results[0]
-                              ?.treatment_for_adverse_events || "Not specified"}
-                          </p>
-                        </div>
-                      )}
+                          <div className="mb-4">
+                            <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                              Adverse Events:
+                            </h4>
+                            <p className="text-sm text-gray-700">
+                              Type:{" "}
+                              {currentTrial.results[0]?.adverse_event_type ||
+                                "Not specified"}
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              Treatment:{" "}
+                              {currentTrial.results[0]
+                                ?.treatment_for_adverse_events || "Not specified"}
+                            </p>
+                          </div>
+                        )}
 
                       {/* Action Buttons */}
                       <div className="flex items-center space-x-3">
@@ -2415,18 +2408,202 @@ function ClinicalTrialsPage() {
                 <CardContent className="p-6">
                   <div className="space-y-6">
                     {currentTrial.other && currentTrial.other.length > 0 ? (
-                      currentTrial.other.map((source, index) => (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4">
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium text-gray-800">
-                              Source {index + 1}
-                            </p>
-                            <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                              {source.data}
-                            </p>
-                          </div>
-                        </div>
-                      ))
+                      [...currentTrial.other]
+                        .sort((a, b) => {
+                          const order: Record<string, number> = {
+                            'pipeline_data': 1,
+                            'press_releases': 2,
+                            'publications': 3,
+                            'trial_registries': 4,
+                            'associated_studies': 5,
+                            'legacy': 10
+                          };
+
+                          let typeA = 'legacy';
+                          let typeB = 'legacy';
+
+                          try {
+                            const dataA = typeof a.data === 'string' ? JSON.parse(a.data) : a.data;
+                            typeA = dataA.type || 'legacy';
+                          } catch (e) { }
+
+                          try {
+                            const dataB = typeof b.data === 'string' ? JSON.parse(b.data) : b.data;
+                            typeB = dataB.type || 'legacy';
+                          } catch (e) { }
+
+                          return (order[typeA] || 99) - (order[typeB] || 99);
+                        })
+                        .map((source, index) => {
+                          // Parse the JSON data
+                          let parsedData: any;
+                          try {
+                            parsedData = typeof source.data === 'string' ? JSON.parse(source.data) : source.data;
+                          } catch (error) {
+                            // If not JSON, treat as plain text
+                            parsedData = { type: 'legacy', data: source.data };
+                          }
+
+                          const isExpanded = expandedOtherSources[index];
+
+                          // Helper function for header labels
+                          const getTypeHeaderLabel = (data: any) => {
+                            const type = data.type || 'legacy';
+                            const labels: Record<string, string> = {
+                              'pipeline_data': 'Pipeline Data',
+                              'press_releases': 'Press Release',
+                              'publications': 'Publication',
+                              'trial_registries': 'Trial Registry',
+                              'associated_studies': 'Associated Study',
+                              'legacy': 'Other Source'
+                            };
+
+                            const label = labels[type] || 'Other Source';
+
+                            if (type === 'trial_registries' && data.registry) return `Trial Registry : ${data.registry}`;
+                            if (type === 'publications' && data.type && data.type !== 'publications') return `Publication : ${data.type}`;
+                            if (type === 'associated_studies' && data.type && data.type !== 'associated_studies') return `Associated Study : ${data.type}`;
+
+                            return label;
+                          };
+
+                          const Row = ({ label, value }: { label: string; value: any }) => (
+                            <div className="flex text-xs py-1">
+                              <span className="font-bold text-[#204B73] min-w-[150px]">{label} :</span>
+                              <span className="text-gray-700 whitespace-pre-wrap">{value || "N/A"}</span>
+                            </div>
+                          );
+
+                          return (
+                            <div
+                              key={index}
+                              className={`border rounded-xl transition-all duration-300 overflow-hidden mb-4 ${isExpanded ? 'bg-white shadow-md' : 'bg-white'}`}
+                              style={{ borderColor: isExpanded ? '#2B4863' : '#E2E8F0' }}
+                            >
+                              {/* Header */}
+                              <div
+                                className="p-4 flex items-center justify-between transition-colors"
+                                style={{ backgroundColor: isExpanded ? '#2B4863' : 'transparent' }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="secondary" className={`${isExpanded ? 'bg-white text-[#2B4863]' : 'bg-gray-100 text-gray-800'} hover:bg-gray-100 font-medium px-3 py-1 text-xs`}>
+                                    Date : {parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"}
+                                  </Badge>
+                                  <Badge variant="secondary" className={`${isExpanded ? 'bg-white text-[#2B4863]' : 'bg-gray-100 text-gray-800'} hover:bg-gray-100 font-medium px-3 py-1 text-xs`}>
+                                    {getTypeHeaderLabel(parsedData)}
+                                  </Badge>
+                                </div>
+                                <button
+                                  onClick={() => toggleOtherSource(index)}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center transition-colors shadow-sm"
+                                  style={{
+                                    backgroundColor: isExpanded ? 'white' : '#2B4863',
+                                    color: isExpanded ? '#2B4863' : 'white'
+                                  }}
+                                >
+                                  {isExpanded ? <Minus size={14} strokeWidth={3} /> : <Plus size={14} strokeWidth={3} />}
+                                </button>
+                              </div>
+
+                              {/* Content */}
+                              {isExpanded && (
+                                <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                  <div className="space-y-1 border-t pt-3">
+                                    {parsedData.type === 'pipeline_data' && (
+                                      <>
+                                        <Row label="Pipeline Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Information" value={parsedData.information} />
+                                      </>
+                                    )}
+
+                                    {parsedData.type === 'press_releases' && (
+                                      <>
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Title" value={parsedData.title} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
+
+                                    {parsedData.type === 'publications' && (
+                                      <>
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Title" value={parsedData.title} />
+                                        <Row label="Publication Type" value={parsedData.publicationType || (parsedData.type !== 'publications' ? parsedData.type : "")} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
+
+                                    {parsedData.type === 'trial_registries' && (
+                                      <>
+                                        <Row label="Registry Name" value={parsedData.registry} />
+                                        <Row label="Registry Identifier" value={parsedData.identifier} />
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
+
+                                    {parsedData.type === 'associated_studies' && (
+                                      <>
+                                        <Row label="Study Type" value={parsedData.studyType || (parsedData.type !== 'associated_studies' ? parsedData.type : "")} />
+                                        <Row label="Title" value={parsedData.title} />
+                                        <Row label="Date" value={parsedData.date ? formatDateToMMDDYYYY(parsedData.date) : "N/A"} />
+                                        <Row label="Description" value={parsedData.description} />
+                                      </>
+                                    )}
+
+                                    {parsedData.type === 'legacy' && (
+                                      <Row label="Data" value={parsedData.data} />
+                                    )}
+                                  </div>
+
+                                  {/* Buttons */}
+                                  <div className="flex items-center gap-2 pt-2">
+                                    {parsedData.url && parsedData.url !== "N/A" && (
+                                      <Button
+                                        size="sm"
+                                        className="h-8 px-4 text-xs font-medium text-white shadow-sm bg-[#204B73] hover:bg-[#204B73]/90"
+                                        onClick={() => openLinkPreview(parsedData.url, "View Source")}
+                                      >
+                                        View source
+                                      </Button>
+                                    )}
+
+                                    {(parsedData.fileUrl || (parsedData.url && (parsedData.url.includes('utfs.io') || parsedData.url.includes('edgestore')))) && (
+                                      <div className="flex items-center h-8 rounded-md shadow-sm overflow-hidden bg-[#204B73]">
+                                        <Button
+                                          size="sm"
+                                          className="h-full px-3 text-xs font-medium text-white border-r border-[#ffffff33] rounded-none bg-transparent hover:bg-white/10"
+                                          onClick={() => {
+                                            const url = parsedData.fileUrl || parsedData.url;
+                                            if (url) window.open(url, '_blank');
+                                          }}
+                                        >
+                                          Attachments
+                                          <FileText className="ml-2 h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          className="h-full px-2 text-white rounded-none bg-transparent hover:bg-white/10"
+                                          onClick={() => {
+                                            const url = parsedData.fileUrl || parsedData.url;
+                                            if (url) {
+                                              const link = document.createElement('a');
+                                              link.href = url;
+                                              link.download = parsedData.file || 'attachment';
+                                              link.click();
+                                            }
+                                          }}
+                                        >
+                                          <Download className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                     ) : (
                       <div className="text-center py-8">
                         <p className="text-sm text-gray-600">
@@ -2434,6 +2611,42 @@ function ClinicalTrialsPage() {
                         </p>
                       </div>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {/* Logs Section */}
+            {isSectionVisible("logs") && (
+              <Card className="mt-6 border border-gray-200 shadow-sm overflow-hidden" ref={logsRef}>
+                <div className="bg-[#D7EFFF] px-4 py-2 flex items-center justify-between">
+                  <h2 className="text-[17px] font-bold text-gray-800">Logs</h2>
+                  <div className="flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                    <div className="px-4 py-1.5 text-sm font-medium text-gray-600 border-r border-gray-200">
+                      Alert
+                    </div>
+                    <div className="px-3 py-1.5 text-[#2B4863]">
+                      <Bell size={18} fill="#2B4863" className="opacity-80" />
+                    </div>
+                  </div>
+                </div>
+                <CardContent className="p-6 bg-white">
+                  <div className="flex flex-wrap gap-x-24 gap-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-bold text-[#204B73]">Trial added Date :</span>
+                      <span className="text-[15px] text-gray-700">
+                        {currentTrial.logs && currentTrial.logs.length > 0 && currentTrial.logs[0].trial_added_date
+                          ? formatDateToMMDDYYYY(currentTrial.logs[0].trial_added_date)
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-bold text-[#204B73]">Last Modified Date :</span>
+                      <span className="text-[15px] text-gray-700">
+                        {currentTrial.logs && currentTrial.logs.length > 0 && currentTrial.logs[0].last_modified_date
+                          ? formatDateToMMDDYYYY(currentTrial.logs[0].last_modified_date)
+                          : "N/A"}
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -2464,6 +2677,7 @@ function ClinicalTrialsPage() {
                 { id: "publishedResults", label: "Published Results" },
                 { id: "sites", label: "Sites" },
                 { id: "otherSources", label: "Other Sources" },
+                { id: "logs", label: "Logs" },
               ].map((section) => (
                 <div key={section.id} className="flex items-center space-x-2">
                   <Checkbox
@@ -2531,7 +2745,7 @@ function ClinicalTrialsPage() {
               <h3 className="text-lg font-semibold mb-4">Trial Change Log</h3>
               <div className="space-y-3">
                 {trials[currentTrialIndex]?.logs &&
-                trials[currentTrialIndex].logs.length > 0 ? (
+                  trials[currentTrialIndex].logs.length > 0 ? (
                   trials[currentTrialIndex].logs.map((log, index) => (
                     <div
                       key={index}
@@ -2596,9 +2810,9 @@ function ClinicalTrialsPage() {
                 attachments: note.attachments || [],
                 isVisible: true
               })) || []}
-              onAddNote={() => {}} // Read-only
-              onUpdateNote={() => {}} // Read-only
-              onRemoveNote={() => {}} // Read-only
+              onAddNote={() => { }} // Read-only
+              onUpdateNote={() => { }} // Read-only
+              onRemoveNote={() => { }} // Read-only
               showAddButton={false} // Hide add button for read-only
               className="bg-blue-50"
             />

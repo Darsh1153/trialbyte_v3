@@ -105,19 +105,19 @@ interface TherapeuticTrial {
     adverse_event_reported: string;
     adverse_event_type: string | null;
     treatment_for_adverse_events: string | null;
-      results_available: string | null;
-      endpoints_met: string | null;
-      trial_outcome_content: string | null;
-      trial_outcome_link: string | null;
-      trial_outcome_attachment: string | null;
-      site_notes: Array<{
-        date: string;
-        type: string;
-        content: string;
-        sourceLink: string;
-        sourceType: string;
-        attachments: string[];
-      }> | null;
+    results_available: string | null;
+    endpoints_met: string | null;
+    trial_outcome_content: string | null;
+    trial_outcome_link: string | null;
+    trial_outcome_attachment: string | null;
+    site_notes: Array<{
+      date: string;
+      type: string;
+      content: string;
+      sourceLink: string;
+      sourceType: string;
+      attachments: string[];
+    }> | null;
   }>;
   sites: Array<{
     id: string;
@@ -179,11 +179,10 @@ const FormProgress = ({ currentStep }: { currentStep: number }) => {
             return (
               <div
                 key={step.number}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
-                  isActive
-                    ? "text-white border-b-transparent"
-                    : "text-gray-700 border-b-transparent"
-                }`}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-all border-b-2 ${isActive
+                  ? "text-white border-b-transparent"
+                  : "text-gray-700 border-b-transparent"
+                  }`}
                 style={{
                   backgroundColor: isActive ? '#204B73' : 'transparent'
                 }}
@@ -201,13 +200,13 @@ const FormProgress = ({ currentStep }: { currentStep: number }) => {
 };
 
 // Read-only SearchableSelect component
-const ReadOnlySearchableSelect = ({ 
-  value, 
-  options, 
-  placeholder = "No selection" 
-}: { 
-  value: string; 
-  options: SearchableSelectOption[]; 
+const ReadOnlySearchableSelect = ({
+  value,
+  options,
+  placeholder = "No selection"
+}: {
+  value: string;
+  options: SearchableSelectOption[];
   placeholder?: string;
 }) => {
   const selectedOption = options.find(option => option.value === value);
@@ -220,19 +219,19 @@ const ReadOnlySearchableSelect = ({
 
 // Read-only Input component
 const ReadOnlyInput = ({ value, placeholder = "No data" }: { value: string; placeholder?: string }) => (
-  <Input 
-    value={value || placeholder} 
-    readOnly 
-    className="bg-gray-50 text-gray-700 border-gray-300" 
+  <Input
+    value={value || placeholder}
+    readOnly
+    className="bg-gray-50 text-gray-700 border-gray-300"
   />
 );
 
 // Read-only Textarea component
 const ReadOnlyTextarea = ({ value, placeholder = "No data", rows = 3 }: { value: string; placeholder?: string; rows?: number }) => (
-  <Textarea 
-    value={value || placeholder} 
-    readOnly 
-    className="bg-gray-50 text-gray-700 border-gray-300 resize-none" 
+  <Textarea
+    value={value || placeholder}
+    readOnly
+    className="bg-gray-50 text-gray-700 border-gray-300 resize-none"
     rows={rows}
   />
 );
@@ -272,9 +271,9 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
       try {
         setLoading(true);
         const trialId = resolvedParams.id;
-        
+
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trial/${trialId}/all-data`);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             toast({
@@ -287,9 +286,9 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
           }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (data.data) {
           const transformedTrial: TherapeuticTrial = {
             trial_id: data.trial_id,
@@ -412,7 +411,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     const parsed = JSON.parse(note.attachments);
                     return Array.isArray(parsed) ? parsed : [note.attachments];
                   } catch {
-                    return note.attachments.includes(',') 
+                    return note.attachments.includes(',')
                       ? note.attachments.split(',').map((item: string) => item.trim()).filter((item: string) => item)
                       : [note.attachments];
                   }
@@ -421,7 +420,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
               })(),
             })),
           };
-          
+
           setTrial(transformedTrial);
         } else {
           toast({
@@ -475,15 +474,15 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
   const downloadJSON = () => {
     if (trial) {
       const dataStr = JSON.stringify(trial, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-      
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+
       const exportFileDefaultName = `trial_${trial.trial_id}_backend_data.json`;
-      
+
       const linkElement = document.createElement('a');
       linkElement.setAttribute('href', dataUri);
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
-      
+
       toast({
         title: "Download Complete",
         description: "Trial backend data has been downloaded.",
@@ -778,7 +777,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Badge variant="outline" className="bg-blue-50 text-blue-700">
             Backend Data
@@ -850,7 +849,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
           /* Structured Data Display using Creation Phase UI Style */
           <div className="space-y-4">
             <FormProgress currentStep={currentStep} />
-            
+
             {/* Step Navigation Buttons */}
             <div className="flex justify-between items-center px-4">
               <Button
@@ -1066,25 +1065,25 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                 <Card>
                   <CardContent className="space-y-6">
                     {/* Purpose of Trial */}
-                      <div className="space-y-2">
-                        <Label>Purpose of Trial</Label>
+                    <div className="space-y-2">
+                      <Label>Purpose of Trial</Label>
                       <ReadOnlyTextarea value={trial.outcomes[0]?.purpose_of_trial || ""} rows={3} />
-                      </div>
+                    </div>
 
                     {/* Summary */}
-                      <div className="space-y-2">
-                        <Label>Summary</Label>
+                    <div className="space-y-2">
+                      <Label>Summary</Label>
                       <ReadOnlyTextarea value={trial.outcomes[0]?.summary || ""} rows={4} />
-                      </div>
+                    </div>
 
                     {/* Primary Outcome Measures */}
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Primary Outcome Measures</Label>
                       <div className="space-y-2">
                         {trial.outcomes[0]?.primary_outcome_measure ? (
                           <div className="flex gap-2">
                             <ReadOnlyTextarea value={trial.outcomes[0]?.primary_outcome_measure || ""} rows={2} />
-                      </div>
+                          </div>
                         ) : (
                           <div className="flex gap-2">
                             <ReadOnlyTextarea value="" placeholder="No primary outcome measures" rows={2} />
@@ -1094,13 +1093,13 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     </div>
 
                     {/* Other Outcome Measures */}
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Other Outcome Measures</Label>
                       <div className="space-y-2">
                         {trial.outcomes[0]?.other_outcome_measure ? (
                           <div className="flex gap-2">
                             <ReadOnlyTextarea value={trial.outcomes[0]?.other_outcome_measure || ""} rows={2} />
-                      </div>
+                          </div>
                         ) : (
                           <div className="flex gap-2">
                             <ReadOnlyTextarea value="" placeholder="No other outcome measures" rows={2} />
@@ -1115,7 +1114,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         <Label>Study Design Keywords</Label>
                         <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
                           {trial.outcomes[0]?.study_design_keywords || "No keywords selected"}
-                      </div>
+                        </div>
                       </div>
 
                       <div className="space-y-2">
@@ -1125,20 +1124,20 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     </div>
 
                     {/* Treatment Regimen */}
-                      <div className="space-y-2">
-                        <Label>Treatment Regimen</Label>
+                    <div className="space-y-2">
+                      <Label>Treatment Regimen</Label>
                       <ReadOnlyTextarea value={trial.outcomes[0]?.treatment_regimen || ""} rows={3} />
-                      </div>
+                    </div>
 
                     {/* Number of Arms */}
-                      <div className="space-y-2">
-                        <Label>Number of Arms</Label>
+                    <div className="space-y-2">
+                      <Label>Number of Arms</Label>
                       <div className="w-32">
                         <ReadOnlyInput value={trial.outcomes[0]?.number_of_arms?.toString() || ""} />
                       </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {currentStep === 3 && (
@@ -1161,8 +1160,8 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
 
                     {/* Row 1: Age From + Subject Type */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label>Age From</Label>
+                      <div className="space-y-2">
+                        <Label>Age From</Label>
                         <div className="flex gap-2">
                           <ReadOnlySearchableSelect
                             value={trial.criteria[0]?.age_from || ""}
@@ -1175,12 +1174,12 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                             placeholder="Years"
                           />
                         </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Subject Type</Label>
-                        <ReadOnlyInput value={trial.criteria[0]?.subject_type || ""} />
-                        </div>
                       </div>
+                      <div className="space-y-2">
+                        <Label>Subject Type</Label>
+                        <ReadOnlyInput value={trial.criteria[0]?.subject_type || ""} />
+                      </div>
+                    </div>
 
                     {/* Row 2: Age To + Sex + Healthy Volunteers */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1216,8 +1215,8 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                             placeholder="No selection"
                           />
                         </div>
-                        </div>
                       </div>
+                    </div>
 
                     {/* Row 3: Target Volunteers + Actual Enrolled */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
@@ -1225,19 +1224,19 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         <Label>Target No Of Volunteers</Label>
                         <ReadOnlyInput value={trial.criteria[0]?.target_no_volunteers?.toString() || ""} />
                       </div>
-                        <div className="space-y-2">
-                          <Label>Actual Enrolled Volunteers</Label>
+                      <div className="space-y-2">
+                        <Label>Actual Enrolled Volunteers</Label>
                         <ReadOnlyInput value={trial.criteria[0]?.actual_enrolled_volunteers?.toString() || ""} />
-                        </div>
+                      </div>
                     </div>
 
                     {/* Row 4: ECOG Performance Status + Prior Treatments */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
+                      <div className="space-y-2">
                         <Label>ECOG Performance Status</Label>
                         <ReadOnlyInput value={trial.criteria[0]?.ecog_performance_status || ""} placeholder="No status selected" />
-                        </div>
-                        <div className="space-y-2">
+                      </div>
+                      <div className="space-y-2">
                         <Label>Prior Treatments</Label>
                         <ReadOnlyTextarea value={trial.criteria[0]?.healthy_volunteers || ""} rows={3} placeholder="No treatments specified" />
                       </div>
@@ -1248,10 +1247,10 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                       <div className="space-y-2">
                         <Label>Biomarker Requirements</Label>
                         <ReadOnlyTextarea value={trial.criteria[0]?.biomarker_requirements || ""} rows={3} placeholder="No biomarker requirements specified" />
-                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {currentStep === 4 && (
@@ -1262,8 +1261,8 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Timing</h3>
-                        </div>
-                      
+                      </div>
+
                       <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
                           <thead>
@@ -1375,10 +1374,10 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                           <ReadOnlyInput value={trial.timing[0]?.overall_duration_publish || ""} placeholder="Months" />
                         </div>
                         <span className="text-sm text-gray-500">(months)</span>
-                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {currentStep === 5 && (
@@ -1387,18 +1386,18 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                   <CardContent className="space-y-6">
                     {/* Toggles */}
                     <div className="flex flex-wrap items-center gap-6 mt-4">
-                        <div className="flex items-center gap-2">
-                          <Label>Results Available</Label>
-                          <ReadOnlySwitch checked={trial.results[0]?.results_available === "Yes"} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label>Endpoints met</Label>
-                          <ReadOnlySwitch checked={trial.results[0]?.endpoints_met === "Yes"} />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Label>Adverse Events Reported</Label>
-                          <ReadOnlySwitch checked={trial.results[0]?.adverse_event_reported === "Yes"} />
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Label>Results Available</Label>
+                        <ReadOnlySwitch checked={trial.results[0]?.results_available === "Yes"} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label>Endpoints met</Label>
+                        <ReadOnlySwitch checked={trial.results[0]?.endpoints_met === "Yes"} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label>Adverse Events Reported</Label>
+                        <ReadOnlySwitch checked={trial.results[0]?.adverse_event_reported === "Yes"} />
+                      </div>
                     </div>
 
                     {/* Trial Outcome + Reference */}
@@ -1408,31 +1407,31 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         <Label>Trial Outcome</Label>
                         <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
                           {trial.results[0]?.trial_outcome || "No outcome selected"}
-                      </div>
+                        </div>
                       </div>
 
                       {/* Trial Outcome Reference */}
-                        <div className="space-y-2 border rounded-md p-2">
-                          <Label>Trial Outcome Reference</Label>
-                          <ReadOnlyInput value={formatDate(trial.results[0]?.reference) || ""} placeholder="No date selected" />
-                          
-                          {/* Trial Outcome Results Content */}
-                      <div className="space-y-2">
-                            <Label>Trial Outcome Results Content</Label>
-                            <ReadOnlyTextarea value={trial.results[0]?.trial_outcome_content || ""} rows={3} placeholder="No data" />
-                      </div>
-                          
-                          <div className="flex gap-2 mt-2">
-                            <div className="flex items-center gap-2 flex-1">
-                              <Label className="whitespace-nowrap">Link</Label>
-                              <ReadOnlyInput value={trial.results[0]?.trial_outcome_link || ""} placeholder="No data" />
-                            </div>
-                            <div className="flex items-center gap-2 flex-1">
-                              <Label className="whitespace-nowrap">Attachments</Label>
-                              <ReadOnlyInput value={trial.results[0]?.trial_outcome_attachment === "Yes" ? "Yes" : "No"} placeholder="No attachments" />
-                            </div>
+                      <div className="space-y-2 border rounded-md p-2">
+                        <Label>Trial Outcome Reference</Label>
+                        <ReadOnlyInput value={formatDate(trial.results[0]?.reference) || ""} placeholder="No date selected" />
+
+                        {/* Trial Outcome Results Content */}
+                        <div className="space-y-2">
+                          <Label>Trial Outcome Results Content</Label>
+                          <ReadOnlyTextarea value={trial.results[0]?.trial_outcome_content || ""} rows={3} placeholder="No data" />
+                        </div>
+
+                        <div className="flex gap-2 mt-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <Label className="whitespace-nowrap">Link</Label>
+                            <ReadOnlyInput value={trial.results[0]?.trial_outcome_link || ""} placeholder="No data" />
+                          </div>
+                          <div className="flex items-center gap-2 flex-1">
+                            <Label className="whitespace-nowrap">Attachments</Label>
+                            <ReadOnlyInput value={trial.results[0]?.trial_outcome_attachment === "Yes" ? "Yes" : "No"} placeholder="No attachments" />
                           </div>
                         </div>
+                      </div>
                     </div>
 
                     {/* Site Notes */}
@@ -1441,78 +1440,78 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         <h4 className="font-medium text-gray-900">Site Notes</h4>
                       </div>
 
-                        <div className="space-y-4">
-                          {trial.results[0]?.site_notes && trial.results[0].site_notes.length > 0 ? (
-                            trial.results[0].site_notes.map((note: any, index: number) => (
-                              <Card key={index} className="border border-gray-200 bg-white">
-                                <CardContent className="p-6 space-y-4">
-                                  {/* Site Note Header */}
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
+                      <div className="space-y-4">
+                        {trial.results[0]?.site_notes && trial.results[0].site_notes.length > 0 ? (
+                          trial.results[0].site_notes.map((note: any, index: number) => (
+                            <Card key={index} className="border border-gray-200 bg-white">
+                              <CardContent className="p-6 space-y-4">
+                                {/* Site Note Header */}
+                                <div className="flex items-center justify-between">
+                                  <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
+                                </div>
+
+                                {/* Site Note Fields */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  {/* Date */}
+                                  <div className="space-y-2">
+                                    <Label>Date</Label>
+                                    <ReadOnlyInput value={formatDate(note.date) || ""} placeholder="No date selected" />
                                   </div>
 
-                                  {/* Site Note Fields */}
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Date */}
-                      <div className="space-y-2">
-                                      <Label>Date</Label>
-                                      <ReadOnlyInput value={formatDate(note.date) || ""} placeholder="No date selected" />
+                                  {/* Note Type */}
+                                  <div className="space-y-2">
+                                    <Label>Result type</Label>
+                                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                                      {note.type || "No type selected"}
                                     </div>
-
-                                    {/* Note Type */}
-                        <div className="space-y-2">
-                                      <Label>Result type</Label>
-                                      <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
-                                        {note.type || "No type selected"}
-                        </div>
-                      </div>
                                   </div>
+                                </div>
 
-                                  {/* Content */}
-                        <div className="space-y-2">
-                                    <Label>Content</Label>
-                                    <ReadOnlyTextarea value={note.content || ""} placeholder="No content" rows={3} />
-                        </div>
+                                {/* Content */}
+                                <div className="space-y-2">
+                                  <Label>Content</Label>
+                                  <ReadOnlyTextarea value={note.content || ""} placeholder="No content" rows={3} />
+                                </div>
 
-                                  {/* View Source */}
-                        <div className="space-y-2">
-                                    <Label>Source</Label>
-                                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
-                                      {note.sourceLink || "No source selected"}
-                        </div>
+                                {/* View Source */}
+                                <div className="space-y-2">
+                                  <Label>Source</Label>
+                                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                                    {note.sourceLink || "No source selected"}
                                   </div>
+                                </div>
 
-                                  {/* Attachments */}
-                        <div className="space-y-2">
-                                    <Label>Attachments</Label>
-                                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
-                                      {note.attachments && note.attachments.length > 0 ? note.attachments.join(", ") : "No attachments"}
-                        </div>
+                                {/* Attachments */}
+                                <div className="space-y-2">
+                                  <Label>Attachments</Label>
+                                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
+                                    {note.attachments && note.attachments.length > 0 ? note.attachments.join(", ") : "No attachments"}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            No site notes available
+                          </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                            ))
-                          ) : (
-                            <div className="text-center py-8 text-gray-500">
-                              No site notes available
-                            </div>
-                          )}
-                        </div>
                     </div>
 
                     {/* Adverse Event */}
                     <div className="grid gap-4 md:grid-cols-2">
                       {/* Adverse Event Reported */}
                       <div className="space-y-2">
-                          <Label>Adverse Event Reported</Label>
+                        <Label>Adverse Event Reported</Label>
                         <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
                           {trial.results[0]?.adverse_event_reported || "No option selected"}
-                      </div>
+                        </div>
                       </div>
 
                       {/* Adverse Event Type */}
                       <div className="space-y-2">
-                          <Label>Adverse Event Type</Label>
+                        <Label>Adverse Event Type</Label>
                         <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
                           {trial.results[0]?.adverse_event_type || "No type selected"}
                         </div>
@@ -1520,12 +1519,12 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     </div>
 
                     {/* Treatment For Adverse Events */}
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Treatment For Adverse Events</Label>
                       <ReadOnlyTextarea value={trial.results[0]?.treatment_for_adverse_events || ""} rows={3} />
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {currentStep === 6 && (
@@ -1541,7 +1540,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     </div>
 
                     {/* Study Sites */}
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Study Sites</Label>
                       <div className="space-y-2">
                         {trial.sites[0]?.study_sites && trial.sites[0].study_sites.length > 0 ? (
@@ -1555,7 +1554,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     </div>
 
                     {/* Principal Investigators */}
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Principal Investigators</Label>
                       <div className="space-y-2">
                         {trial.sites[0]?.principal_investigators && trial.sites[0].principal_investigators.length > 0 ? (
@@ -1565,14 +1564,14 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         ) : (
                           <ReadOnlyInput value="" placeholder="No investigators specified" />
                         )}
-                        </div>
+                      </div>
                     </div>
 
                     {/* Site Status */}
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Site Status</Label>
                       <ReadOnlyInput value={trial.sites[0]?.site_status || ""} placeholder="No status specified" />
-                        </div>
+                    </div>
 
                     {/* Site Countries */}
                     <div className="space-y-2">
@@ -1589,7 +1588,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                     </div>
 
                     {/* Site Regions */}
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Site Regions</Label>
                       <div className="space-y-2">
                         {trial.sites[0]?.site_regions && trial.sites[0].site_regions.length > 0 ? (
@@ -1599,11 +1598,11 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         ) : (
                           <ReadOnlyInput value="" placeholder="No regions specified" />
                         )}
-                        </div>
+                      </div>
                     </div>
 
                     {/* Site Contact Info */}
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label>Site Contact Info</Label>
                       <div className="space-y-2">
                         {trial.sites[0]?.site_contact_info && trial.sites[0].site_contact_info.length > 0 ? (
@@ -1613,8 +1612,8 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                         ) : (
                           <ReadOnlyInput value="" placeholder="No contact info specified" />
                         )}
-                        </div>
                       </div>
+                    </div>
 
                     {/* Simple Notes Section */}
                     <div className="space-y-4">
@@ -1632,10 +1631,10 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                             <ReadOnlyTextarea value="" placeholder="No notes available" rows={3} />
                           </div>
                         )}
-                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {currentStep === 7 && (
@@ -1647,11 +1646,10 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                       <Button
                         type="button"
                         variant={activeOtherSourceTab === "pipeline_data" ? "default" : "outline"}
-                        className={`text-sm px-4 py-2 ${
-                          activeOtherSourceTab === "pipeline_data"
-                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
+                        className={`text-sm px-4 py-2 ${activeOtherSourceTab === "pipeline_data"
+                          ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                          : "text-gray-600 hover:text-gray-800"
+                          }`}
                         onClick={() => setActiveOtherSourceTab("pipeline_data")}
                       >
                         Pipeline Data
@@ -1659,61 +1657,57 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                       <Button
                         type="button"
                         variant={activeOtherSourceTab === "press_releases" ? "default" : "outline"}
-                        className={`text-sm px-4 py-2 ${
-                          activeOtherSourceTab === "press_releases"
-                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
+                        className={`text-sm px-4 py-2 ${activeOtherSourceTab === "press_releases"
+                          ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                          : "text-gray-600 hover:text-gray-800"
+                          }`}
                         onClick={() => setActiveOtherSourceTab("press_releases")}
                       >
-                        Press Releases
+                        Press Release
                       </Button>
                       <Button
                         type="button"
                         variant={activeOtherSourceTab === "publications" ? "default" : "outline"}
-                        className={`text-sm px-4 py-2 ${
-                          activeOtherSourceTab === "publications"
-                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
+                        className={`text-sm px-4 py-2 ${activeOtherSourceTab === "publications"
+                          ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                          : "text-gray-600 hover:text-gray-800"
+                          }`}
                         onClick={() => setActiveOtherSourceTab("publications")}
                       >
-                        Publications
+                        Publication
                       </Button>
                       <Button
                         type="button"
                         variant={activeOtherSourceTab === "trial_registries" ? "default" : "outline"}
-                        className={`text-sm px-4 py-2 ${
-                          activeOtherSourceTab === "trial_registries"
-                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
+                        className={`text-sm px-4 py-2 ${activeOtherSourceTab === "trial_registries"
+                          ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                          : "text-gray-600 hover:text-gray-800"
+                          }`}
                         onClick={() => setActiveOtherSourceTab("trial_registries")}
                       >
-                        Trial Registries
+                        Trial Registry
                       </Button>
                       <Button
                         type="button"
                         variant={activeOtherSourceTab === "associated_studies" ? "default" : "outline"}
-                        className={`text-sm px-4 py-2 ${
-                          activeOtherSourceTab === "associated_studies"
-                            ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
-                            : "text-gray-600 hover:text-gray-800"
-                        }`}
+                        className={`text-sm px-4 py-2 ${activeOtherSourceTab === "associated_studies"
+                          ? "bg-[#204B73] text-white hover:bg-[#204B73]/90"
+                          : "text-gray-600 hover:text-gray-800"
+                          }`}
                         onClick={() => setActiveOtherSourceTab("associated_studies")}
                       >
-                        Associated Studies
+                        Associated Study
                       </Button>
-                      </div>
+                    </div>
 
                     {/* Active Tab Content */}
-                      <div className="space-y-2">
+                    <div className="space-y-2">
                       <Label className="text-base font-medium">
                         {activeOtherSourceTab === "pipeline_data" && "Pipeline Data"}
-                        {activeOtherSourceTab === "press_releases" && "Press Releases"}
-                        {activeOtherSourceTab === "publications" && "Publications"}
-                        {activeOtherSourceTab === "trial_registries" && "Trial Registries"}
-                        {activeOtherSourceTab === "associated_studies" && "Associated Studies"}
+                        {activeOtherSourceTab === "press_releases" && "Press Release"}
+                        {activeOtherSourceTab === "publications" && "Publication"}
+                        {activeOtherSourceTab === "trial_registries" && "Trial Registry"}
+                        {activeOtherSourceTab === "associated_studies" && "Associated Study"}
                       </Label>
 
                       <div className="space-y-4">
@@ -1724,7 +1718,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                               <div className="w-full">
                                 <Label className="text-sm">Pipeline Data</Label>
                                 <ReadOnlyTextarea value={trial.other[0]?.data || ""} placeholder="No pipeline data available" rows={6} />
-                      </div>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1777,9 +1771,9 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                           </div>
                         )}
                       </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {currentStep === 8 && (
@@ -1793,34 +1787,34 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                           {/* Creation Information */}
                           <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-green-700">Trial Creation</h3>
-                        <div className="space-y-2">
+                            <div className="space-y-2">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">Created Date:</span>
                                 <span className="text-gray-600">
                                   {formatDate(trial.logs[0]?.trial_added_date)}
                                 </span>
-                        </div>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">Created User:</span>
                                 <span className="text-gray-600">admin</span>
-                        </div>
+                              </div>
                             </div>
                           </div>
 
                           {/* Modification Information */}
                           <div className="space-y-4">
                             <h3 className="text-lg font-semibold text-blue-700">Last Modification</h3>
-                        <div className="space-y-2">
+                            <div className="space-y-2">
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">Last Modified Date:</span>
                                 <span className="text-gray-600">
                                   {formatDate(trial.logs[0]?.last_modified_date)}
                                 </span>
-                        </div>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">Last Modified User:</span>
                                 <span className="text-gray-600">{trial.logs[0]?.last_modified_user || "admin"}</span>
-                      </div>
+                              </div>
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">Total Modifications:</span>
                                 <span className="text-gray-600">1</span>
@@ -1849,15 +1843,15 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-4 border border-gray-300 rounded bg-gray-50"></div>
                             <Label>Full Review</Label>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Full Review User</Label>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Full Review User</Label>
                             <ReadOnlyInput value={trial.logs[0]?.full_review_user || ""} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Next Review Date</Label>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Next Review Date</Label>
                             <ReadOnlyInput value={formatDate(trial.logs[0]?.next_review_date)} />
-                      </div>
+                          </div>
                         </div>
 
                         {/* Notes Section */}
@@ -1874,27 +1868,27 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                                     </div>
 
                                     {/* Note Fields */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       {/* Date */}
-                        <div className="space-y-2">
+                                      <div className="space-y-2">
                                         <Label>Date</Label>
                                         <ReadOnlyInput value={formatDate(note.date_type)} />
-                        </div>
+                                      </div>
 
                                       {/* Note Type */}
-                        <div className="space-y-2">
+                                      <div className="space-y-2">
                                         <Label>Note Type</Label>
                                         <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 min-h-[40px] flex items-center">
                                           General
-                        </div>
-                      </div>
+                                        </div>
+                                      </div>
                                     </div>
 
                                     {/* Content */}
-                      <div className="space-y-2">
+                                    <div className="space-y-2">
                                       <Label>Content</Label>
                                       <ReadOnlyTextarea value={note.notes || ""} rows={3} />
-                      </div>
+                                    </div>
 
                                     {/* Link */}
                                     <div className="space-y-2">
@@ -1903,9 +1897,9 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                                     </div>
 
                                     {/* Attachments */}
-                        <div className="space-y-2">
-                          <Label>Attachments</Label>
-                          <div className="space-y-2">
+                                    <div className="space-y-2">
+                                      <Label>Attachments</Label>
+                                      <div className="space-y-2">
                                         {note.attachments && note.attachments.length > 0 ? (
                                           note.attachments.map((attachment, attachIndex) => (
                                             <ReadOnlyInput key={attachIndex} value={attachment} />
@@ -1913,7 +1907,7 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                                         ) : (
                                           <ReadOnlyInput value="" placeholder="No attachments" />
                                         )}
-                          </div>
+                                      </div>
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -1921,12 +1915,12 @@ export default function TherapeuticBackendView({ params }: { params: Promise<{ i
                             ) : (
                               <div className="text-center py-8 text-gray-500">
                                 No notes available
-                        </div>
-                      )}
+                              </div>
+                            )}
                           </div>
                         </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
                   </CardContent>
                 </Card>
               )}
