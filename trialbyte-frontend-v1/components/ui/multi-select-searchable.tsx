@@ -43,7 +43,21 @@ export function MultiSelectSearchable({
 }: MultiSelectSearchableProps) {
   const [open, setOpen] = React.useState(false)
 
-  const selectedOptions = options.filter((option) => value.includes(option.value))
+  // Get selected options from the options list, plus any values not in options (for values loaded from DB but not in current options)
+  const selectedOptions = React.useMemo(() => {
+    const matchedOptions = options.filter((option) => value.includes(option.value));
+
+    // Find values that aren't in the options list (these might be saved DB values not in current options)
+    const unmatchedValues = value.filter(v => !options.some(opt => opt.value === v));
+
+    // Create temporary options for unmatched values so they still display
+    const unmatchedOptions = unmatchedValues.map(v => ({
+      value: v,
+      label: v, // Use the value as the label for display
+    }));
+
+    return [...matchedOptions, ...unmatchedOptions];
+  }, [options, value]);
 
   const handleSelect = (optionValue: string) => {
     console.log('MultiSelectSearchable - handleSelect called with:', optionValue);
