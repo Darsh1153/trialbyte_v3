@@ -874,14 +874,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <FileText className="h-4 w-4 mr-2" />
               Trial Details
             </Button>
-            <Button 
-              onClick={() => setShowBackendView(true)}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Backend View
-            </Button>
+
             <Button 
               onClick={handleRefresh}
               variant="outline"
@@ -955,13 +948,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
             </Button>
           </div>
           <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowHistoryModal(true)}
-            >
-              Record History
-            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -1366,47 +1353,47 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         Key Information
                       </h3>
                       <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 min-w-[140px] flex-shrink-0">
                             Disease Type :
                           </span>
-                          <span className="text-sm text-gray-700 text-right">
+                          <span className="text-sm text-gray-700">
                             {trial.overview.disease_type || "N/A"}
                           </span>
-                    </div>
-                        <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
+                        </div>
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 min-w-[140px] flex-shrink-0">
                             Patient Segment :
                           </span>
-                          <span className="text-sm text-gray-700 text-right">
+                          <span className="text-sm text-gray-700">
                             {trial.overview.patient_segment || "N/A"}
                           </span>
-                    </div>
-                        <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
+                        </div>
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 min-w-[140px] flex-shrink-0">
                             Primary Drug :
                           </span>
-                          <span className="text-sm text-gray-700 text-right">
+                          <span className="text-sm text-gray-700">
                             {trial.overview.primary_drugs || "N/A"}
                           </span>
-                    </div>
-                        <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
+                        </div>
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 min-w-[140px] flex-shrink-0">
                             Secondary Drug :
                           </span>
-                          <span className="text-sm text-gray-700 text-right">
+                          <span className="text-sm text-gray-700">
                             {trial.overview.other_drugs || "N/A"}
                           </span>
                         </div>
-                        <div className="flex items-start justify-between">
-                          <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
+                        <div className="flex items-start">
+                          <span className="text-sm font-medium text-gray-600 min-w-[140px] flex-shrink-0">
                             Trial Phase :
                           </span>
                           <Badge className="bg-green-600 text-white">
                             Phase {trial.overview.trial_phase || "N/A"}
                           </Badge>
                         </div>
-                    </div>
+                      </div>
                   </div>
                   
                     {/* Right Column - Line of Therapy */}
@@ -1415,36 +1402,18 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         Line of Therapy
                       </h3>
                       <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-blue-600">•</span>
-                          <span className="text-sm font-medium text-gray-900">
-                            2 – Second Line
-                          </span>
-                      </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-blue-600">•</span>
-                          <span className="text-sm text-gray-600">
-                            1 – First Line
-                          </span>
-                    </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-blue-600">•</span>
-                          <span className="text-sm text-gray-600">
-                            2+ – At least second line
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-blue-600">•</span>
-                          <span className="text-sm text-gray-600">
-                            3+ – At least third line
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-blue-600">•</span>
-                          <span className="text-sm text-gray-600">
-                            1+ – At least first line
-                          </span>
-                        </div>
+                        {trial.overview.line_of_therapy ? (
+                          trial.overview.line_of_therapy.split(/,\s*|\n/).map((line, index) => (
+                            <div key={index} className="flex items-center space-x-2">
+                              <span className="text-blue-600">•</span>
+                              <span className="text-sm font-medium text-gray-900">
+                                {line.trim()}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-600">N/A</span>
+                        )}
                       </div>
                     </div>
                   </div>

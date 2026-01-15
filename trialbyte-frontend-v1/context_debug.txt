@@ -64,24 +64,24 @@ const toNullableNumber = (value: unknown): number | null => {
 
 const parseAgeField = (value: unknown): string[] => {
   console.log('[parseAgeField] Input value:', value, 'Type:', typeof value);
-
+  
   if (value === null || value === undefined) {
     console.log('[parseAgeField] Value is null/undefined, returning default');
     return ["", "Years"];
   }
-
+  
   const str = String(value).trim();
   if (!str || str === "null" || str === "undefined") {
     console.log('[parseAgeField] String is empty or null-like, returning default');
     return ["", "Years"];
   }
-
+  
   console.log('[parseAgeField] Processing string:', str);
-
+  
   // Handle comma-separated format (e.g., "10,years" or "10, years")
   // Also handle space-separated format (e.g., "10 Years" or "10  Years")
   let parts: string[] = [];
-
+  
   // First try comma separation (database format: "10,years")
   if (str.includes(',')) {
     parts = str.split(',').map(p => p.trim()).filter(Boolean);
@@ -91,20 +91,20 @@ const parseAgeField = (value: unknown): string[] => {
     parts = str.split(/\s+/).filter(Boolean);
     console.log('[parseAgeField] Split by space:', parts);
   }
-
+  
   if (parts.length >= 2) {
     // value is first part, unit is the rest (capitalize first letter of unit)
     const ageValue = parts[0];
     const ageUnit = parts.slice(1).join(" ").trim();
     // Capitalize first letter and lowercase the rest for consistency
-    const formattedUnit = ageUnit
+    const formattedUnit = ageUnit 
       ? ageUnit.charAt(0).toUpperCase() + ageUnit.slice(1).toLowerCase()
       : "Years";
     const result = [ageValue, formattedUnit];
     console.log('[parseAgeField] Returning parsed result:', result);
     return result;
   }
-
+  
   // If only one part, check if it's a number
   if (parts.length === 1) {
     const singlePart = parts[0];
@@ -119,7 +119,7 @@ const parseAgeField = (value: unknown): string[] => {
     console.log('[parseAgeField] Returning single value with default unit:', result);
     return result;
   }
-
+  
   // Fallback: return empty with default unit
   const result = ["", "Years"];
   console.log('[parseAgeField] Returning fallback default:', result);
@@ -1293,14 +1293,14 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               console.log('sex:', criteria?.sex);
               console.log('target_no_volunteers:', criteria?.target_no_volunteers);
               console.log('actual_enrolled_volunteers:', criteria?.actual_enrolled_volunteers);
-
+              
               // Parse age fields with detailed logging
               const ageMinParsed = parseAgeField(criteria?.age_from);
               const ageMaxParsed = parseAgeField(criteria?.age_to);
-
+              
               console.log('Parsed age_min:', ageMinParsed);
               console.log('Parsed age_max:', ageMaxParsed);
-
+              
               const eligibilityData = {
                 inclusion_criteria: criteria?.inclusion_criteria
                   ? Array.isArray(criteria.inclusion_criteria)
@@ -1326,7 +1326,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 target_no_volunteers: toStringOrEmpty(criteria?.target_no_volunteers),
                 actual_enrolled_volunteers: toStringOrEmpty(criteria?.actual_enrolled_volunteers),
               };
-
+              
               console.log('✅ Final mapped eligibility data:', eligibilityData);
               console.log('Age min value:', eligibilityData.age_min[0], 'Age min unit:', eligibilityData.age_min[1]);
               console.log('Age max value:', eligibilityData.age_max[0], 'Age max unit:', eligibilityData.age_max[1]);
@@ -1632,9 +1632,9 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 adverse_event_type: resultsData?.adverse_event_type || "",
                 treatment_for_adverse_events: resultsData?.treatment_for_adverse_events || "",
               };
-
+              
               console.log('Final mapped results data:', resultsMapped);
-
+              
               return {
                 ...resultsMapped,
                 site_notes: (() => {
@@ -2731,11 +2731,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
       // Get the overview ID from the original trial
       const overviewId = originalTrial.overview?.id;
-      // CRITICAL FIX: Use the actual database trial ID (UUID) for all API calls
-      // The URL param 'trialId' might be a display ID, but the DB operations need the UUID
-      const dbTrialId = originalTrial.trial_id || originalTrial.overview?.id || trialId;
-      console.log('[EditTherapeuticFormContext] Using dbTrialId for API calls:', dbTrialId, '(URL trialId:', trialId, ')');
-
       if (!overviewId) {
         console.warn('No overview ID found, skipping API update and using localStorage only');
       }
@@ -2796,12 +2791,12 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               console.log("=== SAVING OUTCOME DATA ===");
               const outcomePayload = {
                 user_id: currentUserId,
-                trial_id: dbTrialId,
+                trial_id: trialId,
                 ...buildOutcomePayload(formData),
               };
               console.log("Outcome payload to be saved:", outcomePayload);
 
-              const outcomeResponse = await fetch(`${baseUrl}/api/v1/therapeutic/outcome/trial/${dbTrialId}/update`, {
+              const outcomeResponse = await fetch(`${baseUrl}/api/v1/therapeutic/outcome/trial/${trialId}/update`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -2833,7 +2828,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               };
               console.log("Participation criteria payload:", criteriaPayload);
 
-              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${dbTrialId}/update`, {
+              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${trialId}/update`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -2866,7 +2861,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
             // Update sites section via API
             try {
-              const sitesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/sites/trial/${dbTrialId}/update`, {
+              const sitesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/sites/trial/${trialId}/update`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -2977,7 +2972,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 overall_duration_publish: timingData.overall_duration_publish,
               });
 
-              const timingResponse = await fetch(`${baseUrl}/api/v1/therapeutic/timing/trial/${dbTrialId}/update`, {
+              const timingResponse = await fetch(`${baseUrl}/api/v1/therapeutic/timing/trial/${trialId}/update`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -3087,7 +3082,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               console.log('Results data to be saved to API:', resultsData);
 
-              const resultsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/results/trial/${dbTrialId}/update`, {
+              const resultsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/results/trial/${trialId}/update`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -3181,7 +3176,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               }
 
               // Delete existing other_sources entries
-              const deleteResponse = await fetch(`${baseUrl}/api/v1/therapeutic/other/trial/${dbTrialId}`, {
+              const deleteResponse = await fetch(`${baseUrl}/api/v1/therapeutic/other/trial/${trialId}`, {
                 method: 'DELETE',
                 credentials: 'include',
               }).catch(() => null);
@@ -3202,7 +3197,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const hasFile = item.file && String(item.file).trim() !== "";
                     const hasData = hasDate || hasInformation || hasUrl || hasFile;
                     const shouldInclude = isVisible && hasData;
-
+                    
                     if (!shouldInclude) {
                       console.log('❌ Filtering out pipeline_data item:', item);
                     }
@@ -3228,7 +3223,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        trial_id: dbTrialId,
+                        trial_id: trialId,
                         data: JSON.stringify(sourceData)
                       }),
                       credentials: 'include',
@@ -3255,7 +3250,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const hasDescription = item.description && String(item.description).trim() !== "";
                     const hasData = hasDate || hasTitle || hasUrl || hasFile || hasDescription;
                     const shouldInclude = isVisible && hasData;
-
+                    
                     if (!shouldInclude) {
                       console.log('❌ Filtering out press_releases item:', item);
                     }
@@ -3282,7 +3277,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        trial_id: dbTrialId,
+                        trial_id: trialId,
                         data: JSON.stringify(sourceData)
                       }),
                       credentials: 'include',
@@ -3310,10 +3305,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const hasUrl = item.url && String(item.url).trim() !== "";
                     const hasFile = item.file && String(item.file).trim() !== "";
                     const hasDescription = item.description && String(item.description).trim() !== "";
-
+                    
                     const hasData = hasDate || hasType || hasTitle || hasUrl || hasFile || hasDescription;
                     const shouldInclude = isVisible && hasData;
-
+                    
                     console.log('Publication item check:', {
                       id: item.id,
                       isVisible,
@@ -3327,7 +3322,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       shouldInclude,
                       item
                     });
-
+                    
                     if (!shouldInclude) {
                       console.log('❌ Filtering out publication item (no data or not visible):', item);
                     }
@@ -3354,7 +3349,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        trial_id: dbTrialId,
+                        trial_id: trialId,
                         data: JSON.stringify(sourceData)
                       }),
                       credentials: 'include',
@@ -3382,10 +3377,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const hasUrl = item.url && String(item.url).trim() !== "";
                     const hasFile = item.file && String(item.file).trim() !== "";
                     const hasDescription = item.description && String(item.description).trim() !== "";
-
+                    
                     const hasData = hasDate || hasRegistry || hasIdentifier || hasUrl || hasFile || hasDescription;
                     const shouldInclude = isVisible && hasData;
-
+                    
                     console.log('Trial registry item check:', {
                       id: item.id,
                       isVisible,
@@ -3399,7 +3394,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       shouldInclude,
                       item
                     });
-
+                    
                     if (!shouldInclude) {
                       console.log('❌ Filtering out trial registry item (no data or not visible):', item);
                     }
@@ -3426,7 +3421,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        trial_id: dbTrialId,
+                        trial_id: trialId,
                         data: JSON.stringify(sourceData)
                       }),
                       credentials: 'include',
@@ -3454,10 +3449,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     const hasUrl = item.url && String(item.url).trim() !== "";
                     const hasFile = item.file && String(item.file).trim() !== "";
                     const hasDescription = item.description && String(item.description).trim() !== "";
-
+                    
                     const hasData = hasDate || hasType || hasTitle || hasUrl || hasFile || hasDescription;
                     const shouldInclude = isVisible && hasData;
-
+                    
                     console.log('Associated study item check:', {
                       id: item.id,
                       isVisible,
@@ -3471,7 +3466,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       shouldInclude,
                       item
                     });
-
+                    
                     if (!shouldInclude) {
                       console.log('❌ Filtering out associated study item (no data or not visible):', item);
                     }
@@ -3498,7 +3493,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        trial_id: dbTrialId,
+                        trial_id: trialId,
                         data: JSON.stringify(sourceData)
                       }),
                       credentials: 'include',
@@ -3523,7 +3518,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 const successCount = results.filter(r => r && r.ok).length;
                 const failedCount = results.filter(r => !r || !r.ok).length;
                 console.log(`Other sources updated: ${successCount}/${otherSourcesPromises.length} successful, ${failedCount} failed`);
-
+                
                 // Log failed responses
                 results.forEach((result, index) => {
                   if (!result || !result.ok) {
@@ -3595,7 +3590,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               console.log('Updating logs with data:', logsData);
 
-              const logsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/logs/trial/${dbTrialId}/update`, {
+              const logsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/logs/trial/${trialId}/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(logsData),
@@ -3620,7 +3615,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               console.log('Updating notes for trial:', trialId);
 
               // First, delete existing notes
-              await fetch(`${baseUrl}/api/v1/therapeutic/notes/trial/${dbTrialId}`, {
+              await fetch(`${baseUrl}/api/v1/therapeutic/notes/trial/${trialId}`, {
                 method: 'DELETE',
                 credentials: 'include',
               }).catch(() => console.log('No existing notes to delete'));
@@ -3716,7 +3711,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
                 // New schema: Store all note data in the JSONB notes field
                 const notesPayload = {
-                  trial_id: dbTrialId,
+                  trial_id: trialId,
                   notes: formattedNotes.length > 0 ? formattedNotes : [], // Store all note data in JSONB field
                 };
 
