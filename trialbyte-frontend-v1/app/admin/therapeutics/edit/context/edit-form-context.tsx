@@ -3404,7 +3404,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     title: item.title,
                     description: item.description,
                     url: item.url,
-                    file: item.file
+                    file: item.file,
+                    fileUrl: item.fileUrl
                   };
 
                   console.log('Creating publications entry:', sourceData);
@@ -3476,7 +3477,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     identifier: item.identifier,
                     description: item.description,
                     url: item.url,
-                    file: item.file
+                    file: item.file,
+                    fileUrl: item.fileUrl
                   };
 
                   console.log('Creating trial_registries entry:', sourceData);
@@ -3548,7 +3550,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     title: item.title,
                     description: item.description,
                     url: item.url,
-                    file: item.file
+                    file: item.file,
+                    fileUrl: item.fileUrl
                   };
 
                   console.log('Creating associated_studies entry:', sourceData);

@@ -422,8 +422,8 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file || item.url) && (() => {
-                    const meta = getAttachmentMeta(item.file, item.url);
+                  {(item.fileUrl || item.file) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
                         {meta.isImage ? (
@@ -432,9 +432,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {(item.fileUrl || meta.url) ? (
+                        {item.fileUrl ? (
                           <a
-                            href={item.fileUrl || meta.url}
+                            href={item.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -449,7 +449,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -567,8 +567,8 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file || item.url) && (() => {
-                    const meta = getAttachmentMeta(item.file, item.url);
+                  {(item.fileUrl || item.file) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
                         {meta.isImage ? (
@@ -577,9 +577,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {(item.fileUrl || meta.url) ? (
+                        {item.fileUrl ? (
                           <a
-                            href={item.fileUrl || meta.url}
+                            href={item.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -594,7 +594,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -731,8 +731,8 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file || item.url) && (() => {
-                    const meta = getAttachmentMeta(item.file, item.url);
+                  {(item.fileUrl || item.file) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
                         {meta.isImage ? (
@@ -741,9 +741,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {(item.fileUrl || meta.url) ? (
+                        {item.fileUrl ? (
                           <a
-                            href={item.fileUrl || meta.url}
+                            href={item.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -758,7 +758,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -895,8 +895,8 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file || item.url) && (() => {
-                    const meta = getAttachmentMeta(item.file, item.url);
+                  {(item.fileUrl || item.file) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
                         {meta.isImage ? (
@@ -905,9 +905,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {(item.fileUrl || meta.url) ? (
+                        {item.fileUrl ? (
                           <a
-                            href={item.fileUrl || meta.url}
+                            href={item.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -922,7 +922,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />
@@ -1059,8 +1059,8 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file || item.url) && (() => {
-                    const meta = getAttachmentMeta(item.file, item.url);
+                  {(item.fileUrl || item.file) && (() => {
+                    const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
                         {meta.isImage ? (
@@ -1069,9 +1069,9 @@ export default function AdditionalInfoSection() {
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
                         <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
-                        {(item.fileUrl || meta.url) ? (
+                        {item.fileUrl ? (
                           <a
-                            href={item.fileUrl || meta.url}
+                            href={item.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
@@ -1086,7 +1086,7 @@ export default function AdditionalInfoSection() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleFileRemove(idx, item.fileUrl || item.url || meta.url)}
+                          onClick={() => handleFileRemove(idx, item.fileUrl)}
                           className="text-red-500 hover:text-red-700 p-0 h-auto"
                         >
                           <X className="h-3 w-3" />

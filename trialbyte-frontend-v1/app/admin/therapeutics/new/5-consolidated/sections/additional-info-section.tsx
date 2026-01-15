@@ -328,13 +328,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {(item.fileUrl || item.url) && (
+                      {item.fileUrl && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.fileUrl || item.url, '_blank');
+                            window.open(item.fileUrl, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -345,7 +345,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.fileUrl || item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />
@@ -471,13 +471,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {(item.fileUrl || item.url) && (
+                      {item.fileUrl && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.fileUrl || item.url, '_blank');
+                            window.open(item.fileUrl, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -488,7 +488,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.fileUrl || item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />
@@ -633,13 +633,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {(item.fileUrl || item.url) && (
+                      {item.fileUrl && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.fileUrl || item.url, '_blank');
+                            window.open(item.fileUrl, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -650,7 +650,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />
@@ -795,13 +795,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {(item.fileUrl || item.url) && (
+                      {item.fileUrl && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.fileUrl || item.url, '_blank');
+                            window.open(item.fileUrl, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -812,7 +812,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.fileUrl || item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />
@@ -957,13 +957,13 @@ export default function AdditionalInfoSection() {
                         <FileText className="h-4 w-4 text-gray-600" />
                       )}
                       <span className="flex-1">{item.file}</span>
-                      {(item.fileUrl || item.url) && (
+                      {item.fileUrl && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            window.open(item.fileUrl || item.url, '_blank');
+                            window.open(item.fileUrl, '_blank');
                           }}
                           className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
                         >
@@ -974,7 +974,7 @@ export default function AdditionalInfoSection() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleFileRemove(idx, item.url)}
+                        onClick={() => handleFileRemove(idx, item.fileUrl)}
                         className="text-red-500 hover:text-red-700 p-0 h-auto"
                       >
                         <X className="h-3 w-3" />

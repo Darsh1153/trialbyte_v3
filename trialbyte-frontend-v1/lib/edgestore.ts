@@ -4,7 +4,7 @@ import { createEdgeStoreProvider } from '@edgestore/react';
 import { type EdgeStoreRouter } from '../app/api/edgestore/[...edgestore]/route';
 
 const { EdgeStoreProvider, useEdgeStore } = createEdgeStoreProvider<EdgeStoreRouter>({
-  maxConcurrentUploads: 2,
+    maxConcurrentUploads: 2,
 });
 
 export { EdgeStoreProvider, useEdgeStore };

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SaveQueryModal } from "@/components/save-query-modal"
+import { useDrugNames } from "@/hooks/use-drug-names"
 
 import { TherapeuticFilterState, SearchableSelectOption } from "@/components/therapeutic-types"
 export type { TherapeuticFilterState, SearchableSelectOption } // Re-export for compatibility
@@ -1077,6 +1078,16 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
     studyType: []
   })
 
+  // Use the drug names hook to get drug options from API
+  const { drugNames, isLoading: drugsLoading, refreshFromAPI } = useDrugNames()
+
+  // Refresh drug names when modal opens
+  useEffect(() => {
+    if (open) {
+      refreshFromAPI()
+    }
+  }, [open, refreshFromAPI])
+
   // Update filters when currentFilters prop changes or modal opens
   useEffect(() => {
     if (open) {
@@ -1084,13 +1095,27 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
     }
   }, [currentFilters, open])
 
-  // Update filter categories when trials data changes
+  // Update filter categories when trials data or drug names change
   useEffect(() => {
     console.log('TherapeuticFilterModal: Trials data changed, updating filter categories', trials.length)
     console.log('TherapeuticFilterModal: Sample trial data:', trials[0])
+    console.log('TherapeuticFilterModal: Drug names available:', drugNames.length)
+
+    // Get drug names from API as filter options
+    const getDrugOptions = (): string[] => {
+      if (drugNames.length > 0) {
+        return drugNames.map(drug => drug.label).sort()
+      }
+      // Fallback to static options if no drugs from API
+      return DROPDOWN_OPTIONS.primaryDrugs?.map(opt => opt.label) || []
+    }
 
     // Helper function to get fallback options from DROPDOWN_OPTIONS for a category
     const getFallbackOptions = (category: keyof TherapeuticFilterState): string[] => {
+      // For drug fields, use API data
+      if (category === 'primaryDrugs' || category === 'otherDrugs') {
+        return getDrugOptions()
+      }
       const options = DROPDOWN_OPTIONS[category]
       if (options && Array.isArray(options)) {
         return options.map(opt => opt.label)
@@ -1201,12 +1226,12 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
 
       setFilterCategories(fallbackCategories)
     }
-  }, [trials])
+  }, [trials, drugNames])
 
   const handleSelectAll = (category: keyof TherapeuticFilterState) => {
     setFilters((prev) => ({
       ...prev,
-      [category]: filterCategories[category],
+      [category]: filterCategories[category] || [],
     }))
   }
 
@@ -1220,9 +1245,9 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
   const handleItemToggle = (category: keyof TherapeuticFilterState, item: string) => {
     setFilters((prev) => ({
       ...prev,
-      [category]: prev[category].includes(item)
-        ? prev[category].filter((i) => i !== item)
-        : [...prev[category], item],
+      [category]: (prev[category] || []).includes(item)
+        ? (prev[category] || []).filter((i) => i !== item)
+        : [...(prev[category] || []), item],
     }))
   }
 
@@ -1359,24 +1384,24 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    filters[activeCategory].length === filterCategories[activeCategory].length
+                    (filters[activeCategory]?.length || 0) === (filterCategories[activeCategory]?.length || 0)
                       ? handleDeselectAll(activeCategory)
                       : handleSelectAll(activeCategory)
                   }
                   className="bg-blue-600 text-white hover:bg-blue-700"
                 >
-                  {filters[activeCategory].length === filterCategories[activeCategory].length
+                  {(filters[activeCategory]?.length || 0) === (filterCategories[activeCategory]?.length || 0)
                     ? "Deselect All"
                     : "Select All"}
                 </Button>
               </div>
 
               <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
-                {filterCategories[activeCategory].map((item) => (
+                {(filterCategories[activeCategory] || []).map((item) => (
                   <div key={item} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
                     <Checkbox
                       id={`${activeCategory}-${item}`}
-                      checked={filters[activeCategory].includes(item)}
+                      checked={(filters[activeCategory] || []).includes(item)}
                       onCheckedChange={() => handleItemToggle(activeCategory, item)}
                       className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                     />
@@ -1388,7 +1413,7 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
                     </label>
                   </div>
                 ))}
-                {filterCategories[activeCategory].length === 0 && (
+                {(filterCategories[activeCategory]?.length || 0) === 0 && (
                   <div className="text-center text-gray-500 text-sm py-8">
                     No options available
                   </div>

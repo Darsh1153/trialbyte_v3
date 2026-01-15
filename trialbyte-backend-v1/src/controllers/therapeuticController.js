@@ -236,7 +236,7 @@ const fetchAllTherapeuticData = async (req, res) => {
 const fetchAllTherapeuticTrials = async (req, res) => {
   try {
     const startTime = Date.now();
-    
+
     // Fetch ALL data from all tables in parallel (only 9 queries total, regardless of trial count)
     const [
       allOverviews,
@@ -516,7 +516,7 @@ const createWithAllData = async (req, res) => {
     } else {
       console.log('⚠️ otherSourcesData is falsy - not processing other sources');
     }
-    
+
     if (otherSourcesData) {
       // Check if other_sources is an object with multiple arrays (new format)
       // IMPORTANT: Check if arrays exist AND have items (not just empty arrays)
@@ -525,9 +525,9 @@ const createWithAllData = async (req, res) => {
       const hasPublications = otherSourcesData.publications && Array.isArray(otherSourcesData.publications) && otherSourcesData.publications.length > 0;
       const hasTrialRegistries = otherSourcesData.trial_registries && Array.isArray(otherSourcesData.trial_registries) && otherSourcesData.trial_registries.length > 0;
       const hasAssociatedStudies = otherSourcesData.associated_studies && Array.isArray(otherSourcesData.associated_studies) && otherSourcesData.associated_studies.length > 0;
-      
+
       const hasNewFormat = hasPipelineData || hasPressReleases || hasPublications || hasTrialRegistries || hasAssociatedStudies;
-      
+
       console.log('Checking new format arrays:');
       console.log('  - pipeline_data:', hasPipelineData, `(${otherSourcesData.pipeline_data?.length || 0} items)`);
       console.log('  - press_releases:', hasPressReleases, `(${otherSourcesData.press_releases?.length || 0} items)`);
@@ -535,7 +535,7 @@ const createWithAllData = async (req, res) => {
       console.log('  - trial_registries:', hasTrialRegistries, `(${otherSourcesData.trial_registries?.length || 0} items)`);
       console.log('  - associated_studies:', hasAssociatedStudies, `(${otherSourcesData.associated_studies?.length || 0} items)`);
       console.log('Has new format arrays with data:', hasNewFormat);
-      
+
       if (hasNewFormat) {
 
         // Process each type of other source
@@ -549,7 +549,9 @@ const createWithAllData = async (req, res) => {
               date: item.date,
               information: item.information,
               url: item.url,
-              file: item.file
+              file: item.file,
+              fileUrl: item.fileUrl,
+              isVisible: item.isVisible !== false
             };
             const created = await otherRepo.create({
               trial_id,
@@ -568,7 +570,9 @@ const createWithAllData = async (req, res) => {
               title: item.title,
               description: item.description,
               url: item.url,
-              file: item.file
+              file: item.file,
+              fileUrl: item.fileUrl,
+              isVisible: item.isVisible !== false
             };
             const created = await otherRepo.create({
               trial_id,
@@ -590,7 +594,9 @@ const createWithAllData = async (req, res) => {
               title: item.title,
               description: item.description,
               url: item.url,
-              file: item.file
+              file: item.file,
+              fileUrl: item.fileUrl,
+              isVisible: item.isVisible !== false
             };
             console.log('Creating publication with sourceData:', JSON.stringify(sourceData, null, 2));
             try {
@@ -618,7 +624,9 @@ const createWithAllData = async (req, res) => {
               identifier: item.identifier,
               description: item.description,
               url: item.url,
-              file: item.file
+              file: item.file,
+              fileUrl: item.fileUrl,
+              isVisible: item.isVisible !== false
             };
             console.log('Creating trial registry with sourceData:', JSON.stringify(sourceData, null, 2));
             try {
@@ -646,7 +654,9 @@ const createWithAllData = async (req, res) => {
               title: item.title,
               description: item.description,
               url: item.url,
-              file: item.file
+              file: item.file,
+              fileUrl: item.fileUrl,
+              isVisible: item.isVisible !== false
             };
             console.log('Creating associated study with sourceData:', JSON.stringify(sourceData, null, 2));
             try {
@@ -1332,15 +1342,15 @@ const createOther = async (req, res) => {
     console.log('trial_id:', req.body?.trial_id);
     console.log('data:', req.body?.data);
     console.log('data type:', typeof req.body?.data);
-    
+
     if (!req.body || !req.body.trial_id) {
       console.error('❌ Missing trial_id in request body');
-      return res.status(StatusCodes.BAD_REQUEST).json({ 
+      return res.status(StatusCodes.BAD_REQUEST).json({
         message: "trial_id is required",
         error: "Missing trial_id in request body"
       });
     }
-    
+
     const created = await otherRepo.create(req.body || {});
     console.log('✅ Successfully created other source:', created.id);
     console.log('Created data:', JSON.stringify(created, null, 2));
@@ -1348,9 +1358,9 @@ const createOther = async (req, res) => {
   } catch (error) {
     console.error('❌ Error creating other source:', error);
     console.error('Error stack:', error.stack);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       message: "Failed to create other source",
-      error: error.message 
+      error: error.message
     });
   }
 };
