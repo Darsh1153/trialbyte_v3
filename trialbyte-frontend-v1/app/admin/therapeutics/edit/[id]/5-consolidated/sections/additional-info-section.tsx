@@ -422,7 +422,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file) && (() => {
+                  {item.fileUrl && (() => {
                     const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -567,7 +567,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file) && (() => {
+                  {item.fileUrl && (() => {
                     const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -731,7 +731,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file) && (() => {
+                  {item.fileUrl && (() => {
                     const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -895,7 +895,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file) && (() => {
+                  {item.fileUrl && (() => {
                     const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
@@ -1059,7 +1059,7 @@ export default function AdditionalInfoSection() {
                       </div>
                     </div>
                   </div>
-                  {(item.fileUrl || item.file) && (() => {
+                  {item.fileUrl && (() => {
                     const meta = getAttachmentMeta(item.file, item.fileUrl);
                     return (
                       <div className="flex items-center gap-2 text-sm text-gray-600 p-2 bg-gray-50 rounded border">
