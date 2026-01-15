@@ -3,6 +3,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 
+import { LinkPreviewProvider } from "@/components/ui/link-preview-panel";
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -18,7 +20,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <LinkPreviewProvider>
+        {children}
+      </LinkPreviewProvider>
     </QueryClientProvider>
   );
 }
