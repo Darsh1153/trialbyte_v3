@@ -1048,7 +1048,12 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         const localTrial = localTrials.find((t: any) => t.trial_id === trialId);
         const recentlyUpdated = localStorage.getItem(`trial_updated_${trialId}`);
 
-        let foundTrial = data.trials.find((t: any) => t.trial_id === trialId || t.overview?.id === trialId || t.id === trialId);
+        const trialIdStr = String(trialId);
+        let foundTrial = data.trials.find((t: any) =>
+          String(t.trial_id) === trialIdStr ||
+          String(t.overview?.id) === trialIdStr ||
+          String(t.id) === trialIdStr
+        );
 
         // Debug: Log all trial IDs to help identify the issue
         console.log('=== TRIAL ID MATCHING DEBUG ===');
@@ -3749,18 +3754,16 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
             // Force reload the trial data to show the updated values
             // Pass skipLocalStorage=true to ensure fresh DB data is used
+            // Force reload the trial data to show the updated values
+            // Pass skipLocalStorage=true to ensure fresh DB data is used
             await loadTrialData(trialId, true);
-
-            toast({
-              title: "Success",
-              description: "Clinical trial updated successfully! Changes have been saved to the database.",
-            });
 
             // Trigger refresh event for the main page
             if (typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('refreshFromEdit'));
             }
-            return;
+            return true; // Return success indicator
+          } else if (response) {
           } else if (response) {
             const errorText = await response.text().catch(() => 'Unknown error');
             console.warn('API update failed:', response.status, errorText);
@@ -3908,6 +3911,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         description: `Failed to save changes: ${errorMessage}`,
         variant: "destructive",
       });
+      throw error; // Re-throw to allow component to handle the failure
     } finally {
       setIsSaving(false);
     }
@@ -4326,7 +4330,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     addComplexArrayItem,
     updateComplexArrayItem,
     toggleArrayItemVisibility,
-    saveTrial: safeSaveTrial,
+    saveTrial,
     loadTrialData,
     isLoading,
     isSaving,

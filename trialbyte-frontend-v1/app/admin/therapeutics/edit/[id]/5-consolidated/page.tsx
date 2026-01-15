@@ -108,14 +108,16 @@ export default function EditTherapeuticsConsolidated() {
       setIsSavingStep(true);
       await saveTrial(params.id as string);
 
-      // Note: localStorage is now repopulated with fresh data inside saveTrial/loadTrialData
-      // No need to clear it - keeping it ensures auto-fill works when revisiting
-
       toast({
         title: "Success",
         description: "Clinical trial updated successfully!",
       });
-      router.push("/admin/therapeutics");
+
+      // Delay redirect slightly to ensure backend state is consistent 
+      // and user has time to see the success toast
+      setTimeout(() => {
+        router.push("/admin/therapeutics");
+      }, 500);
     } catch (error) {
       toast({
         title: "Error",
