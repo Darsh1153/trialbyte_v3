@@ -24,11 +24,11 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 import { formatDateToMMDDYYYY } from "@/lib/date-utils";
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   ChevronRight,
   Search,
-  FileText, 
+  FileText,
   Upload,
   Filter,
   Mail,
@@ -45,6 +45,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { Suspense } from "react";
+import { useLinkPreview } from "@/components/ui/link-preview-panel";
+import { PreviewLink } from "@/components/ui/preview-link";
 
 // API Response interface
 interface ApiResponse {
@@ -166,6 +168,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
   const [showExportModal, setShowExportModal] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+  const { openLinkPreview } = useLinkPreview();
 
   // Refs for each section
   const overviewRef = useRef<HTMLDivElement>(null);
@@ -186,11 +189,11 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
         setLoading(true);
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`);
         const data = await response.json();
-        
+
         if (data.drugs && data.drugs.length > 0) {
           const drugId = resolvedParams.id;
           const foundDrug = data.drugs.find((d: DrugData) => d.drug_over_id === drugId);
-          
+
           if (foundDrug) {
             setDrug(foundDrug);
           } else {
@@ -285,11 +288,11 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`);
       const data = await response.json();
-      
+
       if (data.drugs && data.drugs.length > 0) {
         const drugId = resolvedParams.id;
         const foundDrug = data.drugs.find((d: DrugData) => d.drug_over_id === drugId);
-        
+
         if (foundDrug) {
           setDrug(foundDrug);
           toast({
@@ -324,7 +327,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
     setShowFilterDialog(false);
 
     if (sections.length > 0) {
-    toast({
+      toast({
         title: "Filter Applied",
         description: `Showing ${sections.length} selected section(s)`,
       });
@@ -395,9 +398,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
         heightLeft -= pageHeight;
       }
 
-      const fileName = `drug_${drug?.drug_id || "export"}_${
-        new Date().toISOString().split("T")[0]
-      }.pdf`;
+      const fileName = `drug_${drug?.drug_id || "export"}_${new Date().toISOString().split("T")[0]
+        }.pdf`;
 
       pdf.save(fileName);
 
@@ -485,7 +487,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
 
   // Intersection Observer to update active section on scroll
   useEffect(() => {
-  const sections = [
+    const sections = [
       { id: "overview", ref: overviewRef },
       { id: "objectives", ref: objectivesRef },
       { id: "treatmentPlan", ref: treatmentPlanRef },
@@ -589,9 +591,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div
-      className={`min-h-screen bg-gray-50 overflow-x-hidden ${
-        isMaximized ? "fixed inset-0 z-50 overflow-auto" : ""
-      }`}
+      className={`min-h-screen bg-gray-50 overflow-x-hidden ${isMaximized ? "fixed inset-0 z-50 overflow-auto" : ""
+        }`}
     >
       {/* Top Navigation */}
       <div className="bg-white border-b">
@@ -635,9 +636,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                     <User className="h-4 w-4 text-gray-600" />
                   </div>
                   <ChevronDown
-                    className={`h-4 w-4 text-gray-400 transition-transform ${
-                      showLogoutDropdown ? "rotate-180" : ""
-                    }`}
+                    className={`h-4 w-4 text-gray-400 transition-transform ${showLogoutDropdown ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -708,35 +708,32 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
         <div className="w-64 bg-white border-r min-h-screen">
           <div className="p-4 space-y-2">
             {isSectionVisible("overview") && (
-                      <Button
+              <Button
                 variant="ghost"
                 onClick={() => scrollToSection("overview")}
-                className={`w-full justify-start ${
-                  activeSection === "overview"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "overview"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Overview
-                      </Button>
+              </Button>
             )}
             {isSectionVisible("objectives") && (
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("objectives")}
-                className={`w-full justify-start ${
-                  activeSection === "objectives"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "objectives"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded-full border-2 ${
-                    activeSection === "objectives"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded-full border-2 ${activeSection === "objectives"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Objectives
               </Button>
@@ -745,11 +742,10 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("treatmentPlan")}
-                className={`w-full justify-start ${
-                  activeSection === "treatmentPlan"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "treatmentPlan"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Treatment Plan
@@ -759,11 +755,10 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("patientDescription")}
-                className={`w-full justify-start ${
-                  activeSection === "patientDescription"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "patientDescription"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Patient Description
@@ -773,18 +768,16 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("timing")}
-                className={`w-full justify-start ${
-                  activeSection === "timing"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "timing"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded border ${
-                    activeSection === "timing"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "timing"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Timing
               </Button>
@@ -793,11 +786,10 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("outcome")}
-                className={`w-full justify-start ${
-                  activeSection === "outcome"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "outcome"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Outcome
@@ -807,11 +799,10 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("publishedResults")}
-                className={`w-full justify-start ${
-                  activeSection === "publishedResults"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "publishedResults"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Published Results
@@ -821,18 +812,16 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("sites")}
-                className={`w-full justify-start ${
-                  activeSection === "sites"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "sites"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded border ${
-                    activeSection === "sites"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "sites"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Sites
               </Button>
@@ -841,18 +830,16 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("otherSources")}
-                className={`w-full justify-start ${
-                  activeSection === "otherSources"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "otherSources"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded ${
-                    activeSection === "otherSources"
-                      ? "bg-blue-600"
-                      : "bg-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded ${activeSection === "otherSources"
+                    ? "bg-blue-600"
+                    : "bg-gray-400"
+                    }`}
                 ></div>
                 Other Sources
               </Button>
@@ -899,17 +886,16 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                 <FileText className="h-4 w-4 mr-2" />
                 Logs
               </Button>
-                    </div>
-                  </div>
-                </div>
+            </div>
+          </div>
+        </div>
 
         {/* Main Content */}
         <div className="flex-1">
           {/* Trial Header */}
           <div
-            className={`bg-white border-b ${
-              isMinimized ? "px-2 py-1" : "px-6 py-2"
-            }`}
+            className={`bg-white border-b ${isMinimized ? "px-2 py-1" : "px-6 py-2"
+              }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -921,48 +907,47 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                 </Badge>
               </div>
               <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMaximize}
-                    className={`${isMaximized ? "bg-blue-100 text-blue-600" : ""}`}
-                    title={isMaximized ? "Restore view" : "Maximize view"}
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMinimize}
-                    className={`${isMinimized ? "bg-blue-100 text-blue-600" : ""}`}
-                    title={isMinimized ? "Expand view" : "Minimize view"}
-                  >
-                    <Minimize2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefresh}
-                    title="Refresh drug data"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleFilter}
-                    className={`${
-                      filteredSections.length > 0 ? "bg-blue-100 text-blue-600" : ""
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMaximize}
+                  className={`${isMaximized ? "bg-blue-100 text-blue-600" : ""}`}
+                  title={isMaximized ? "Restore view" : "Maximize view"}
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMinimize}
+                  className={`${isMinimized ? "bg-blue-100 text-blue-600" : ""}`}
+                  title={isMinimized ? "Expand view" : "Minimize view"}
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  title="Refresh drug data"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleFilter}
+                  className={`${filteredSections.length > 0 ? "bg-blue-100 text-blue-600" : ""
                     }`}
-                    title="Filter sections"
-                  >
-                    <Filter className="h-4 w-4" />
-                    {filteredSections.length > 0 && (
-                      <span className="ml-1 text-xs bg-blue-600 text-white rounded-full px-1">
-                        {filteredSections.length}
-                      </span>
-                    )}
-                  </Button>
+                  title="Filter sections"
+                >
+                  <Filter className="h-4 w-4" />
+                  {filteredSections.length > 0 && (
+                    <span className="ml-1 text-xs bg-blue-600 text-white rounded-full px-1">
+                      {filteredSections.length}
+                    </span>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
@@ -1043,9 +1028,9 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         <Badge className="bg-blue-600 text-white">
                           {drug.overview.therapeutic_area}
                         </Badge>
-                    </div>
                       </div>
-                      <div>
+                    </div>
+                    <div>
                       <span className="text-sm font-medium mb-2 block">
                         Trial Identifier :
                       </span>
@@ -1062,8 +1047,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           )
                         )}
                       </div>
-                      </div>
                     </div>
+                  </div>
 
                   {/* Scientific Title */}
                   <div className="mb-6">
@@ -1074,7 +1059,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       {(drug.outcomes && drug.outcomes.length > 0 ? (drug.outcomes && drug.outcomes.length > 0 ? drug.outcomes[0] : null) : null)?.purpose_of_drug ||
                         "No scientific title available"}
                     </p>
-                    </div>
+                  </div>
 
                   {/* Summary */}
                   <div className="mb-8">
@@ -1085,7 +1070,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       {(drug.outcomes && drug.outcomes.length > 0 ? drug.outcomes[0] : null)?.summary ||
                         "No summary available"}
                     </p>
-                    </div>
+                  </div>
 
                   {/* Main Content Grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -1102,7 +1087,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="text-sm text-gray-700 text-right">
                             {drug.overview.disease_type || "N/A"}
                           </span>
-                    </div>
+                        </div>
                         <div className="flex items-start justify-between">
                           <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Patient Segment :
@@ -1110,7 +1095,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="text-sm text-gray-700 text-right">
                             {drug.overview.patient_segment || "N/A"}
                           </span>
-                    </div>
+                        </div>
                         <div className="flex items-start justify-between">
                           <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Primary Drug :
@@ -1118,7 +1103,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="text-sm text-gray-700 text-right">
                             {drug.overview.primary_drugs || "N/A"}
                           </span>
-                    </div>
+                        </div>
                         <div className="flex items-start justify-between">
                           <span className="text-sm font-medium text-gray-600 min-w-[100px] flex-shrink-0">
                             Secondary Drug :
@@ -1135,9 +1120,9 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             Phase {drug.overview.drug_phase || "N/A"}
                           </Badge>
                         </div>
+                      </div>
                     </div>
-                  </div>
-                  
+
                     {/* Right Column - Line of Therapy */}
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -1149,13 +1134,13 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="text-sm font-medium text-gray-900">
                             2 – Second Line
                           </span>
-                      </div>
+                        </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-blue-600">•</span>
                           <span className="text-sm text-gray-600">
                             1 – First Line
                           </span>
-                    </div>
+                        </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-blue-600">•</span>
                           <span className="text-sm text-gray-600">
@@ -1206,7 +1191,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Left Column - Details */}
                     <div className="space-y-4">
-                    <div>
+                      <div>
                         <span className="text-sm font-medium text-gray-600">
                           Region :
                         </span>
@@ -1255,22 +1240,21 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         </span>
                         <div className="space-y-1">
                           {drug.overview.reference_links &&
-                          drug.overview.reference_links.length > 0 ? (
+                            drug.overview.reference_links.length > 0 ? (
                             drug.overview.reference_links.map(
                               (link, index) => (
                                 <div key={index}>
                                   <span className="text-blue-600 text-xs">
                                     •
                                   </span>
-                                  <a
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                                  <PreviewLink
+                                    href={link}
+                                    title="Source Link"
                                     className="text-blue-600 text-xs ml-1 hover:underline"
-                          >
+                                  >
                                     {link}
-                          </a>
-                      </div>
+                                  </PreviewLink>
+                                </div>
                               )
                             )
                           ) : (
@@ -1289,7 +1273,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           {drug.overview.drug_record_status || "N/A"}
                         </span>
                         <div className="w-4 h-4 bg-gray-400 rounded-full"></div>
-                    </div>
+                      </div>
                     </div>
 
                     {/* Right Column - Europe Map */}
@@ -1302,7 +1286,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           height={300}
                           className="object-contain"
                         />
-                  </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1317,7 +1301,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                   <h2 className="text-lg font-semibold text-gray-800">
                     Objectives
                   </h2>
-                          </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="space-y-8">
                     {/* Purpose of the drug */}
@@ -1333,7 +1317,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
 
                     {/* Primary Outcome */}
                     <div className="space-y-6">
-                          <div>
+                      <div>
                         <h3 className="text-base font-semibold text-blue-700 mb-4">
                           Primary Outcome
                         </h3>
@@ -1350,7 +1334,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             </p>
                           </div>
 
-                            <div>
+                          <div>
                             <span className="text-sm font-medium text-gray-600">
                               Measure Description :
                             </span>
@@ -1358,9 +1342,9 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                               {(drug.outcomes && drug.outcomes.length > 0 ? drug.outcomes[0] : null)?.summary ||
                                 "No measure description available"}
                             </p>
-                            </div>
+                          </div>
 
-                            <div>
+                          <div>
                             <span className="text-sm font-medium text-gray-600">
                               Other Outcome Measures :
                             </span>
@@ -1369,12 +1353,12 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                                 ?.other_outcome_measure ||
                                 "No other outcome measures available"}
                             </p>
-                            </div>
                           </div>
+                        </div>
                       </div>
 
                       {/* Study Design */}
-                            <div>
+                      <div>
                         <h3 className="text-base font-semibold text-blue-700 mb-4">
                           Study Design
                         </h3>
@@ -1388,9 +1372,9 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                               {(drug.outcomes && drug.outcomes.length > 0 ? drug.outcomes[0] : null)?.study_design ||
                                 "No study design available"}
                             </p>
-                            </div>
+                          </div>
 
-                            <div>
+                          <div>
                             <span className="text-sm font-medium text-gray-600">
                               Study Design Keywords :
                             </span>
@@ -1399,7 +1383,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                                 ?.study_design_keywords ||
                                 "No study design keywords available"}
                             </p>
-                            </div>
+                          </div>
 
                           <div>
                             <span className="text-sm font-medium text-gray-600">
@@ -1414,8 +1398,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       </div>
                     </div>
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Treatment Plan Section */}
@@ -1425,7 +1409,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                   <h2 className="text-lg font-semibold text-gray-800">
                     Treatment Plan
                   </h2>
-              </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="space-y-8">
                     {/* Study Design Keywords */}
@@ -1458,7 +1442,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       <h3 className="text-base font-semibold text-blue-700 mb-4">
                         Study Design
                       </h3>
-                        <div className="space-y-3">
+                      <div className="space-y-3">
                         <div className="flex items-start">
                           <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Study Design :
@@ -1492,7 +1476,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
 
                     {/* Treatment Regimen */}
-                            <div>
+                    <div>
                       <h3 className="text-base font-semibold text-blue-700 mb-4">
                         Treatment Regimen
                       </h3>
@@ -1501,21 +1485,21 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="text-sm font-medium text-gray-700">
                             Treatment Description :
                           </span>
-                              <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-gray-600 mt-1">
                             {(drug.outcomes && drug.outcomes.length > 0 ? drug.outcomes[0] : null)?.treatment_regimen ||
                               "No treatment regimen description available"}
-                              </p>
-                            </div>
-                            </div>
+                          </p>
+                        </div>
+                      </div>
 
                       <div className="mt-6 pt-4 border-t border-gray-200">
                         <span className="text-sm font-medium text-gray-700">
                           Number of arms:{" "}
                           {(drug.outcomes && drug.outcomes.length > 0 ? drug.outcomes[0] : null)?.number_of_arms || "N/A"}
                         </span>
-                            </div>
-                            </div>
-                          </div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1527,13 +1511,13 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                   <h2 className="text-lg font-semibold text-gray-800">
                     Patient Description
                   </h2>
-                          </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column - Criteria (takes 2/3 width) */}
                     <div className="lg:col-span-2 space-y-8">
                       {/* Inclusion Criteria */}
-                          <div>
+                      <div>
                         <h3 className="text-base font-semibold text-blue-700 mb-4">
                           Inclusion Criteria
                         </h3>
@@ -1549,10 +1533,10 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             No inclusion criteria available
                           </span>
                         )}
-                            </div>
+                      </div>
 
                       {/* Exclusion Criteria */}
-                            <div>
+                      <div>
                         <h3 className="text-base font-semibold text-blue-700 mb-4">
                           Exclusion Criteria
                         </h3>
@@ -1562,14 +1546,14 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             <span className="whitespace-pre-wrap">
                               {(drug.criteria && drug.criteria.length > 0 ? drug.criteria[0] : null).exclusion_criteria}
                             </span>
-                            </div>
+                          </div>
                         ) : (
                           <span className="text-sm text-gray-600">
                             No exclusion criteria available
                           </span>
                         )}
-                          </div>
-                        </div>
+                      </div>
+                    </div>
 
                     {/* Right Column - Patient Details (takes 1/3 width) */}
                     <div className="space-y-6">
@@ -1607,12 +1591,12 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         </h4>
                         <p className="text-sm text-gray-600">
                           {(drug.criteria && drug.criteria.length > 0 ? drug.criteria[0] : null)?.healthy_volunteers ===
-                          "false"
+                            "false"
                             ? "No"
                             : (drug.criteria && drug.criteria.length > 0 ? drug.criteria[0] : null)?.healthy_volunteers ===
                               "true"
-                            ? "Yes"
-                            : "N/A"}
+                              ? "Yes"
+                              : "N/A"}
                         </p>
                       </div>
 
@@ -1637,8 +1621,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       </div>
                     </div>
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Timing Section */}
@@ -1691,8 +1675,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             <td className="border border-slate-300 px-4 py-3 text-sm">
                               {(drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.start_date_estimated
                                 ? new Date(
-                                    (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).start_date_estimated
-                                  ).toLocaleDateString()
+                                  (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).start_date_estimated
+                                ).toLocaleDateString()
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
@@ -1707,8 +1691,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             <td className="border border-slate-300 px-4 py-3 text-sm">
                               {(drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.drug_end_date_estimated
                                 ? new Date(
-                                    (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).drug_end_date_estimated
-                                  ).toLocaleDateString()
+                                  (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).drug_end_date_estimated
+                                ).toLocaleDateString()
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
@@ -1747,7 +1731,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
 
                     {/* Reference Section */}
-                          <div>
+                    <div>
                       <h3 className="text-base font-semibold text-gray-800 mb-4">
                         Reference
                       </h3>
@@ -1792,7 +1776,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                               April 2, 2021
                             </p>
                             <p className="text-sm text-gray-600">PubMed</p>
-                      </div>
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1812,8 +1796,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="text-sm text-gray-700">
                             {(drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.start_date_estimated
                               ? new Date(
-                                  (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).start_date_estimated
-                                ).toLocaleDateString()
+                                (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).start_date_estimated
+                              ).toLocaleDateString()
                               : "N/A"}
                           </span>
                         </div>
@@ -1824,8 +1808,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="text-sm text-gray-700">
                             {(drug.timing && drug.timing.length > 0 ? drug.timing[0] : null)?.drug_end_date_estimated
                               ? new Date(
-                                  (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).drug_end_date_estimated
-                                ).toLocaleDateString()
+                                (drug.timing && drug.timing.length > 0 ? drug.timing[0] : null).drug_end_date_estimated
+                              ).toLocaleDateString()
                               : "N/A"}
                           </span>
                         </div>
@@ -1858,8 +1842,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       </div>
                     </div>
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Outcome Section */}
@@ -1930,27 +1914,27 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                                 )
                               )}
                             </ul>
-              </div>
-            )}
+                          </div>
+                        )}
 
                       {(drug.results && drug.results.length > 0 ? drug.results[0] : null)?.adverse_event_reported ===
                         "true" && (
-                        <div className="mb-4">
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Adverse Events:
-                          </h4>
-                          <p className="text-sm text-gray-700">
-                            Type:{" "}
-                            {(drug.results && drug.results.length > 0 ? drug.results[0] : null)?.adverse_event_type ||
-                              "Not specified"}
-                          </p>
-                          <p className="text-sm text-gray-700">
-                            Treatment:{" "}
-                            {(drug.results && drug.results.length > 0 ? drug.results[0] : null)
-                              ?.treatment_for_adverse_events || "Not specified"}
-                          </p>
+                          <div className="mb-4">
+                            <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                              Adverse Events:
+                            </h4>
+                            <p className="text-sm text-gray-700">
+                              Type:{" "}
+                              {(drug.results && drug.results.length > 0 ? drug.results[0] : null)?.adverse_event_type ||
+                                "Not specified"}
+                            </p>
+                            <p className="text-sm text-gray-700">
+                              Treatment:{" "}
+                              {(drug.results && drug.results.length > 0 ? drug.results[0] : null)
+                                ?.treatment_for_adverse_events || "Not specified"}
+                            </p>
                           </div>
-                      )}
+                        )}
 
                       {/* Action Buttons */}
                       <div className="flex items-center space-x-3">
@@ -1976,9 +1960,9 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         >
                           <Download className="h-4 w-4" />
                         </Button>
-                          </div>
-                              </div>
-                            </div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -2036,7 +2020,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         </p>
 
                         {/* Results */}
-                            <div>
+                        <div>
                           <h4 className="text-sm font-semibold text-gray-800 mb-2">
                             Results :
                           </h4>
@@ -2058,10 +2042,10 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             to everolimus treatment, but respiratory failure was
                             suspected to be related.
                           </p>
-                            </div>
+                        </div>
 
                         {/* Conclusion */}
-                            <div>
+                        <div>
                           <h4 className="text-sm font-semibold text-gray-800 mb-2">
                             Conclusion :
                           </h4>
@@ -2074,7 +2058,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             analogue with everolimus in lung and thymic
                             carcinoids
                           </p>
-                            </div>
+                        </div>
 
                         {/* Action Buttons */}
                         <div className="flex items-center space-x-3 pt-4">
@@ -2100,9 +2084,9 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           >
                             <Download className="h-4 w-4" />
                           </Button>
-                          </div>
-                          </div>
                         </div>
+                      </div>
+                    </div>
 
                     {/* Second Published Result - Collapsed */}
                     <div className="bg-gray-100 rounded-lg p-4">
@@ -2126,7 +2110,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           >
                             Source : PubMed
                           </Badge>
-                      </div>
+                        </div>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -2145,8 +2129,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       </div>
                     </div>
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Sites Section */}
@@ -2157,7 +2141,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                   <span className="text-sm font-medium text-gray-700">
                     Total No of Sites : {(drug.sites && drug.sites.length > 0 ? drug.sites[0] : null)?.total || "N/A"}
                   </span>
-                          </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="space-y-8">
                     {/* World Map */}
@@ -2169,11 +2153,11 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           alt="World Map"
                           className="object-cover"
                         />
-                          </div>
-                            </div>
+                      </div>
+                    </div>
 
                     {/* Site Information */}
-                            <div>
+                    <div>
                       <h3 className="text-base font-semibold text-gray-800 mb-6">
                         Site Information
                       </h3>
@@ -2187,17 +2171,17 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             <p className="text-sm text-gray-600 whitespace-pre-wrap">
                               {(drug.sites && drug.sites.length > 0 ? drug.sites[0] : null).notes}
                             </p>
-                            </div>
                           </div>
+                        </div>
                       ) : (
                         <div className="text-center py-8">
                           <p className="text-sm text-gray-600">
                             No detailed site information available
                           </p>
-                          </div>
+                        </div>
                       )}
-                            </div>
-                            </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -2209,7 +2193,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                   <h2 className="text-lg font-semibold text-gray-800">
                     Other Sources
                   </h2>
-                          </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="space-y-6">
                     {drug.other && drug.other.length > 0 ? (
@@ -2233,8 +2217,8 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       </div>
                     )}
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
@@ -2277,7 +2261,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                             ? prev
                             : [...prev, section.id]
                         );
-                        } else {
+                      } else {
                         setFilteredSections((prev) =>
                           prev.filter((id) => id !== section.id)
                         );
@@ -2291,27 +2275,27 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                     {section.label}
                   </label>
                 </div>
-                ))}
-              </div>
+              ))}
+            </div>
             <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
+              <Button
+                variant="outline"
                 onClick={() => {
                   setFilteredSections([]);
                   setShowFilterDialog(false);
                 }}
-                >
+              >
                 Clear All
-                </Button>
-                <Button
+              </Button>
+              <Button
                 onClick={() => {
                   applySectionFilter(filteredSections);
                 }}
-                >
-                  Apply Filter
-                </Button>
-              </div>
+              >
+                Apply Filter
+              </Button>
             </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -2329,7 +2313,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
               <h3 className="text-lg font-semibold mb-4">Trial Change Log</h3>
               <div className="space-y-3">
                 {drug?.logs &&
-                drug.logs.length > 0 ? (
+                  drug.logs.length > 0 ? (
                   drug.logs.map((log, index) => (
                     <div
                       key={index}
@@ -2342,11 +2326,11 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         <span className="text-xs text-gray-500">
                           {log.drug_added_date
                             ? new Date(
-                                log.drug_added_date
-                              ).toLocaleDateString()
+                              log.drug_added_date
+                            ).toLocaleDateString()
                             : "N/A"}
                         </span>
-              </div>
+                      </div>
                       <p className="text-sm text-gray-700 mb-2 whitespace-pre-wrap">
                         {log.drug_changes_log}
                       </p>
@@ -2355,43 +2339,43 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                           <span className="font-medium">Last Modified:</span>{" "}
                           {log.last_modified_date
                             ? new Date(
-                                log.last_modified_date
-                              ).toLocaleDateString()
+                              log.last_modified_date
+                            ).toLocaleDateString()
                             : "N/A"}
-                </div>
-                    <div>
+                        </div>
+                        <div>
                           <span className="font-medium">Modified By:</span>{" "}
                           {log.last_modified_user || "N/A"}
-                      </div>
+                        </div>
                         <div>
                           <span className="font-medium">Reviewed By:</span>{" "}
                           {log.full_review_user || "N/A"}
-                    </div>
-                    <div>
+                        </div>
+                        <div>
                           <span className="font-medium">Next Review:</span>{" "}
                           {log.next_review_date
                             ? new Date(
-                                log.next_review_date
-                              ).toLocaleDateString()
+                              log.next_review_date
+                            ).toLocaleDateString()
                             : "N/A"}
+                        </div>
                       </div>
                     </div>
-                  </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No change history available for this drug
-                </div>
+                  </div>
                 )}
               </div>
-              </div>
+            </div>
 
             {/* Trial Notes */}
             <div>
               <h3 className="text-lg font-semibold mb-4">Trial Notes</h3>
               <div className="space-y-3">
                 {drug?.notes &&
-                drug.notes.length > 0 ? (
+                  drug.notes.length > 0 ? (
                   drug.notes.map((note, index) => (
                     <div
                       key={index}
@@ -2401,17 +2385,16 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         <span className="text-sm font-medium text-gray-800">
                           Note #{index + 1} - {note.date_type}
                         </span>
-            </div>
+                      </div>
                       <p className="text-sm text-gray-700 mb-2 whitespace-pre-wrap">{note.notes}</p>
                       {note.link && (
-                        <a
+                        <PreviewLink
                           href={note.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          title="View Link"
                           className="text-xs text-blue-600 hover:underline"
                         >
                           View Link
-                        </a>
+                        </PreviewLink>
                       )}
                       {note.attachments && note.attachments.length > 0 && (
                         <div className="mt-2">
@@ -2428,24 +2411,24 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                                 {attachment}
                               </Badge>
                             ))}
-              </div>
-                </div>
+                          </div>
+                        </div>
                       )}
-                </div>
+                    </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No notes available for this drug
-              </div>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => {
+              <Button
+                variant="outline"
+                onClick={() => {
                   // Export history data
                   const historyData = {
                     drug_id: drug?.drug_id,
@@ -2467,17 +2450,17 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                   document.body.removeChild(link);
                   URL.revokeObjectURL(url);
 
-                      toast({
+                  toast({
                     title: "History Exported",
                     description: "Trial history has been exported successfully",
                   });
                 }}
               >
                 Export History
-                </Button>
+              </Button>
               <Button onClick={() => setShowHistoryModal(false)}>Close</Button>
-              </div>
             </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -2512,7 +2495,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         clipRule="evenodd"
                       />
                     </svg>
-            </div>
+                  </div>
                   <div>
                     <div className="font-medium">Export as PDF</div>
                     <div className="text-sm text-gray-500 flex items-center">
@@ -2542,9 +2525,9 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                       ) : (
                         "Complete drug document with all sections"
                       )}
-            </div>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                </div>
               </Button>
 
               <Button
@@ -2566,7 +2549,7 @@ export default function DrugDetailPage({ params }: { params: Promise<{ id: strin
                         clipRule="evenodd"
                       />
                     </svg>
-            </div>
+                  </div>
                   <div>
                     <div className="font-medium">Export as JSON</div>
                     <div className="text-sm text-gray-500">

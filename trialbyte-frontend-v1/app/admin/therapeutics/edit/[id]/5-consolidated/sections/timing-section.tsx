@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
-import { Calculator, Plus, X, Eye, EyeOff, ArrowLeft, ArrowRight } from "lucide-react";
+import { Calculator, Plus, X, Eye, EyeOff, ArrowLeft, ArrowRight, Loader2, Upload, FileText, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PreviewLink } from "@/components/ui/preview-link";
+import { useEdgeStore } from "@/lib/edgestore";
 
 export default function TimingSection() {
   const {
@@ -22,8 +23,11 @@ export default function TimingSection() {
     updateReference,
   } = useEditTherapeuticForm();
   const { toast } = useToast();
+  const { edgestore } = useEdgeStore();
   const form = formData.step5_4;
-  
+
+  const [uploadingNoteAttachment, setUploadingNoteAttachment] = useState<{ [key: number]: boolean }>({});
+
   const [showCalculator, setShowCalculator] = useState(false);
   const [calculatorData, setCalculatorData] = useState({
     date: "",
@@ -56,12 +60,12 @@ export default function TimingSection() {
   // Auto-calculation utility functions
   const calculateDateDifference = (date1: string, date2: string): number => {
     if (!date1 || !date2) return 0;
-    
+
     const d1 = new Date(date1);
     const d2 = new Date(date2);
-    
+
     if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
-    
+
     const diffTime = Math.abs(d2.getTime() - d1.getTime());
     const diffMonths = diffTime / (1000 * 60 * 60 * 24 * 30.44); // Average days per month
     console.log(`Date difference calculation: ${date1} to ${date2} = ${diffMonths.toFixed(2)} months`);
@@ -76,7 +80,7 @@ export default function TimingSection() {
   // Auto-calculation logic based on confidence levels
   const performAutoCalculations = (row: string, column: string, value: string) => {
     console.log(`Auto-calculation triggered: row=${row}, column=${column}, value=${value}`);
-    
+
     // Get all current values for calculations
     const getValue = (r: string, c: string) => {
       const key = `${r.toLowerCase()}_${c.replace(/\s+/g, "_").toLowerCase()}`;
@@ -87,12 +91,12 @@ export default function TimingSection() {
     if (column === "Start Date" || column === "Enrollment Closed Date") {
       const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
       const enrollmentClosedDate = column === "Enrollment Closed Date" ? value : getValue(row, "Enrollment Closed Date");
-      
+
       if (startDate && enrollmentClosedDate) {
         // Validate that start date is not greater than enrollment closed date
         const start = new Date(startDate);
         const enrollment = new Date(enrollmentClosedDate);
-        
+
         if (start > enrollment) {
           toast({
             title: "Date Validation Error",
@@ -101,7 +105,7 @@ export default function TimingSection() {
           });
           return;
         }
-        
+
         const inclusionPeriod = calculateDateDifference(startDate, enrollmentClosedDate);
         console.log(`Calculated Inclusion Period for ${row}: ${inclusionPeriod.toFixed(2)}`);
         updateTableValue(row, "Inclusion Period", inclusionPeriod.toFixed(2));
@@ -112,12 +116,12 @@ export default function TimingSection() {
     if (column === "Trial End Date" || column === "Result Published Date") {
       const trialEndDate = column === "Trial End Date" ? value : getValue(row, "Trial End Date");
       const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
-      
+
       if (trialEndDate && resultPublishedDate) {
         // Validate that trial end date is not greater than result published date
         const trialEnd = new Date(trialEndDate);
         const resultPublished = new Date(resultPublishedDate);
-        
+
         if (trialEnd > resultPublished) {
           toast({
             title: "Date Validation Error",
@@ -126,7 +130,7 @@ export default function TimingSection() {
           });
           return;
         }
-        
+
         const resultDuration = calculateDateDifference(trialEndDate, resultPublishedDate);
         console.log(`Calculated Result Duration for ${row}: ${resultDuration.toFixed(2)}`);
         updateTableValue(row, "Result Duration", resultDuration.toFixed(2));
@@ -137,7 +141,7 @@ export default function TimingSection() {
     if (column === "Start Date" || column === "Trial End Date") {
       const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
       const trialEndDate = column === "Trial End Date" ? value : getValue(row, "Trial End Date");
-      
+
       if (startDate && trialEndDate) {
         const overallDurationComplete = calculateDateDifference(startDate, trialEndDate);
         console.log(`Calculated Overall Duration to Complete: ${overallDurationComplete.toFixed(2)}`);
@@ -149,7 +153,7 @@ export default function TimingSection() {
     if (column === "Start Date" || column === "Result Published Date") {
       const startDate = column === "Start Date" ? value : getValue(row, "Start Date");
       const resultPublishedDate = column === "Result Published Date" ? value : getValue(row, "Result Published Date");
-      
+
       if (startDate && resultPublishedDate) {
         const overallDurationPublish = calculateDateDifference(startDate, resultPublishedDate);
         console.log(`Calculated Overall Duration to Publish: ${overallDurationPublish.toFixed(2)}`);
@@ -161,7 +165,7 @@ export default function TimingSection() {
     if (column === "Trial End Date" && row.toLowerCase() === "estimated") {
       const trialEndDate = value;
       const primaryOutcomeDuration = getValue("actual", "Primary Outcome Duration");
-      
+
       if (trialEndDate && primaryOutcomeDuration) {
         const end = new Date(trialEndDate);
         if (!isNaN(end.getTime())) {
@@ -170,7 +174,7 @@ export default function TimingSection() {
           const enrollmentClosedDate = start.toISOString().split('T')[0];
           console.log(`Back-calculated Enrollment Closed Date: ${enrollmentClosedDate}`);
           updateTableValue("estimated", "Enrollment Closed Date", enrollmentClosedDate);
-          
+
           // Calculate inclusion period for estimated row
           const startDate = getValue("estimated", "Start Date");
           if (startDate) {
@@ -186,7 +190,7 @@ export default function TimingSection() {
     const key = `${row.toLowerCase()}_${col.replace(/\s+/g, "_").toLowerCase()}`;
     console.log(`Updating table value: ${key} = ${value}`);
     updateField("step5_4", key as any, value);
-    
+
     // Trigger auto-calculations after updating the value
     performAutoCalculations(row, col, value);
   };
@@ -218,9 +222,9 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
+    setCalculatorData(prev => ({
+      ...prev,
+      outputDate: formattedDate
     }));
     console.log("Date forward calculated:", formattedDate);
   };
@@ -251,9 +255,9 @@ export default function TimingSection() {
     const day = String(resultDate.getDate()).padStart(2, '0');
     const year = resultDate.getFullYear();
     const formattedDate = `${month}-${day}-${year}`;
-    setCalculatorData(prev => ({ 
-      ...prev, 
-      outputDate: formattedDate 
+    setCalculatorData(prev => ({
+      ...prev,
+      outputDate: formattedDate
     }));
     console.log("Date backward calculated:", formattedDate);
   };
@@ -294,6 +298,111 @@ export default function TimingSection() {
       outputMonths: ""
     });
   };
+
+  const handleUpdateReference = (index: number, field: string, value: any) => {
+    updateReference("step5_4", "references", index, { [field]: value });
+  };
+
+  // Handle file upload for note attachments using Edge Store
+  const handleNoteAttachmentUpload = async (file: File, noteIndex: number) => {
+    if (!file) return;
+
+    try {
+      setUploadingNoteAttachment(prev => ({ ...prev, [noteIndex]: true }));
+      console.log(`Uploading file to Edge Store for note ${noteIndex}:`, file.name);
+
+      const res = await edgestore.trialOutcomeAttachments.upload({
+        file,
+        onProgressChange: (progress) => {
+          console.log(`Upload progress for note ${noteIndex}:`, progress);
+        },
+      });
+
+      console.log("File uploaded successfully:", res.url);
+
+      // Get current attachments and add the new one
+      const currentNote = form.references[noteIndex];
+      const currentAttachments = currentNote?.attachments || [];
+      const newAttachment = {
+        url: res.url,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      };
+
+      handleUpdateReference(noteIndex, "attachments", [...currentAttachments, newAttachment]);
+
+      toast({
+        title: "Success",
+        description: "File uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingNoteAttachment(prev => ({ ...prev, [noteIndex]: false }));
+    }
+  };
+
+  // Handle removing a specific attachment from a note
+  const handleRemoveNoteAttachment = async (noteIndex: number, attachmentIndex: number) => {
+    const currentNote = form.references[noteIndex];
+    const attachment = currentNote?.attachments[attachmentIndex];
+
+    // Check if attachment is an object with a url property
+    if (attachment && typeof attachment === 'object' && 'url' in attachment) {
+      const fileUrl = attachment.url;
+
+      // Optimistically update UI first
+      const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
+      handleUpdateReference(noteIndex, "attachments", updatedAttachments);
+
+      try {
+        await edgestore.trialOutcomeAttachments.delete({
+          url: fileUrl?.trim() || '',
+        });
+
+        toast({
+          title: "Success",
+          description: "File removed successfully",
+        });
+      } catch (error: any) {
+        console.error("Error removing file from Edge Store:", error);
+
+        const errorMessage = error?.message || String(error) || '';
+        const errorString = errorMessage.toLowerCase();
+
+        const isNotFoundError = errorString.includes('404') ||
+          errorString.includes('not found') ||
+          errorString.includes('does not exist') ||
+          errorString.includes('no such key');
+
+        const isServerError = errorString.includes('internal server error') ||
+          errorString.includes('500') ||
+          errorString.includes('server error');
+
+        if (isNotFoundError || isServerError) {
+          // Already removed from UI, silently succeed
+          return;
+        } else {
+          console.warn("Edge Store deletion error (file removed from form):", error);
+          toast({
+            title: "File removed",
+            description: "File has been removed from the form.",
+          });
+        }
+      }
+    } else {
+      // If it's just a string (old format), just remove it from the array
+      const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
+      handleUpdateReference(noteIndex, "attachments", updatedAttachments);
+    }
+  };
+
 
   // Enhanced Date Calculator functions
   const calculateEnhancedForwardDate = () => {
@@ -439,7 +548,7 @@ export default function TimingSection() {
           {showCalculator ? "Hide Calculator" : "Show Calculator"}
         </Button>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
@@ -857,7 +966,7 @@ export default function TimingSection() {
             Add Reference
           </Button>
         </div>
-        
+
         <div className="space-y-6">
           {(form.references || []).map((reference: any, index: number) => (
             <Card key={reference.id} className="border border-gray-200">
@@ -971,49 +1080,80 @@ export default function TimingSection() {
                   />
                 </div>
 
-                {/* Attachments */}
                 <div className="space-y-2">
                   <Label htmlFor={`ref-attachments-${index}`}>Attachments</Label>
-                  <Input
-                    id={`ref-attachments-${index}`}
-                    type="file"
-                    accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
-                    multiple
-                    onChange={(e) => {
-                      if (e.target.files) {
-                        const fileNames = Array.from(e.target.files).map(file => file.name);
-                        const currentAttachments = reference.attachments || [];
-                        console.log("Updating reference attachments:", index, fileNames);
-                        updateReference("step5_4", "references", index, { 
-                          attachments: [...currentAttachments, ...fileNames] 
-                        });
-                      }
-                    }}
-                    className="w-full border-gray-300 focus:border-gray-500 focus:ring-gray-500"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id={`ref-attachments-${index}`}
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleNoteAttachmentUpload(file, index);
+                          e.target.value = '';
+                        }
+                      }}
+                      disabled={uploadingNoteAttachment[index]}
+                      className="flex-1 border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={uploadingNoteAttachment[index]}
+                    >
+                      {uploadingNoteAttachment[index] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                   {reference.attachments && reference.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {reference.attachments.map((attachment: any, attachIndex: number) => {
                         // Handle both string and object attachments
-                        const attachmentName = typeof attachment === 'string' 
-                          ? attachment 
+                        const attachmentName = typeof attachment === 'string'
+                          ? attachment
                           : (attachment?.name || attachment?.url || `Attachment ${attachIndex + 1}`);
-                        
+
+                        const fileUrl = typeof attachment === 'string'
+                          ? (attachment.startsWith('http') ? attachment : null)
+                          : (attachment?.url || null);
+
+                        const isImage = attachmentName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+
                         return (
                           <div
                             key={attachIndex}
                             className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
                           >
+                            {isImage ? (
+                              <Image className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <FileText className="h-4 w-4 text-gray-600" />
+                            )}
                             <span className="truncate max-w-[200px]">{attachmentName}</span>
+                            {fileUrl && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  window.open(fileUrl, '_blank');
+                                }}
+                                className="text-blue-600 hover:text-blue-800 p-0 h-auto text-xs"
+                              >
+                                View
+                              </Button>
+                            )}
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
-                              onClick={() => {
-                                const newAttachments = reference.attachments.filter((_: any, i: number) => i !== attachIndex);
-                                updateReference("step5_4", "references", index, { attachments: newAttachments });
-                              }}
+                              onClick={() => handleRemoveNoteAttachment(index, attachIndex)}
                             >
                               <X className="h-3 w-3" />
                             </Button>

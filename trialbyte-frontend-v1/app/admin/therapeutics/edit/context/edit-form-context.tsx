@@ -3135,7 +3135,9 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 reference: formatDateForDB(formData.step5_5.trial_outcome_reference_date || ""),
                 trial_outcome_content: formData.step5_5.trial_outcome_content || null,
                 trial_outcome_link: formData.step5_5.trial_outcome_link || null,
-                trial_outcome_attachment: formData.step5_5.trial_outcome_attachment || null,
+                trial_outcome_attachment: typeof formData.step5_5.trial_outcome_attachment === 'object' && formData.step5_5.trial_outcome_attachment !== null
+                  ? (formData.step5_5.trial_outcome_attachment as any).url
+                  : formData.step5_5.trial_outcome_attachment || null,
                 trial_results: formData.step5_5.trial_results.length > 0 ? formData.step5_5.trial_results : null,
                 adverse_event_reported: formData.step5_5.adverse_event_reported || null,
                 adverse_event_type: formData.step5_5.adverse_event_type || null,

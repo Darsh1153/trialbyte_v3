@@ -52,6 +52,8 @@ import {
 import { Suspense } from "react";
 import { useTherapeuticTrialDetail } from "@/hooks/use-therapeutic-trial-detail";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLinkPreview } from "@/components/ui/link-preview-panel";
+import { PreviewLink } from "@/components/ui/preview-link";
 
 // API Response interface
 interface ApiResponse {
@@ -214,6 +216,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
       [index]: !prev[index]
     }));
   };
+
+  const { openLinkPreview } = useLinkPreview();
 
 
   // Helper function to check if a value is valid (not null, undefined, or empty string)
@@ -1496,14 +1500,13 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                   <span className="text-blue-600 text-xs">
                                     •
                                   </span>
-                                  <a
+                                  <PreviewLink
                                     href={link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    title="Source Link"
                                     className="text-blue-600 text-xs ml-1 hover:underline"
                                   >
                                     {link}
-                                  </a>
+                                  </PreviewLink>
                                 </div>
                               )
                             )
@@ -2128,7 +2131,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                           size="sm"
                                           className="h-8 px-4 text-xs font-medium text-white shadow-sm"
                                           style={{ backgroundColor: '#2B4863' }}
-                                          onClick={() => ref.viewSource && window.open(ref.viewSource, '_blank')}
+                                          onClick={() => ref.viewSource && openLinkPreview(ref.viewSource, "View Source")}
                                         >
                                           View source
                                         </Button>
@@ -2162,7 +2165,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                                   if (attach.url) window.open(attach.url, '_blank');
                                                 });
                                               } else if (ref.viewSource) {
-                                                window.open(ref.viewSource, '_blank');
+                                                openLinkPreview(ref.viewSource, "View Source");
                                               } else {
                                                 toast({
                                                   title: "Nothing to download",
@@ -2269,15 +2272,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <h4 className="text-sm font-semibold text-gray-800 mb-2">
                             Link:
                           </h4>
-                          <a
+                          <PreviewLink
                             href={trial.results[0].trial_outcome_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            title="Outcome Link"
                             className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
                           >
                             <LinkIcon className="h-4 w-4" />
                             {trial.results[0].trial_outcome_link}
-                          </a>
+                          </PreviewLink>
                         </div>
                       )}
 
@@ -2744,15 +2746,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                   {note.viewSource && (
                                     <div>
                                       <Label className="text-sm font-medium text-gray-600">View Source (URL)</Label>
-                                      <a
+                                      <PreviewLink
                                         href={note.viewSource}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                        title="View Source"
                                         className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
                                       >
                                         <LinkIcon className="h-4 w-4" />
                                         {note.viewSource}
-                                      </a>
+                                      </PreviewLink>
                                     </div>
                                   )}
 
@@ -2943,15 +2944,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                               {/* Display URL as link if not an image */}
                               {parsedData.url && parsedData.url !== "N/A" && !isImageUrl(parsedData.url) && (
                                 <div className="mt-2">
-                                  <a
+                                  <PreviewLink
                                     href={parsedData.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    title="Source Link"
                                     className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
                                   >
                                     <LinkIcon className="h-3 w-3" />
                                     View Source Link
-                                  </a>
+                                  </PreviewLink>
                                 </div>
                               )}
 
@@ -2968,7 +2968,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                           src={parsedData.url}
                                           alt={`${getTypeLabel(parsedData.type)} Image`}
                                           className="w-full h-full object-cover hover:border-blue-400 transition-all cursor-pointer"
-                                          onClick={() => window.open(parsedData.url, '_blank')}
+                                          onClick={() => openLinkPreview(parsedData.url, "Source Image")}
                                           onLoad={() => console.log(`Image loaded successfully: ${parsedData.url}`)}
                                           onError={(e) => {
                                             console.error(`Image failed to load: ${parsedData.url}`);

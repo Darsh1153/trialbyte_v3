@@ -9,9 +9,11 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Plus, X, Check, ChevronsUpDown, Eye, EyeOff, Link as LinkIcon } from "lucide-react";
+import { Plus, X, Check, ChevronsUpDown, Eye, EyeOff, Link as LinkIcon, Loader2, Upload, FileText, Image } from "lucide-react";
 import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
+import { useToast } from "@/hooks/use-toast";
+import { useEdgeStore } from "@/lib/edgestore";
 import { PreviewLink } from "@/components/ui/preview-link";
 import { useDynamicDropdown } from "@/hooks/use-dynamic-dropdown";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,10 @@ export default function ResultsSection() {
     removeSiteNote,
     toggleSiteNoteVisibility,
   } = useEditTherapeuticForm();
+  const { toast } = useToast();
+  const { edgestore } = useEdgeStore();
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [uploadingNoteAttachment, setUploadingNoteAttachment] = useState<{ [key: number]: boolean }>({});
   const form = formData.step5_5;
 
   // Use react-query to fetch trial data
@@ -297,6 +303,109 @@ export default function ResultsSection() {
     updateSiteNote("step5_5", "site_notes", index, { [field]: value });
   };
 
+  const handleAttachmentUpload = async (file: File) => {
+    if (!file) return;
+
+    try {
+      setUploadingAttachment(true);
+      console.log("Uploading main trial outcome attachment:", file.name);
+
+      const res = await edgestore.trialOutcomeAttachments.upload({
+        file,
+        onProgressChange: (progress) => {
+          console.log("Upload progress:", progress);
+        },
+      });
+
+      console.log("File uploaded successfully:", res.url);
+
+      updateField("step5_5", "trial_outcome_attachment", {
+        url: res.url,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+
+      toast({
+        title: "Success",
+        description: "File uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const handleNoteAttachmentUpload = async (file: File, noteIndex: number) => {
+    if (!file) return;
+
+    try {
+      setUploadingNoteAttachment(prev => ({ ...prev, [noteIndex]: true }));
+      console.log(`Uploading file to Edge Store for note ${noteIndex}:`, file.name);
+
+      const res = await edgestore.trialOutcomeAttachments.upload({
+        file,
+        onProgressChange: (progress) => {
+          console.log(`Upload progress for note ${noteIndex}:`, progress);
+        },
+      });
+
+      console.log("File uploaded successfully:", res.url);
+
+      const currentNote = form.site_notes[noteIndex];
+      const currentAttachments = currentNote?.attachments || [];
+      const newAttachment = {
+        url: res.url,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      };
+
+      handleUpdateSiteNote(noteIndex, "attachments", [...currentAttachments, newAttachment]);
+
+      toast({
+        title: "Success",
+        description: "File uploaded successfully",
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingNoteAttachment(prev => ({ ...prev, [noteIndex]: false }));
+    }
+  };
+
+  const handleRemoveNoteAttachment = async (noteIndex: number, attachmentIndex: number) => {
+    const currentNote = form.site_notes[noteIndex];
+    const attachment = currentNote?.attachments[attachmentIndex];
+
+    if (attachment && typeof attachment === 'object' && 'url' in attachment) {
+      const fileUrl = attachment.url;
+      const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
+      handleUpdateSiteNote(noteIndex, "attachments", updatedAttachments);
+
+      try {
+        await edgestore.trialOutcomeAttachments.delete({ url: fileUrl });
+      } catch (error) {
+        console.warn("Edge Store deletion error:", error);
+      }
+    } else {
+      const updatedAttachments = currentNote.attachments.filter((_: any, i: number) => i !== attachmentIndex);
+      handleUpdateSiteNote(noteIndex, "attachments", updatedAttachments);
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-6">
@@ -412,11 +521,22 @@ export default function ResultsSection() {
                 <Input
                   type="file"
                   accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
-                  onChange={(e) => updateField("step5_5", "trial_outcome_attachment", e.target.files?.[0])}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleAttachmentUpload(file);
+                      e.target.value = '';
+                    }
+                  }}
+                  disabled={uploadingAttachment}
                   className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                 />
-                <Button type="button" variant="outline" size="icon">
-                  <Plus className="h-4 w-4" />
+                <Button type="button" variant="outline" size="icon" disabled={uploadingAttachment}>
+                  {uploadingAttachment ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               {attachmentDisplayInfo && (
@@ -559,39 +679,53 @@ export default function ResultsSection() {
                   />
                 </div>
 
-                {/* Attachments */}
-                <div className="space-y-2">
-                  <Label htmlFor={`site-note-attachments-${index}`}>Attachments</Label>
+                <div className="flex items-center gap-2">
                   <Input
                     type="file"
                     accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
-                    multiple
                     onChange={(e) => {
-                      if (e.target.files) {
-                        const fileNames = Array.from(e.target.files).map(file => file.name);
-                        const currentAttachments = note.attachments || [];
-                        handleUpdateSiteNote(index, "attachments", [...currentAttachments, ...fileNames]);
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleNoteAttachmentUpload(file, index);
+                        e.target.value = '';
                       }
                     }}
+                    disabled={uploadingNoteAttachment[index]}
                     className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
                   />
-                  {note.attachments && note.attachments.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {note.attachments.map((attachment: any, attachIndex: number) => {
-                        // Handle both string and object attachments
-                        const attachmentName = typeof attachment === 'string' 
-                          ? attachment 
-                          : (attachment?.name || attachment?.url || `Attachment ${attachIndex + 1}`);
-                        const attachmentUrl = typeof attachment === 'string' 
-                          ? attachment 
-                          : (attachment?.url || '#');
-                        
-                        return (
-                          <div
-                            key={attachIndex}
-                            className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
-                          >
-                            <span className="truncate max-w-[200px]">{attachmentName}</span>
+                  <Button type="button" variant="outline" size="icon" disabled={uploadingNoteAttachment[index]}>
+                    {uploadingNoteAttachment[index] ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                {note.attachments && note.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {note.attachments.map((attachment: any, attachIndex: number) => {
+                      // Handle both string and object attachments
+                      const attachmentName = typeof attachment === 'string'
+                        ? attachment
+                        : (attachment?.name || attachment?.url || `Attachment ${attachIndex + 1}`);
+                      const attachmentUrl = typeof attachment === 'string'
+                        ? (attachment.startsWith('http') ? attachment : '#')
+                        : (attachment?.url || '#');
+
+                      const isImage = attachmentName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+
+                      return (
+                        <div
+                          key={attachIndex}
+                          className="flex items-center gap-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-sm"
+                        >
+                          {isImage ? (
+                            <Image className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-gray-600" />
+                          )}
+                          <span className="truncate max-w-[200px]">{attachmentName}</span>
+                          {attachmentUrl !== '#' && (
                             <PreviewLink
                               href={attachmentUrl}
                               title={attachmentName}
@@ -600,12 +734,21 @@ export default function ResultsSection() {
                               <LinkIcon className="h-3 w-3" />
                               View
                             </PreviewLink>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 text-red-500 hover:text-red-700"
+                            onClick={() => handleRemoveNoteAttachment(index, attachIndex)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
