@@ -208,10 +208,26 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const [trial, setTrial] = useState<TherapeuticTrial | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedReferences, setExpandedReferences] = useState<Record<number, boolean>>({});
+  const [expandedPublishedResults, setExpandedPublishedResults] = useState<Record<number, boolean>>({});
+  const [expandedSiteNotes, setExpandedSiteNotes] = useState<Record<number, boolean>>({});
   const [selectedRefForAttachments, setSelectedRefForAttachments] = useState<any>(null);
 
   const toggleReference = (index: number) => {
     setExpandedReferences(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const togglePublishedResult = (index: number) => {
+    setExpandedPublishedResults(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  const toggleSiteNote = (index: number) => {
+    setExpandedSiteNotes(prev => ({
       ...prev,
       [index]: !prev[index]
     }));
@@ -2193,311 +2209,152 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
             )}
 
             {/* Outcome Section */}
-            {isSectionVisible("outcome") && (
+            {isSectionVisible("outcome") && trial.results && trial.results.length > 0 && (
               <Card className="mt-6" ref={outcomeRef}>
-                <div className="bg-sky-200 p-4 rounded-t-lg">
-                  <h2 className="text-lg font-semibold text-gray-800">
+                <div className="bg-[#C6EDFD] p-4 rounded-t-lg">
+                  <h2 className="text-lg font-bold text-gray-800">
                     Outcome
                   </h2>
                 </div>
                 <CardContent className="p-6">
-                  <div className="space-y-6">
-                    {/* Toggle Switches */}
-                    <div className="flex flex-wrap items-center gap-6">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-700">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Panel: Results available & Outcome Status */}
+                    <div className="lg:col-span-1 border border-gray-200 rounded-xl p-6 flex flex-col justify-center space-y-8">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[15px] font-bold text-[#204B73]">
                           Results available
                         </span>
                         <Switch
                           checked={trial.results[0]?.results_available === true || trial.results[0]?.results_available === "true" || trial.results[0]?.results_available === "Yes"}
                         />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-700">
-                          Endpoints met
+
+                      <div className="space-y-3">
+                        <span className="text-[15px] font-bold text-[#204B73]">
+                          Trial Outcome :
                         </span>
-                        <Switch
-                          checked={trial.results[0]?.endpoints_met === true || trial.results[0]?.endpoints_met === "true" || trial.results[0]?.endpoints_met === "Yes"}
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-gray-700">
-                          Adverse Events Reported
-                        </span>
-                        <Switch
-                          checked={trial.results[0]?.adverse_events_reported === true || trial.results[0]?.adverse_events_reported === "true" || trial.results[0]?.adverse_events_reported === "Yes" || trial.results[0]?.adverse_event_reported === "Yes"}
-                        />
+                        <div className="bg-[#22C55E] text-white px-4 py-2 rounded-md text-sm font-medium w-full text-center">
+                          {trial.results[0]?.trial_outcome || "No outcome available"}
+                          {(trial.results[0]?.endpoints_met === true || trial.results[0]?.endpoints_met === "true" || trial.results[0]?.endpoints_met === "Yes") && ", Primary endpoints met"}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Trial Outcome */}
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm font-medium text-gray-700">
-                        Trial Outcome :
-                      </span>
-                      <Badge className="bg-green-600 text-white px-3 py-1">
-                        {trial.results[0]?.trial_outcome ||
-                          "No outcome available"}
-                      </Badge>
-                    </div>
-
-                    {/* Trial Outcome Reference */}
-                    <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                    {/* Right Panel: Outcome Reference Details */}
+                    <div className="lg:col-span-2 border border-gray-200 rounded-xl p-6 space-y-5">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-base font-semibold text-gray-800">
+                        <h3 className="text-lg font-bold text-[#204B73]">
                           Trial Outcome Reference
                         </h3>
                         {trial.results[0]?.trial_outcome_reference_date && (
-                          <span className="text-sm text-gray-600">
+                          <div className="bg-gray-100 text-gray-900 px-3 py-1 rounded text-sm font-bold">
                             {formatDateToMMDDYYYY(trial.results[0].trial_outcome_reference_date)}
-                          </span>
+                          </div>
                         )}
                       </div>
 
-                      {/* Trial Outcome Results Content */}
-                      {trial.results[0]?.trial_outcome_content && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Trial Outcome Results Content:
-                          </h4>
-                          <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
-                            {trial.results[0].trial_outcome_content}
-                          </p>
-                        </div>
-                      )}
+                      <p className="text-[#334155] text-[15px] leading-relaxed">
+                        {trial.results[0]?.trial_outcome_content || trial.results[0]?.reference || "No reference content available."}
+                      </p>
 
-                      {/* Link */}
-                      {trial.results[0]?.trial_outcome_link && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Link:
-                          </h4>
-                          <PreviewLink
-                            href={trial.results[0].trial_outcome_link}
-                            title="Outcome Link"
-                            className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                      <div className="flex items-center gap-3 pt-2">
+                        <Button
+                          className="bg-[#204B73] hover:bg-[#1a3d5e] text-white px-6 py-2 h-10 rounded-md text-sm font-medium"
+                          onClick={() => trial.results[0]?.trial_outcome_link && openLinkPreview(trial.results[0].trial_outcome_link, "Outcome Link")}
+                        >
+                          View source
+                        </Button>
+
+                        <div className="flex rounded-md shadow-sm overflow-hidden">
+                          <Button
+                            className="bg-[#204B73] hover:bg-[#1a3d5e] text-white px-6 py-2 h-10 rounded-none text-sm font-medium flex items-center gap-2 border-r border-[#ffffff33]"
+                            onClick={() => {
+                              if (trial.results[0]?.trial_outcome_attachment) {
+                                const attach = trial.results[0].trial_outcome_attachment;
+                                const url = typeof attach === 'object' ? attach.url : attach;
+                                if (url) {
+                                  openLinkPreview(url, "Attachment");
+                                }
+                              } else {
+                                toast({
+                                  title: "No attachments",
+                                  description: "No attachments available for this outcome.",
+                                });
+                              }
+                            }}
                           >
-                            <LinkIcon className="h-4 w-4" />
-                            {trial.results[0].trial_outcome_link}
-                          </PreviewLink>
+                            Attachments
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className="bg-[#204B73] hover:bg-[#1a3d5e] text-white px-3 py-2 h-10 rounded-none"
+                            onClick={() => {
+                              if (trial.results[0]?.trial_outcome_attachment) {
+                                const attach = trial.results[0].trial_outcome_attachment;
+                                const url = typeof attach === 'object' ? attach.url : attach;
+                                const name = typeof attach === 'object' ? (attach.name || 'attachment') : 'attachment';
+                                if (url) {
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = name;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
                         </div>
-                      )}
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Attachments */}
-                      {trial.results[0]?.trial_outcome_attachment && (
+                  {/* Other outcome details if they exist and are important */}
+                  {(trial.results[0]?.trial_results && trial.results[0].trial_results.length > 0) ||
+                    (trial.results[0]?.adverse_event_reported === "Yes" || trial.results[0]?.adverse_events_reported === true) ? (
+                    <div className="mt-8 pt-6 border-t border-gray-100 space-y-6">
+                      {trial.results[0]?.trial_results && trial.results[0].trial_results.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Attachments:
-                          </h4>
-                          <div className="flex items-center gap-2">
-                            {typeof trial.results[0].trial_outcome_attachment === 'object' && trial.results[0].trial_outcome_attachment?.url ? (
-                              <>
-                                <span className="text-sm text-gray-700">
-                                  {trial.results[0].trial_outcome_attachment.name || "Attachment"}
-                                </span>
-                                <a
-                                  href={trial.results[0].trial_outcome_attachment.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 text-sm"
-                                >
-                                  View
-                                </a>
-                              </>
-                            ) : (
-                              <span className="text-sm text-gray-700">
-                                {typeof trial.results[0].trial_outcome_attachment === 'string'
-                                  ? trial.results[0].trial_outcome_attachment
-                                  : "Attachment available"}
-                              </span>
-                            )}
-                          </div>
+                          <h4 className="text-sm font-semibold text-gray-800 mb-3">Trial Results:</h4>
+                          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {trial.results[0].trial_results.map((result, index) => (
+                              <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
+                                <span className="text-blue-600 font-bold mt-0.5">•</span>
+                                {result}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                       )}
 
-                      {/* Reference Text */}
-                      {trial.results[0]?.reference && trial.results[0].reference !== "N/A" && (
-                        <p className="text-sm text-black leading-relaxed">
-                          {trial.results[0].reference}
-                        </p>
-                      )}
-
-                      {trial.results[0]?.trial_results &&
-                        trial.results[0].trial_results.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                              Trial Results:
-                            </h4>
-                            <ul className="space-y-1">
-                              {trial.results[0].trial_results.map(
-                                (result, index) => (
-                                  <li
-                                    key={index}
-                                    className="text-sm text-gray-700"
-                                  >
-                                    <span className="text-blue-600 mr-2">
-                                      •
-                                    </span>
-                                    {result}
-                                  </li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                        )}
-
-                      {/* Adverse Events */}
                       {(trial.results[0]?.adverse_event_reported === "Yes" ||
                         trial.results[0]?.adverse_events_reported === true ||
                         trial.results[0]?.adverse_events_reported === "true" ||
                         trial.results[0]?.adverse_events_reported === "Yes") && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                              Adverse Events:
+                          <div className="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                            <h4 className="text-sm font-semibold text-orange-800 mb-2 flex items-center gap-2">
+                              Adverse Event Information:
                             </h4>
                             {trial.results[0]?.adverse_event_type && (
-                              <p className="text-sm text-black mb-1">
-                                Type: {trial.results[0].adverse_event_type}
+                              <p className="text-sm text-gray-700 mb-1">
+                                Type: <span className="font-medium">{trial.results[0].adverse_event_type}</span>
                               </p>
                             )}
                             {trial.results[0]?.treatment_for_adverse_events && (
-                              <p className="text-sm text-black">
-                                Treatment: {trial.results[0].treatment_for_adverse_events}
+                              <p className="text-sm text-gray-700">
+                                Treatment: <span className="font-medium">{trial.results[0].treatment_for_adverse_events}</span>
                               </p>
                             )}
                           </div>
                         )}
                     </div>
-                  </div>
+                  ) : null}
                 </CardContent>
               </Card>
             )}
 
-            {/* Results Notes Section */}
-            {isSectionVisible("outcome") && trial.results[0]?.site_notes && trial.results[0].site_notes.length > 0 && (
-              <Card className="mt-6">
-                <div className="bg-sky-200 p-4 rounded-t-lg">
-                  <h2 className="text-lg font-semibold text-gray-800">
-                    Results Notes
-                  </h2>
-                </div>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {trial.results[0].site_notes
-                      .filter((note: any) => note.isVisible !== false)
-                      .map((note: any, index: number) => {
-                        const noteDate = note.date ? formatDateToMMDDYYYY(note.date) : null;
-                        const resultType = note.noteType || note.type || "N/A";
-                        const source = note.sourceType || note.source || "N/A";
-                        const content = note.content || "";
-
-                        return (
-                          <Card key={index} className="border border-gray-200">
-                            <CardContent className="p-6 space-y-4">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
-                                {note.isVisible === false && (
-                                  <Badge variant="outline" className="text-gray-500">
-                                    <EyeOff className="h-3 w-3 mr-1" />
-                                    Hidden
-                                  </Badge>
-                                )}
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Date */}
-                                {noteDate && (
-                                  <div>
-                                    <Label className="text-sm font-medium text-gray-600">Date</Label>
-                                    <p className="text-sm text-gray-700 mt-1">{noteDate}</p>
-                                  </div>
-                                )}
-
-                                {/* Result Type */}
-                                {resultType && resultType !== "N/A" && (
-                                  <div>
-                                    <Label className="text-sm font-medium text-gray-600">Result type</Label>
-                                    <p className="text-sm text-gray-700 mt-1">{resultType}</p>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Content */}
-                              {content && (
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-600">Content</Label>
-                                  <p className="text-sm text-black mt-1 whitespace-pre-wrap">{content}</p>
-                                </div>
-                              )}
-
-                              {/* Source */}
-                              {source && source !== "N/A" && (
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-600">Source</Label>
-                                  <p className="text-sm text-gray-700 mt-1">{source}</p>
-                                </div>
-                              )}
-
-                              {/* Attachments */}
-                              {note.attachments && note.attachments.length > 0 && (
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-600">Attachments</Label>
-                                  <div className="flex flex-wrap gap-2 mt-2">
-                                    {note.attachments.map((attachment: any, attachIndex: number) => {
-                                      const fileUrl = typeof attachment === 'object' && attachment?.url ? attachment.url : (typeof attachment === 'string' ? attachment : null);
-                                      const fileName = typeof attachment === 'object' && attachment?.name ? attachment.name : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
-
-                                      return (
-                                        <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
-                                          <span className="text-sm text-gray-700">{fileName}</span>
-                                          {fileUrl && (
-                                            <a
-                                              href={fileUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-blue-600 hover:text-blue-800 text-sm"
-                                            >
-                                              View
-                                            </a>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Adverse Event Reported */}
-                              {note.adverse_event_reported && (
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-600">Adverse Event Reported</Label>
-                                  <p className="text-sm text-gray-700 mt-1">{note.adverse_event_reported}</p>
-                                </div>
-                              )}
-
-                              {/* Adverse Event Type */}
-                              {note.adverse_event_type && (
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-600">Adverse Event Type</Label>
-                                  <p className="text-sm text-gray-700 mt-1">{note.adverse_event_type}</p>
-                                </div>
-                              )}
-
-                              {/* Treatment For Adverse Events */}
-                              {note.treatment_for_adverse_events && (
-                                <div>
-                                  <Label className="text-sm font-medium text-gray-600">Treatment For Adverse Events</Label>
-                                  <p className="text-sm text-black mt-1 whitespace-pre-wrap">{note.treatment_for_adverse_events}</p>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Published Results Section - Results Notes */}
             {isSectionVisible("publishedResults") && trial.results[0]?.site_notes && trial.results[0].site_notes.length > 0 && (
@@ -2517,61 +2374,71 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         const source = note.sourceType || note.source || "N/A";
                         const content = note.content || "";
 
+                        const isExpanded = expandedPublishedResults[index];
+
                         return (
                           <div key={index} className="bg-slate-700 rounded-lg overflow-hidden">
                             {/* Header */}
-                            <div className="p-4 flex items-center justify-between">
+                            <div
+                              className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-600 transition-colors"
+                              onClick={() => togglePublishedResult(index)}
+                            >
                               <div className="flex items-center space-x-4 flex-wrap gap-2">
                                 {noteDate && (
-                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100">
+                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100 font-bold">
                                     Date : {noteDate}
                                   </Badge>
                                 )}
                                 {resultType && resultType !== "N/A" && (
-                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100">
+                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100 font-bold">
                                     Result Type : {resultType}
                                   </Badge>
                                 )}
                                 {source && source !== "N/A" && (
-                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100">
+                                  <Badge className="bg-white text-slate-700 hover:bg-gray-100 font-bold">
                                     Source : {source}
                                   </Badge>
                                 )}
                               </div>
+                              <div className="text-white">
+                                {isExpanded ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                              </div>
                             </div>
 
-                            {/* Content */}
-                            {content && (
+                            {/* Collapsible Content */}
+                            {isExpanded && (
                               <div className="bg-white p-6 space-y-4">
                                 {/* Content Text */}
-                                <div>
-                                  <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                                    Content:
-                                  </h4>
-                                  <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
-                                    {content}
-                                  </p>
-                                </div>
+                                {content && (
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-gray-800 mb-2 font-bold">
+                                      Content:
+                                    </h4>
+                                    <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
+                                      {content}
+                                    </p>
+                                  </div>
+                                )}
 
                                 {/* Adverse Event Information */}
                                 {(note.adverse_event_reported || note.adverse_event_type || note.treatment_for_adverse_events) && (
-                                  <div>
-                                    <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                    <h4 className="text-sm font-bold text-gray-800 mb-2">
                                       Adverse Event Information:
                                     </h4>
                                     {note.adverse_event_reported && (
                                       <p className="text-sm text-black mb-1">
-                                        Reported: {note.adverse_event_reported}
+                                        Reported: <span className="font-semibold">{note.adverse_event_reported}</span>
                                       </p>
                                     )}
                                     {note.adverse_event_type && (
                                       <p className="text-sm text-black mb-1">
-                                        Type: {note.adverse_event_type}
+                                        Type: <span className="font-semibold">{note.adverse_event_type}</span>
                                       </p>
                                     )}
                                     {note.treatment_for_adverse_events && (
                                       <p className="text-sm text-black">
-                                        Treatment: {note.treatment_for_adverse_events}
+                                        Treatment: <span className="font-semibold">{note.treatment_for_adverse_events}</span>
                                       </p>
                                     )}
                                   </div>
@@ -2580,26 +2447,26 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                 {/* Attachments */}
                                 {note.attachments && note.attachments.length > 0 && (
                                   <div>
-                                    <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                                    <h4 className="text-sm font-bold text-gray-800 mb-2">
                                       Attachments:
                                     </h4>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="space-y-2">
                                       {note.attachments.map((attachment: any, attachIndex: number) => {
                                         const fileUrl = typeof attachment === 'object' && attachment?.url ? attachment.url : (typeof attachment === 'string' ? attachment : null);
                                         const fileName = typeof attachment === 'object' && attachment?.name ? attachment.name : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
 
                                         return (
-                                          <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
-                                            <span className="text-sm text-gray-700">{fileName}</span>
+                                          <div key={attachIndex} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md border border-gray-100">
+                                            <span className="text-sm text-gray-700 truncate flex-1 font-medium">{fileName}</span>
                                             {fileUrl && (
-                                              <a
-                                                href={fileUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-600 hover:text-blue-800 text-sm"
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-blue-600 hover:text-blue-800 h-7 px-2 text-xs font-bold"
+                                                onClick={() => openLinkPreview(fileUrl, fileName)}
                                               >
                                                 View
-                                              </a>
+                                              </Button>
                                             )}
                                           </div>
                                         );
@@ -2609,16 +2476,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex items-center space-x-3 pt-4">
+                                <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                                   {source && source !== "N/A" && (
                                     <Button
-                                      variant="outline"
                                       size="sm"
-                                      className="bg-slate-600 text-white hover:bg-slate-700"
+                                      className="bg-slate-600 hover:bg-slate-700 text-white font-bold h-9 px-4"
                                       onClick={() => {
-                                        // You can add logic to open source link here
                                         if (note.sourceType || note.source) {
-                                          // Handle source view
+                                          openLinkPreview(note.sourceType || note.source, "Source Link");
                                         }
                                       }}
                                     >
@@ -2627,12 +2492,12 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                   )}
                                   {note.attachments && note.attachments.length > 0 && (
                                     <Button
-                                      variant="outline"
                                       size="sm"
-                                      className="bg-slate-600 text-white hover:bg-slate-700"
+                                      className="bg-slate-600 hover:bg-slate-700 text-white font-bold h-9 px-4 flex items-center gap-2"
+                                      onClick={() => setSelectedRefForAttachments({ attachments: note.attachments })}
                                     >
-                                      <FileText className="h-4 w-4 mr-2" />
                                       Attachments
+                                      <FileText className="h-4 w-4" />
                                     </Button>
                                   )}
                                 </div>
@@ -2655,19 +2520,18 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
             {/* Sites Section */}
             {isSectionVisible("sites") && (
               <Card className="mt-6" ref={sitesRef}>
-                <div className="bg-sky-200 p-4 rounded-t-lg flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-800">Sites</h2>
-                  <span className="text-sm font-medium text-gray-700">
-                    Total No of Sites : {trial.sites[0]?.total || "N/A"}
-                  </span>
+                <div className="bg-[#C6EDFD] px-6 py-4 rounded-t-xl border-b border-[#A2DDF9] flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-[#1E293B]">Site Information</h2>
+                  {trial.sites[0]?.total && (
+                    <Badge className="bg-[#E2E8F0] text-[#475569] hover:bg-[#E2E8F0] font-bold px-4 py-1.5 rounded-lg text-sm border-none shadow-none">
+                      Total No of Sites : {trial.sites[0].total}
+                    </Badge>
+                  )}
                 </div>
                 <CardContent className="p-6">
                   <div className="space-y-6">
-                    {/* Site Information */}
+                    {/* Site Information Details */}
                     <div>
-                      <h3 className="text-base font-semibold text-gray-800 mb-4">
-                        Site Information
-                      </h3>
 
                       {trial.sites[0]?.notes ? (() => {
                         // Parse the notes JSON string
@@ -2695,103 +2559,109 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           );
                         }
 
-                        return (
-                          <div className="space-y-4">
-                            {visibleNotes.map((note: any, index: number) => (
-                              <Card key={note.id || index} className="border border-gray-200">
-                                <CardContent className="p-6 space-y-4">
-                                  {/* Note Header */}
-                                  <div className="flex items-center justify-between">
-                                    <h4 className="font-medium text-gray-900">Note #{index + 1}</h4>
-                                    {note.isVisible === false && (
-                                      <Badge variant="outline" className="text-gray-500">
-                                        <EyeOff className="h-3 w-3 mr-1" />
-                                        Hidden
-                                      </Badge>
-                                    )}
-                                  </div>
-
-                                  {/* Note Fields */}
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Date */}
-                                    {note.date && (
-                                      <div>
-                                        <Label className="text-sm font-medium text-gray-600">Date</Label>
-                                        <p className="text-sm text-gray-700 mt-1">
-                                          {formatDateToMMDDYYYY(note.date)}
-                                        </p>
+                         return (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {visibleNotes.map((note: any, index: number) => {
+                              const isExpanded = expandedSiteNotes[index];
+                              
+                              return (
+                                <Card key={note.id || index} className="border border-gray-100 rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-all duration-200 bg-white">
+                                  <CardContent className="p-6 flex-1 flex flex-col">
+                                    {/* Header Row: Date and Registry Badge */}
+                                    <div className="flex items-center justify-between mb-5">
+                                      <div className="flex items-center gap-2">
+                                        {note.date && (
+                                          <div className="bg-[#F1F5F9] text-[#475569] px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm whitespace-nowrap">
+                                            {formatDateToMMDDYYYY(note.date)}
+                                          </div>
+                                        )}
+                                        {note.registryType && (
+                                          <div className="bg-[#F1F5F9] text-[#475569] px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm whitespace-nowrap">
+                                            {note.registryType}
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-
-                                    {/* Registry Type */}
-                                    {note.registryType && (
-                                      <div>
-                                        <Label className="text-sm font-medium text-gray-600">Registry Type</Label>
-                                        <p className="text-sm text-gray-700 mt-1">{note.registryType}</p>
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Content */}
-                                  {note.content && (
-                                    <div>
-                                      <Label className="text-sm font-medium text-gray-600">Content</Label>
-                                      <p className="text-sm text-black mt-1 whitespace-pre-wrap">
-                                        {note.content}
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  {/* View Source */}
-                                  {note.viewSource && (
-                                    <div>
-                                      <Label className="text-sm font-medium text-gray-600">View Source (URL)</Label>
-                                      <PreviewLink
-                                        href={note.viewSource}
-                                        title="View Source"
-                                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
+                                      <button 
+                                        onClick={() => toggleSiteNote(index)}
+                                        className="bg-[#204B73] text-white p-1 rounded-full hover:bg-[#1a3d5e] transition-colors shadow-sm flex-shrink-0"
                                       >
-                                        <LinkIcon className="h-4 w-4" />
-                                        {note.viewSource}
-                                      </PreviewLink>
+                                        {isExpanded ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                      </button>
                                     </div>
-                                  )}
 
-                                  {/* Attachments */}
-                                  {note.attachments && Array.isArray(note.attachments) && note.attachments.length > 0 && (
-                                    <div>
-                                      <Label className="text-sm font-medium text-gray-600">Attachments</Label>
-                                      <div className="flex flex-wrap gap-2 mt-2">
-                                        {note.attachments.map((attachment: any, attachIndex: number) => {
-                                          const fileUrl = typeof attachment === 'object' && attachment?.url
-                                            ? attachment.url
-                                            : (typeof attachment === 'string' ? attachment : null);
-                                          const fileName = typeof attachment === 'object' && attachment?.name
-                                            ? attachment.name
-                                            : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
-
-                                          return (
-                                            <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
-                                              <span className="text-sm text-gray-700">{fileName}</span>
-                                              {fileUrl && (
-                                                <a
-                                                  href={fileUrl}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="text-blue-600 hover:text-blue-800 text-sm"
-                                                >
-                                                  View
-                                                </a>
-                                              )}
+                                    {/* Body content */}
+                                    <div className="flex-1 space-y-4">
+                                      {note.content && (
+                                        <div className="space-y-4">
+                                          {note.content.split('\n').map((line: string, i: number) => {
+                                            if (line.includes(':')) {
+                                              const [label, value] = line.split(':');
+                                              return (
+                                                <div key={i} className="space-y-1">
+                                                  <label className="text-[14px] text-[#64748B] block font-medium leading-tight">
+                                                    {label.trim()} :
+                                                  </label>
+                                                  <span className="text-[16px] font-bold text-[#1E293B] block leading-snug">
+                                                    {value.trim()}
+                                                  </span>
+                                                </div>
+                                              );
+                                            }
+                                            return (
+                                              <p key={i} className="text-[16px] font-bold text-[#204B73] leading-snug">
+                                                {line}
+                                              </p>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                      
+                                      {isExpanded && (
+                                        <div className="pt-4 space-y-3 border-t border-gray-50 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                          {note.attachments && Array.isArray(note.attachments) && note.attachments.length > 0 && (
+                                            <div>
+                                              <label className="text-[13px] text-[#64748B] block font-semibold mb-2">Attachments :</label>
+                                              <div className="space-y-2">
+                                                {note.attachments.map((attachment: any, attachIndex: number) => {
+                                                  const fileUrl = typeof attachment === 'object' && attachment?.url ? attachment.url : attachment;
+                                                  const fileName = typeof attachment === 'object' && attachment?.name ? attachment.name : `File ${attachIndex + 1}`;
+                                                  return (
+                                                    <div key={attachIndex} className="flex items-center gap-2 p-2 bg-[#F8FAFC] rounded-lg border border-gray-100">
+                                                      <FileText className="h-4 w-4 text-[#204B73] flex-shrink-0" />
+                                                      <span className="text-[13px] text-gray-700 truncate flex-1 font-medium">{fileName}</span>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 px-3 text-[12px] text-[#204B73] hover:text-blue-800 font-bold hover:bg-blue-50"
+                                                        onClick={() => openLinkPreview(fileUrl, fileName)}
+                                                      >
+                                                        View
+                                                      </Button>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
                                             </div>
-                                          );
-                                        })}
-                                      </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
+
+                                    {/* Footer: View Source Button */}
+                                    <div className="mt-6 flex justify-end">
+                                      {note.viewSource && (
+                                        <Button
+                                          className="bg-[#204B73] hover:bg-[#1a3d5e] text-white px-6 py-2 h-10 rounded-md text-[14px] font-bold shadow-sm transition-all active:scale-95"
+                                          onClick={() => openLinkPreview(note.viewSource, "Site Source")}
+                                        >
+                                          View source
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              );
+                            })}
                           </div>
                         );
                       })() : (
