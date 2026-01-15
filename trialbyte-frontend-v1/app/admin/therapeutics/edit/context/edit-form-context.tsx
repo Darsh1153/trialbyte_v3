@@ -1001,44 +1001,97 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
       // Try to fetch from API first
       let data = null;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-        // Wrap fetch in a promise that never rejects
+      // Helper function to fetch with retry
+      const fetchWithRetry = async (url: string, options: RequestInit, retries = 2): Promise<Response | null> => {
+        for (let i = 0; i <= retries; i++) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout (increased from 5s)
+
+            const response = await fetch(url, {
+              ...options,
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+              return response;
+            }
+            console.warn(`API attempt ${i + 1} failed with status:`, response.status);
+          } catch (error) {
+            console.warn(`API attempt ${i + 1} failed:`, error);
+          }
+
+          // Wait before retry (exponential backoff)
+          if (i < retries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+          }
+        }
+        return null;
+      };
+
+      try {
         // Add timestamp to prevent caching
         const timestamp = new Date().getTime();
-        const fetchPromise = fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data?_t=${timestamp}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-          },
-          credentials: 'include',
-          signal: controller.signal,
-          cache: 'no-store',
-        }).catch(() => null); // Convert rejection to null
 
-        const response = await fetchPromise;
-        clearTimeout(timeoutId);
+        // Try the all-trials endpoint first
+        let response = await fetchWithRetry(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data?_t=${timestamp}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+            },
+            credentials: 'include',
+            cache: 'no-store',
+          }
+        );
 
-        if (response && response.ok) {
+        if (response) {
           data = await response.json().catch(() => null);
-        } else if (response) {
-          console.warn('API response not ok:', response.status);
-        } else {
-          console.warn('API fetch failed, trying localStorage');
+        }
+
+        // If all-trials endpoint fails, try the single trial endpoint as fallback
+        if (!data || !data.trials || data.trials.length === 0) {
+          console.log('All-trials endpoint failed, trying single trial endpoint...');
+          response = await fetchWithRetry(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trials/${trialId}?_t=${timestamp}`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+              },
+              credentials: 'include',
+              cache: 'no-store',
+            }
+          );
+
+          if (response) {
+            const singleTrialData = await response.json().catch(() => null);
+            if (singleTrialData) {
+              // Convert single trial response to the expected format
+              data = { trials: [singleTrialData.data || singleTrialData] };
+              console.log('Successfully fetched single trial data');
+            }
+          }
         }
       } catch (apiError) {
         console.warn('API fetch failed, trying localStorage:', apiError);
       }
 
       // If API failed, try localStorage
-      if (!data) {
+      if (!data || !data.trials || data.trials.length === 0) {
+        console.log('Trying localStorage fallback...');
         const localTrials = JSON.parse(localStorage.getItem('therapeuticTrials') || '[]');
         if (localTrials.length > 0) {
           data = { trials: localTrials };
+          console.log('Using localStorage data with', localTrials.length, 'trials');
         }
       }
 
@@ -3763,7 +3816,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               window.dispatchEvent(new CustomEvent('refreshFromEdit'));
             }
             return true; // Return success indicator
-          } else if (response) {
           } else if (response) {
             const errorText = await response.text().catch(() => 'Unknown error');
             console.warn('API update failed:', response.status, errorText);

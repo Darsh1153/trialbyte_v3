@@ -25,11 +25,11 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 import { formatDateToMMDDYYYY } from "@/lib/date-utils";
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   ChevronRight,
   Search,
-  FileText, 
+  FileText,
   Upload,
   Filter,
   Mail,
@@ -205,7 +205,17 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
   const resolvedParams = use(params);
   const [trial, setTrial] = useState<TherapeuticTrial | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const [expandedReferences, setExpandedReferences] = useState<Record<number, boolean>>({});
+  const [selectedRefForAttachments, setSelectedRefForAttachments] = useState<any>(null);
+
+  const toggleReference = (index: number) => {
+    setExpandedReferences(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+
   // Helper function to check if a value is valid (not null, undefined, or empty string)
   const isValidValue = (value: any): boolean => {
     return value !== null && value !== undefined && value !== "" && String(value).trim() !== "";
@@ -334,7 +344,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
           adverse_event_reported: result.adverse_event_reported || "N/A",
           adverse_event_type: result.adverse_event_type || null,
           treatment_for_adverse_events: result.treatment_for_adverse_events || null,
-          results_available: result.results_available !== null && result.results_available !== undefined 
+          results_available: result.results_available !== null && result.results_available !== undefined
             ? (result.results_available === true || result.results_available === "true" || result.results_available === "Yes")
             : null,
           endpoints_met: result.endpoints_met !== null && result.endpoints_met !== undefined
@@ -387,7 +397,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               const parsed = JSON.parse(note.attachments);
               return Array.isArray(parsed) ? parsed : [note.attachments];
             } catch {
-              return note.attachments.includes(',') 
+              return note.attachments.includes(',')
                 ? note.attachments.split(',').map((item: string) => item.trim()).filter((item: string) => item)
                 : [note.attachments];
             }
@@ -475,7 +485,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
     };
 
     window.addEventListener('storage', handleStorageChange);
-    
+
     // Also listen for custom events (for same-tab updates)
     const handleCustomRefresh = () => {
       console.log("Custom refresh event received, refreshing...");
@@ -578,7 +588,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
     setShowFilterDialog(false);
 
     if (sections.length > 0) {
-    toast({
+      toast({
         title: "Filter Applied",
         description: `Showing ${sections.length} selected section(s)`,
       });
@@ -649,9 +659,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
         heightLeft -= pageHeight;
       }
 
-      const fileName = `trial_${trial?.trial_id || "export"}_${
-        new Date().toISOString().split("T")[0]
-      }.pdf`;
+      const fileName = `trial_${trial?.trial_id || "export"}_${new Date().toISOString().split("T")[0]
+        }.pdf`;
 
       pdf.save(fileName);
 
@@ -739,7 +748,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
 
   // Intersection Observer to update active section on scroll
   useEffect(() => {
-  const sections = [
+    const sections = [
       { id: "overview", ref: overviewRef },
       { id: "objectives", ref: objectivesRef },
       { id: "treatmentPlan", ref: treatmentPlanRef },
@@ -843,9 +852,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div
-      className={`min-h-screen bg-gray-50 overflow-x-hidden ${
-        isMaximized ? "fixed inset-0 z-50 overflow-auto" : ""
-      }`}
+      className={`min-h-screen bg-gray-50 overflow-x-hidden ${isMaximized ? "fixed inset-0 z-50 overflow-auto" : ""
+        }`}
     >
       {/* Top Navigation */}
       <div className="bg-white border-b">
@@ -875,7 +883,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               Trial Details
             </Button>
 
-            <Button 
+            <Button
               onClick={handleRefresh}
               variant="outline"
               className="border-blue-600 text-blue-600 hover:bg-blue-50"
@@ -899,9 +907,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     <User className="h-4 w-4 text-gray-600" />
                   </div>
                   <ChevronDown
-                    className={`h-4 w-4 text-gray-400 transition-transform ${
-                      showLogoutDropdown ? "rotate-180" : ""
-                    }`}
+                    className={`h-4 w-4 text-gray-400 transition-transform ${showLogoutDropdown ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -966,35 +973,32 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
         <div className="w-full lg:w-64 bg-white border-r min-h-screen">
           <div className="p-4 space-y-2">
             {isSectionVisible("overview") && (
-                      <Button
+              <Button
                 variant="ghost"
                 onClick={() => scrollToSection("overview")}
-                className={`w-full justify-start ${
-                  activeSection === "overview"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "overview"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Overview
-                      </Button>
+              </Button>
             )}
             {isSectionVisible("objectives") && (
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("objectives")}
-                className={`w-full justify-start ${
-                  activeSection === "objectives"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "objectives"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded-full border-2 ${
-                    activeSection === "objectives"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded-full border-2 ${activeSection === "objectives"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Objectives
               </Button>
@@ -1003,11 +1007,10 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("treatmentPlan")}
-                className={`w-full justify-start ${
-                  activeSection === "treatmentPlan"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "treatmentPlan"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Treatment Plan
@@ -1017,11 +1020,10 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("patientDescription")}
-                className={`w-full justify-start ${
-                  activeSection === "patientDescription"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "patientDescription"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Patient Description
@@ -1031,18 +1033,16 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("timing")}
-                className={`w-full justify-start ${
-                  activeSection === "timing"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "timing"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded border ${
-                    activeSection === "timing"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "timing"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Timing
               </Button>
@@ -1051,11 +1051,10 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("outcome")}
-                className={`w-full justify-start ${
-                  activeSection === "outcome"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "outcome"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Outcome
@@ -1065,11 +1064,10 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("publishedResults")}
-                className={`w-full justify-start ${
-                  activeSection === "publishedResults"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "publishedResults"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Published Results
@@ -1079,18 +1077,16 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("sites")}
-                className={`w-full justify-start ${
-                  activeSection === "sites"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "sites"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded border ${
-                    activeSection === "sites"
-                      ? "border-blue-600"
-                      : "border-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "sites"
+                    ? "border-blue-600"
+                    : "border-gray-400"
+                    }`}
                 ></div>
                 Sites
               </Button>
@@ -1099,18 +1095,16 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <Button
                 variant="ghost"
                 onClick={() => scrollToSection("otherSources")}
-                className={`w-full justify-start ${
-                  activeSection === "otherSources"
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`w-full justify-start ${activeSection === "otherSources"
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <div
-                  className={`w-4 h-4 mr-2 rounded ${
-                    activeSection === "otherSources"
-                      ? "bg-blue-600"
-                      : "bg-gray-400"
-                  }`}
+                  className={`w-4 h-4 mr-2 rounded ${activeSection === "otherSources"
+                    ? "bg-blue-600"
+                    : "bg-gray-400"
+                    }`}
                 ></div>
                 Other Sources
               </Button>
@@ -1157,17 +1151,16 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                 <FileText className="h-4 w-4 mr-2" />
                 Logs
               </Button>
-                    </div>
-                  </div>
-                </div>
+            </div>
+          </div>
+        </div>
 
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           {/* Trial Header */}
           <div
-            className={`bg-white border-b ${
-              isMinimized ? "px-2 py-1" : "px-6 py-2"
-            }`}
+            className={`bg-white border-b ${isMinimized ? "px-2 py-1" : "px-6 py-2"
+              }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
@@ -1179,48 +1172,47 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                 </Badge>
               </div>
               <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMaximize}
-                    className={`${isMaximized ? "bg-blue-100 text-blue-600" : ""}`}
-                    title={isMaximized ? "Restore view" : "Maximize view"}
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleMinimize}
-                    className={`${isMinimized ? "bg-blue-100 text-blue-600" : ""}`}
-                    title={isMinimized ? "Expand view" : "Minimize view"}
-                  >
-                    <Minimize2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefresh}
-                    title="Refresh trial data"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleFilter}
-                    className={`${
-                      filteredSections.length > 0 ? "bg-blue-100 text-blue-600" : ""
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMaximize}
+                  className={`${isMaximized ? "bg-blue-100 text-blue-600" : ""}`}
+                  title={isMaximized ? "Restore view" : "Maximize view"}
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMinimize}
+                  className={`${isMinimized ? "bg-blue-100 text-blue-600" : ""}`}
+                  title={isMinimized ? "Expand view" : "Minimize view"}
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  title="Refresh trial data"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleFilter}
+                  className={`${filteredSections.length > 0 ? "bg-blue-100 text-blue-600" : ""
                     }`}
-                    title="Filter sections"
-                  >
-                    <Filter className="h-4 w-4" />
-                    {filteredSections.length > 0 && (
-                      <span className="ml-1 text-xs bg-blue-600 text-white rounded-full px-1">
-                        {filteredSections.length}
-                      </span>
-                    )}
-                  </Button>
+                  title="Filter sections"
+                >
+                  <Filter className="h-4 w-4" />
+                  {filteredSections.length > 0 && (
+                    <span className="ml-1 text-xs bg-blue-600 text-white rounded-full px-1">
+                      {filteredSections.length}
+                    </span>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
@@ -1301,9 +1293,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         <Badge className="bg-blue-600 text-white">
                           {trial.overview.therapeutic_area}
                         </Badge>
-                    </div>
                       </div>
-                      <div>
+                    </div>
+                    <div>
                       <span className="text-sm font-medium mb-2 block">
                         Trial Identifier :
                       </span>
@@ -1320,30 +1312,30 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           )
                         )}
                       </div>
-                      </div>
                     </div>
+                  </div>
 
                   {/* Scientific Title */}
                   <div className="mb-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">
                       Scientific Title
                     </h3>
-                    <p className="text-black text-sm leading-relaxed">
+                    <p className="text-black text-sm leading-relaxed whitespace-pre-wrap">
                       {trial.outcomes[0]?.purpose_of_trial ||
                         "No scientific title available"}
                     </p>
-                    </div>
+                  </div>
 
                   {/* Summary */}
                   <div className="mb-8">
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">
                       Summary
                     </h3>
-                    <p className="text-black text-sm leading-relaxed">
+                    <p className="text-black text-sm leading-relaxed whitespace-pre-wrap">
                       {trial.outcomes[0]?.summary ||
                         "No summary available"}
                     </p>
-                    </div>
+                  </div>
 
                   {/* Main Content Grid */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -1394,8 +1386,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </Badge>
                         </div>
                       </div>
-                  </div>
-                  
+                    </div>
+
                     {/* Right Column - Line of Therapy */}
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -1423,22 +1415,24 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">
                       Countries
                     </h3>
-                    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                      {countries.length > 0 ? (
-                        countries.map((country, index) => (
-                          <Badge
-                            key={index}
-                            variant="outline"
-                            className="text-center bg-gray-100 text-gray-700"
-                          >
-                            {country.trim()}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-gray-600">
-                          No countries specified
-                        </span>
-                      )}
+                    <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        {countries.length > 0 ? (
+                          countries.map((country, index) => (
+                            <Badge
+                              key={index}
+                              variant="outline"
+                              className="text-center bg-white text-gray-700 py-2.5 px-4 rounded-md border-gray-300 shadow-sm font-medium h-auto flex items-center justify-center"
+                            >
+                              {country.trim()}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-600">
+                            No countries specified
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1446,7 +1440,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Left Column - Details */}
                     <div className="space-y-4">
-                    <div>
+                      <div>
                         <span className="text-sm font-medium text-gray-600">
                           Region :
                         </span>
@@ -1495,7 +1489,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         </span>
                         <div className="space-y-1">
                           {trial.overview.reference_links &&
-                          trial.overview.reference_links.length > 0 ? (
+                            trial.overview.reference_links.length > 0 ? (
                             trial.overview.reference_links.map(
                               (link, index) => (
                                 <div key={index}>
@@ -1503,14 +1497,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                     •
                                   </span>
                                   <a
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="text-blue-600 text-xs ml-1 hover:underline"
-                          >
+                                  >
                                     {link}
-                          </a>
-                      </div>
+                                  </a>
+                                </div>
                               )
                             )
                           ) : (
@@ -1529,7 +1523,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           {trial.overview.trial_record_status || "N/A"}
                         </span>
                         <div className="w-4 h-4 bg-gray-400 rounded-full"></div>
-                    </div>
+                      </div>
                     </div>
 
                     {/* Right Column - Europe Map - Temporarily Commented */}
@@ -1557,7 +1551,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   <h2 className="text-lg font-semibold text-gray-800">
                     Objectives
                   </h2>
-                          </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="space-y-8">
                     {/* Purpose of the trial */}
@@ -1565,7 +1559,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       <h3 className="text-base font-semibold text-gray-700 mb-4">
                         Purpose of the trial
                       </h3>
-                      <p className="text-sm text-black leading-relaxed">
+                      <p className="text-sm text-black leading-relaxed whitespace-pre-wrap">
                         {trial.outcomes[0]?.purpose_of_trial ||
                           "No purpose description available"}
                       </p>
@@ -1573,7 +1567,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
 
                     {/* Primary Outcome */}
                     <div className="space-y-6">
-                          <div>
+                      <div>
                         <h3 className="text-base font-semibold text-blue-700 mb-4">
                           Primary Outcome
                         </h3>
@@ -1583,79 +1577,41 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="text-sm font-medium text-gray-600">
                               Outcome Measure :
                             </span>
-                            <p className="text-sm text-black mt-1">
+                            <p className="text-sm text-black mt-1 whitespace-pre-wrap">
                               {trial.outcomes[0]
                                 ?.primary_outcome_measure ||
                                 "No primary outcome measure available"}
                             </p>
                           </div>
 
-                            <div>
+                          <div>
                             <span className="text-sm font-medium text-gray-600">
                               Measure Description :
                             </span>
-                            <p className="text-sm text-black mt-1 leading-relaxed">
+                            <p className="text-sm text-black mt-1 leading-relaxed whitespace-pre-wrap">
                               {trial.outcomes[0]?.summary ||
                                 "No measure description available"}
                             </p>
-                            </div>
+                          </div>
 
-                            <div>
+                          <div>
                             <span className="text-sm font-medium text-gray-600">
                               Other Outcome Measures :
                             </span>
-                            <p className="text-sm text-black mt-1">
+                            <p className="text-sm text-black mt-1 whitespace-pre-wrap">
                               {trial.outcomes[0]
                                 ?.other_outcome_measure ||
                                 "No other outcome measures available"}
                             </p>
-                            </div>
-                          </div>
-                      </div>
-
-                      {/* Study Design */}
-                            <div>
-                        <h3 className="text-base font-semibold text-blue-700 mb-4">
-                          Study Design
-                        </h3>
-
-                        <div className="space-y-4">
-                          <div>
-                            <span className="text-sm font-medium text-gray-600">
-                              Study Design :
-                            </span>
-                            <p className="text-sm text-black mt-1">
-                              {trial.outcomes[0]?.study_design ||
-                                "No study design available"}
-                            </p>
-                            </div>
-
-                            <div>
-                            <span className="text-sm font-medium text-gray-600">
-                              Study Design Keywords :
-                            </span>
-                            <p className="text-sm text-black mt-1">
-                              {trial.outcomes[0]
-                                ?.study_design_keywords ||
-                                "No study design keywords available"}
-                            </p>
-                            </div>
-
-                          <div>
-                            <span className="text-sm font-medium text-gray-600">
-                              Number of Arms :
-                            </span>
-                            <p className="text-sm text-black mt-1">
-                              {trial.outcomes[0]?.number_of_arms ||
-                                "N/A"}
-                            </p>
                           </div>
                         </div>
                       </div>
+
+
                     </div>
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Treatment Plan Section */}
@@ -1665,7 +1621,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   <h2 className="text-lg font-semibold text-gray-800">
                     Treatment Plan
                   </h2>
-              </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="space-y-8">
                     {/* Study Design Keywords */}
@@ -1673,14 +1629,15 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       <h3 className="text-base font-semibold text-blue-700 mb-4">
                         Study Design Keywords
                       </h3>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-3">
                         {trial.outcomes[0]?.study_design_keywords ? (
                           trial.outcomes[0].study_design_keywords
                             .split(",")
                             .map((keyword, index) => (
                               <Badge
                                 key={index}
-                                className="bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                variant="outline"
+                                className="bg-gray-100 text-gray-800 py-3 px-8 rounded-md border-none font-bold text-sm h-auto flex items-center justify-center min-w-[120px]"
                               >
                                 {keyword.trim()}
                               </Badge>
@@ -1698,7 +1655,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       <h3 className="text-base font-semibold text-blue-700 mb-4">
                         Study Design
                       </h3>
-                        <div className="space-y-3">
+                      <div className="space-y-3">
                         <div className="flex items-start">
                           <span className="text-sm font-medium text-gray-600 min-w-[120px] flex-shrink-0">
                             Study Design :
@@ -1725,14 +1682,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </span>
                         </div>
                       </div>
-                      <p className="text-sm text-black mt-4 leading-relaxed">
+                      <p className="text-sm text-black mt-4 leading-relaxed whitespace-pre-wrap">
                         {trial.outcomes[0]?.summary ||
                           "No detailed study design description available"}
                       </p>
                     </div>
 
                     {/* Treatment Regimen */}
-                            <div>
+                    <div>
                       <h3 className="text-base font-semibold text-blue-700 mb-4">
                         Treatment Regimen
                       </h3>
@@ -1741,21 +1698,21 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <span className="text-sm font-medium text-gray-700">
                             Treatment Description :
                           </span>
-                              <p className="text-sm text-black mt-1">
+                          <p className="text-sm text-black mt-1 whitespace-pre-wrap">
                             {trial.outcomes[0]?.treatment_regimen ||
                               "No treatment regimen description available"}
-                              </p>
-                            </div>
-                            </div>
+                          </p>
+                        </div>
+                      </div>
 
                       <div className="mt-6 pt-4 border-t border-gray-200">
                         <span className="text-sm font-medium text-gray-700">
                           Number of arms:{" "}
                           {trial.outcomes[0]?.number_of_arms || "N/A"}
                         </span>
-                            </div>
-                            </div>
-                          </div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -1767,13 +1724,13 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   <h2 className="text-lg font-semibold text-gray-800">
                     Patient Description
                   </h2>
-                          </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column - Criteria (takes 2/3 width) */}
                     <div className="lg:col-span-2 space-y-8">
                       {/* Inclusion Criteria */}
-                          <div>
+                      <div>
                         <h3 className="text-base font-semibold text-blue-700 mb-4">
                           Inclusion Criteria
                         </h3>
@@ -1789,10 +1746,10 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             No inclusion criteria available
                           </span>
                         )}
-                            </div>
+                      </div>
 
                       {/* Exclusion Criteria */}
-                            <div>
+                      <div>
                         <h3 className="text-base font-semibold text-blue-700 mb-4">
                           Exclusion Criteria
                         </h3>
@@ -1802,14 +1759,14 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             <span className="whitespace-pre-wrap">
                               {trial.criteria[0].exclusion_criteria}
                             </span>
-                            </div>
+                          </div>
                         ) : (
                           <span className="text-sm text-gray-600">
                             No exclusion criteria available
                           </span>
                         )}
-                          </div>
-                        </div>
+                      </div>
+                    </div>
 
                     {/* Right Column - Patient Details (takes 1/3 width) */}
                     <div className="space-y-6">
@@ -1847,12 +1804,12 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         </h4>
                         <p className="text-sm text-gray-600">
                           {trial.criteria[0]?.healthy_volunteers ===
-                          "false"
+                            "false"
                             ? "No"
                             : trial.criteria[0]?.healthy_volunteers ===
                               "true"
-                            ? "Yes"
-                            : "N/A"}
+                              ? "Yes"
+                              : "N/A"}
                         </p>
                       </div>
 
@@ -1877,15 +1834,15 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       </div>
                     </div>
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Timing Section */}
             {isSectionVisible("timing") && (
               <Card className="mt-6" ref={timingRef}>
-                <div className="bg-sky-200 p-4 rounded-t-lg">
-                  <h2 className="text-lg font-semibold text-gray-800">
+                <div className="p-4 rounded-t-lg" style={{ backgroundColor: '#2B4863' }}>
+                  <h2 className="text-lg font-semibold text-white">
                     Timing
                   </h2>
                 </div>
@@ -1895,7 +1852,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse table-auto min-w-[800px]">
                         <thead>
-                          <tr className="bg-slate-600 text-white">
+                          <tr className="text-white" style={{ backgroundColor: '#2B4863' }}>
                             <th className="border border-slate-400 px-4 py-3 text-left text-sm font-medium">
                               Category
                             </th>
@@ -1935,8 +1892,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
-                              {isValidValue(trial.timing[0]?.inclusion_period_actual) 
-                                ? trial.timing[0].inclusion_period_actual 
+                              {isValidValue(trial.timing[0]?.inclusion_period_actual)
+                                ? trial.timing[0].inclusion_period_actual
                                 : "N/A"}
                             </td>
                             <td className="border border-slate-300 px-4 py-3 text-sm">
@@ -2055,37 +2012,33 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     <div className="flex items-center justify-center space-x-8">
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-600">
-                          Start Date :
+                          Overall duration to complete :
                         </span>
                         <Badge className="bg-green-600 text-white">
-                          {isValidValue(trial.timing[0]?.start_date_actual)
-                            ? formatDateToMMDDYYYY(trial.timing[0].start_date_actual)
-                            : isValidValue(trial.timing[0]?.start_date_estimated)
-                            ? formatDateToMMDDYYYY(trial.timing[0].start_date_estimated)
+                          {isValidValue(trial.timing[0]?.overall_duration_complete)
+                            ? trial.timing[0].overall_duration_complete
                             : "N/A"}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-600">
-                          End Date :
+                          Overall duration to publish :
                         </span>
                         <Badge className="bg-green-600 text-white">
-                          {isValidValue(trial.timing[0]?.trial_end_date_actual)
-                            ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_actual)
-                            : isValidValue(trial.timing[0]?.trial_end_date_estimated)
-                            ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_estimated)
+                          {isValidValue(trial.timing[0]?.overall_duration_publish)
+                            ? trial.timing[0].overall_duration_publish
                             : "N/A"}
                         </Badge>
                       </div>
                     </div>
 
                     {/* Reference Section */}
-                          <div>
+                    <div>
                       <h3 className="text-base font-semibold text-gray-800 mb-4">
                         Reference
                       </h3>
 
-                      {/* Reference Items */}
+                      {/* Reference Grid */}
                       {(() => {
                         // Parse timing_references if it's a string
                         let timingReferences = trial.timing[0]?.timing_references;
@@ -2097,99 +2050,143 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             timingReferences = null;
                           }
                         }
-                        
+
                         // Ensure it's an array and filter visible references
-                        const visibleReferences = Array.isArray(timingReferences) 
+                        const visibleReferences = Array.isArray(timingReferences)
                           ? timingReferences.filter((ref: any) => ref.isVisible !== false && (ref.date || ref.content))
                           : [];
-                        
+
                         if (visibleReferences.length === 0) {
                           return (
                             <div className="text-sm text-gray-500 mb-6">
                               No references available
-                          </div>
+                            </div>
                           );
                         }
-                        
+
                         return (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            {visibleReferences.map((ref: any, index: number) => (
-                              <div key={ref.id || index} className="bg-gray-50 rounded-lg p-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-700">
-                                    {ref.date ? formatDateToMMDDYYYY(ref.date) : "No date"}
-                            </p>
-                                  <p className="text-sm text-gray-600">{ref.registryType || "No registry type"}</p>
-                      </div>
-                                {ref.viewSource && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-blue-600"
-                                    onClick={() => window.open(ref.viewSource, '_blank')}
-                          >
-                                    <LinkIcon className="h-4 w-4" />
-                          </Button>
-                                )}
-                        </div>
-                            ))}
-                      </div>
+                            {visibleReferences.map((ref: any, index: number) => {
+                              const isExpanded = expandedReferences[index];
+                              return (
+                                <div
+                                  key={ref.id || index}
+                                  className={`border rounded-xl transition-all duration-300 overflow-hidden ${isExpanded ? 'bg-white shadow-md' : 'bg-white'}`}
+                                  style={{ borderColor: isExpanded ? '#2B4863' : '#E2E8F0' }}
+                                >
+                                  {/* Header Info */}
+                                  <div className="p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-100 font-medium px-3 py-1 text-xs">
+                                        {ref.date ? formatDateToMMDDYYYY(ref.date) : "No date"}
+                                      </Badge>
+                                      <Badge variant="secondary" className="bg-gray-100 text-gray-800 hover:bg-gray-100 font-medium px-3 py-1 text-xs">
+                                        {ref.registryType || "No registry type"}
+                                      </Badge>
+                                    </div>
+                                    <button
+                                      onClick={() => toggleReference(index)}
+                                      className="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                                      style={{ backgroundColor: '#2B4863', color: 'white' }}
+                                    >
+                                      {isExpanded ? <X size={14} strokeWidth={3} /> : <Plus size={14} strokeWidth={3} />}
+                                    </button>
+                                  </div>
+
+                                  {/* Expandable Content */}
+                                  {isExpanded && (
+                                    <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                      <div className="space-y-2 border-t pt-3">
+                                        <div className="flex text-xs">
+                                          <span className="font-bold text-[#2B4863] min-w-[150px]">Study Start (Actual) :</span>
+                                          <span className="text-gray-700">
+                                            {isValidValue(trial.timing[0]?.start_date_actual)
+                                              ? formatDateToMMDDYYYY(trial.timing[0].start_date_actual)
+                                              : "N/A"}
+                                          </span>
+                                        </div>
+                                        <div className="flex text-xs">
+                                          <span className="font-bold text-[#2B4863] min-w-[150px]">Primary Completion (Actual) :</span>
+                                          <span className="text-gray-700">
+                                            {isValidValue(trial.timing[0]?.enrollment_closed_actual)
+                                              ? formatDateToMMDDYYYY(trial.timing[0].enrollment_closed_actual)
+                                              : "N/A"}
+                                          </span>
+                                        </div>
+                                        <div className="flex text-xs">
+                                          <span className="font-bold text-[#2B4863] min-w-[150px]">Study Completion (Actual) :</span>
+                                          <span className="text-gray-700">
+                                            {isValidValue(trial.timing[0]?.trial_end_date_actual)
+                                              ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_actual)
+                                              : "N/A"}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 pt-2">
+                                        <Button
+                                          size="sm"
+                                          className="h-8 px-4 text-xs font-medium text-white shadow-sm"
+                                          style={{ backgroundColor: '#2B4863' }}
+                                          onClick={() => ref.viewSource && window.open(ref.viewSource, '_blank')}
+                                        >
+                                          View source
+                                        </Button>
+
+                                        <div className="flex items-center h-8 rounded-md shadow-sm overflow-hidden">
+                                          <Button
+                                            size="sm"
+                                            className="h-full px-3 text-xs font-medium text-white border-r border-[#ffffff33] rounded-none"
+                                            style={{ backgroundColor: '#2B4863' }}
+                                            onClick={() => {
+                                              if (ref.attachments && ref.attachments.length > 0) {
+                                                setSelectedRefForAttachments(ref);
+                                              } else {
+                                                toast({
+                                                  title: "No attachments",
+                                                  description: "No attachments available for this reference.",
+                                                });
+                                              }
+                                            }}
+                                          >
+                                            Attachments
+                                            <FileText className="ml-2 h-3.5 w-3.5" />
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            className="h-full px-2 text-white rounded-none"
+                                            style={{ backgroundColor: '#2B4863' }}
+                                            onClick={() => {
+                                              if (ref.attachments && ref.attachments.length > 0) {
+                                                ref.attachments.forEach((attach: any) => {
+                                                  if (attach.url) window.open(attach.url, '_blank');
+                                                });
+                                              } else if (ref.viewSource) {
+                                                window.open(ref.viewSource, '_blank');
+                                              } else {
+                                                toast({
+                                                  title: "Nothing to download",
+                                                  description: "No files or source links available to download.",
+                                                });
+                                              }
+                                            }}
+                                          >
+                                            <Download className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         );
                       })()}
-
-                      {/* Study Details */}
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-start">
-                          <span className="text-sm font-medium text-gray-600 min-w-[150px] flex-shrink-0">
-                            Study Start (Actual) :
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {isValidValue(trial.timing[0]?.start_date_actual)
-                              ? formatDateToMMDDYYYY(trial.timing[0].start_date_actual)
-                              : "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex items-start">
-                          <span className="text-sm font-medium text-gray-600 min-w-[150px] flex-shrink-0">
-                            Study Completion (Actual) :
-                          </span>
-                          <span className="text-sm text-gray-700">
-                            {isValidValue(trial.timing[0]?.trial_end_date_actual)
-                              ? formatDateToMMDDYYYY(trial.timing[0].trial_end_date_actual)
-                              : "N/A"}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center space-x-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-slate-600 text-white hover:bg-slate-700"
-                        >
-                          View source
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-slate-600 text-white hover:bg-slate-700"
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Attachments
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-600"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
                     </div>
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
 
             {/* Outcome Section */}
@@ -2208,24 +2205,24 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         <span className="text-sm font-medium text-gray-700">
                           Results available
                         </span>
-                        <Switch 
-                          checked={trial.results[0]?.results_available === true || trial.results[0]?.results_available === "true" || trial.results[0]?.results_available === "Yes"} 
+                        <Switch
+                          checked={trial.results[0]?.results_available === true || trial.results[0]?.results_available === "true" || trial.results[0]?.results_available === "Yes"}
                         />
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm font-medium text-gray-700">
                           Endpoints met
                         </span>
-                        <Switch 
-                          checked={trial.results[0]?.endpoints_met === true || trial.results[0]?.endpoints_met === "true" || trial.results[0]?.endpoints_met === "Yes"} 
+                        <Switch
+                          checked={trial.results[0]?.endpoints_met === true || trial.results[0]?.endpoints_met === "true" || trial.results[0]?.endpoints_met === "Yes"}
                         />
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm font-medium text-gray-700">
                           Adverse Events Reported
                         </span>
-                        <Switch 
-                          checked={trial.results[0]?.adverse_events_reported === true || trial.results[0]?.adverse_events_reported === "true" || trial.results[0]?.adverse_events_reported === "Yes" || trial.results[0]?.adverse_event_reported === "Yes"} 
+                        <Switch
+                          checked={trial.results[0]?.adverse_events_reported === true || trial.results[0]?.adverse_events_reported === "true" || trial.results[0]?.adverse_events_reported === "Yes" || trial.results[0]?.adverse_event_reported === "Yes"}
                         />
                       </div>
                     </div>
@@ -2272,9 +2269,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <h4 className="text-sm font-semibold text-gray-800 mb-2">
                             Link:
                           </h4>
-                          <a 
-                            href={trial.results[0].trial_outcome_link} 
-                            target="_blank" 
+                          <a
+                            href={trial.results[0].trial_outcome_link}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
                           >
@@ -2307,8 +2304,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                               </>
                             ) : (
                               <span className="text-sm text-gray-700">
-                                {typeof trial.results[0].trial_outcome_attachment === 'string' 
-                                  ? trial.results[0].trial_outcome_attachment 
+                                {typeof trial.results[0].trial_outcome_attachment === 'string'
+                                  ? trial.results[0].trial_outcome_attachment
                                   : "Attachment available"}
                               </span>
                             )}
@@ -2345,29 +2342,29 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                               )}
                             </ul>
                           </div>
-                      )}
+                        )}
 
                       {/* Adverse Events */}
-                      {(trial.results[0]?.adverse_event_reported === "Yes" || 
+                      {(trial.results[0]?.adverse_event_reported === "Yes" ||
                         trial.results[0]?.adverse_events_reported === true ||
                         trial.results[0]?.adverse_events_reported === "true" ||
                         trial.results[0]?.adverse_events_reported === "Yes") && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                            Adverse Events:
-                          </h4>
-                          {trial.results[0]?.adverse_event_type && (
-                            <p className="text-sm text-black mb-1">
-                              Type: {trial.results[0].adverse_event_type}
-                            </p>
-                          )}
-                          {trial.results[0]?.treatment_for_adverse_events && (
-                            <p className="text-sm text-black">
-                              Treatment: {trial.results[0].treatment_for_adverse_events}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                          <div>
+                            <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                              Adverse Events:
+                            </h4>
+                            {trial.results[0]?.adverse_event_type && (
+                              <p className="text-sm text-black mb-1">
+                                Type: {trial.results[0].adverse_event_type}
+                              </p>
+                            )}
+                            {trial.results[0]?.treatment_for_adverse_events && (
+                              <p className="text-sm text-black">
+                                Treatment: {trial.results[0].treatment_for_adverse_events}
+                              </p>
+                            )}
+                          </div>
+                        )}
                     </div>
                   </div>
                 </CardContent>
@@ -2391,7 +2388,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         const resultType = note.noteType || note.type || "N/A";
                         const source = note.sourceType || note.source || "N/A";
                         const content = note.content || "";
-                        
+
                         return (
                           <Card key={index} className="border border-gray-200">
                             <CardContent className="p-6 space-y-4">
@@ -2447,7 +2444,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                     {note.attachments.map((attachment: any, attachIndex: number) => {
                                       const fileUrl = typeof attachment === 'object' && attachment?.url ? attachment.url : (typeof attachment === 'string' ? attachment : null);
                                       const fileName = typeof attachment === 'object' && attachment?.name ? attachment.name : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
-                                      
+
                                       return (
                                         <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
                                           <span className="text-sm text-gray-700">{fileName}</span>
@@ -2517,7 +2514,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         const resultType = note.noteType || note.type || "N/A";
                         const source = note.sourceType || note.source || "N/A";
                         const content = note.content || "";
-                        
+
                         return (
                           <div key={index} className="bg-slate-700 rounded-lg overflow-hidden">
                             {/* Header */}
@@ -2588,7 +2585,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                       {note.attachments.map((attachment: any, attachIndex: number) => {
                                         const fileUrl = typeof attachment === 'object' && attachment?.url ? attachment.url : (typeof attachment === 'string' ? attachment : null);
                                         const fileName = typeof attachment === 'object' && attachment?.name ? attachment.name : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
-                                        
+
                                         return (
                                           <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
                                             <span className="text-sm text-gray-700">{fileName}</span>
@@ -2642,7 +2639,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           </div>
                         );
                       })}
-                    
+
                     {(!trial.results[0].site_notes || trial.results[0].site_notes.filter((note: any) => note.isVisible !== false).length === 0) && (
                       <div className="text-center py-8 text-gray-500">
                         No published results available
@@ -2674,8 +2671,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         // Parse the notes JSON string
                         let siteNotes: any[] = [];
                         try {
-                          const notesData = typeof trial.sites[0].notes === 'string' 
-                            ? JSON.parse(trial.sites[0].notes) 
+                          const notesData = typeof trial.sites[0].notes === 'string'
+                            ? JSON.parse(trial.sites[0].notes)
                             : trial.sites[0].notes;
                           siteNotes = Array.isArray(notesData) ? notesData : [];
                         } catch (e) {
@@ -2765,13 +2762,13 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                       <Label className="text-sm font-medium text-gray-600">Attachments</Label>
                                       <div className="flex flex-wrap gap-2 mt-2">
                                         {note.attachments.map((attachment: any, attachIndex: number) => {
-                                          const fileUrl = typeof attachment === 'object' && attachment?.url 
-                                            ? attachment.url 
+                                          const fileUrl = typeof attachment === 'object' && attachment?.url
+                                            ? attachment.url
                                             : (typeof attachment === 'string' ? attachment : null);
-                                          const fileName = typeof attachment === 'object' && attachment?.name 
-                                            ? attachment.name 
+                                          const fileName = typeof attachment === 'object' && attachment?.name
+                                            ? attachment.name
                                             : (typeof attachment === 'string' ? attachment : `Attachment ${attachIndex + 1}`);
-                                          
+
                                           return (
                                             <div key={attachIndex} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
                                               <span className="text-sm text-gray-700">{fileName}</span>
@@ -2816,11 +2813,11 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   <h2 className="text-lg font-semibold text-gray-800">
                     Other Sources
                   </h2>
-                          </div>
+                </div>
                 <CardContent className="p-6">
                   <div className="space-y-6">
                     {(() => { console.log("Rendering Other Sources - trial.other:", trial.other); return null; })()}
-                    
+
                     {/* Display Other Sources from step 5-7 */}
                     {trial.other && trial.other.length > 0 ? (
                       trial.other.map((source, index) => {
@@ -2860,11 +2857,11 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         };
 
                         return (
-                        <div key={index} className="bg-gray-50 rounded-lg p-4">
+                          <div key={index} className="bg-gray-50 rounded-lg p-4">
                             <div className="space-y-3">
                               <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                            <p className="text-sm font-medium text-gray-800">
+                                  <p className="text-sm font-medium text-gray-800">
                                     {getTypeLabel(parsedData.type)} #{index + 1}
                                   </p>
                                   {parsedData.date && (
@@ -2874,7 +2871,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                   )}
                                 </div>
                               </div>
-                              
+
                               {/* Display type-specific information */}
                               {parsedData.type === 'pipeline_data' && parsedData.information && (
                                 <div className="bg-white p-3 rounded border border-gray-200">
@@ -2942,7 +2939,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                               {parsedData.type === 'legacy' && parsedData.data && parsedData.data !== "N/A" && (
                                 <p className="text-sm text-gray-700">{parsedData.data}</p>
                               )}
-                              
+
                               {/* Display URL as link if not an image */}
                               {parsedData.url && parsedData.url !== "N/A" && !isImageUrl(parsedData.url) && (
                                 <div className="mt-2">
@@ -2955,9 +2952,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                     <LinkIcon className="h-3 w-3" />
                                     View Source Link
                                   </a>
-                          </div>
+                                </div>
                               )}
-                              
+
                               {/* Display uploaded images */}
                               {parsedData.url && isImageUrl(parsedData.url) && (
                                 <div className="mt-3">
@@ -3018,8 +3015,8 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       </div>
                     )}
                   </div>
-                  </CardContent>
-                </Card>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>
@@ -3058,7 +3055,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   onClick={() => {
                     if (trial) {
                       const dataStr = JSON.stringify(trial, null, 2);
-                      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
                       const exportFileDefaultName = `trial_${trial.trial_id}_backend_data.json`;
                       const linkElement = document.createElement('a');
                       linkElement.setAttribute('href', dataUri);
@@ -3158,7 +3155,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             ? prev
                             : [...prev, section.id]
                         );
-                        } else {
+                      } else {
                         setFilteredSections((prev) =>
                           prev.filter((id) => id !== section.id)
                         );
@@ -3172,27 +3169,27 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                     {section.label}
                   </label>
                 </div>
-                ))}
-              </div>
+              ))}
+            </div>
             <div className="flex justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
+              <Button
+                variant="outline"
                 onClick={() => {
                   setFilteredSections([]);
                   setShowFilterDialog(false);
                 }}
-                >
+              >
                 Clear All
-                </Button>
-                <Button
+              </Button>
+              <Button
                 onClick={() => {
                   applySectionFilter(filteredSections);
                 }}
-                >
-                  Apply Filter
-                </Button>
-              </div>
+              >
+                Apply Filter
+              </Button>
             </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3210,7 +3207,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               <h3 className="text-lg font-semibold mb-4">Trial Change Log</h3>
               <div className="space-y-3">
                 {trial?.logs &&
-                trial.logs.length > 0 ? (
+                  trial.logs.length > 0 ? (
                   trial.logs.map((log, index) => (
                     <div
                       key={index}
@@ -3225,7 +3222,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                             ? formatDateToMMDDYYYY(log.trial_added_date)
                             : "N/A"}
                         </span>
-              </div>
+                      </div>
                       <p className="text-sm text-black mb-2">
                         {log.trial_changes_log}
                       </p>
@@ -3234,43 +3231,43 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                           <span className="font-medium">Last Modified:</span>{" "}
                           {log.last_modified_date
                             ? new Date(
-                                log.last_modified_date
-                              ).toLocaleDateString()
+                              log.last_modified_date
+                            ).toLocaleDateString()
                             : "N/A"}
-                </div>
-                    <div>
+                        </div>
+                        <div>
                           <span className="font-medium">Modified By:</span>{" "}
                           {log.last_modified_user || "N/A"}
-                      </div>
+                        </div>
                         <div>
                           <span className="font-medium">Reviewed By:</span>{" "}
                           {log.full_review_user || "N/A"}
-                    </div>
-                    <div>
+                        </div>
+                        <div>
                           <span className="font-medium">Next Review:</span>{" "}
                           {log.next_review_date
                             ? new Date(
-                                log.next_review_date
-                              ).toLocaleDateString()
+                              log.next_review_date
+                            ).toLocaleDateString()
                             : "N/A"}
+                        </div>
                       </div>
                     </div>
-                  </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No change history available for this trial
-                </div>
+                  </div>
                 )}
               </div>
-              </div>
+            </div>
 
             {/* Trial Notes */}
             <div>
               <h3 className="text-lg font-semibold mb-4">Trial Notes</h3>
               <div className="space-y-3">
                 {trial?.notes &&
-                trial.notes.length > 0 ? (
+                  trial.notes.length > 0 ? (
                   trial.notes.map((note: any, index: number) => (
                     <div
                       key={index}
@@ -3280,7 +3277,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         <span className="text-sm font-medium text-gray-800">
                           Note #{index + 1} - {note.date_type}
                         </span>
-            </div>
+                      </div>
                       <p className="text-sm text-black mb-2 whitespace-pre-wrap">{note.notes}</p>
                       {note.link && (
                         <a
@@ -3307,24 +3304,24 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                                 {attachment}
                               </Badge>
                             ))}
-              </div>
-                </div>
+                          </div>
+                        </div>
                       )}
-                </div>
+                    </div>
                   ))
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No notes available for this trial
-              </div>
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Action Buttons */}
             <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => {
+              <Button
+                variant="outline"
+                onClick={() => {
                   // Export history data
                   const historyData = {
                     trial_id: trial?.trial_id,
@@ -3346,17 +3343,17 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                   document.body.removeChild(link);
                   URL.revokeObjectURL(url);
 
-                      toast({
+                  toast({
                     title: "History Exported",
                     description: "Trial history has been exported successfully",
                   });
                 }}
               >
                 Export History
-                </Button>
+              </Button>
               <Button onClick={() => setShowHistoryModal(false)}>Close</Button>
-              </div>
             </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3391,7 +3388,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         clipRule="evenodd"
                       />
                     </svg>
-            </div>
+                  </div>
                   <div>
                     <div className="font-medium">Export as PDF</div>
                     <div className="text-sm text-gray-500 flex items-center">
@@ -3421,9 +3418,9 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                       ) : (
                         "Complete trial document with all sections"
                       )}
-            </div>
-          </div>
-        </div>
+                    </div>
+                  </div>
+                </div>
               </Button>
 
               <Button
@@ -3445,7 +3442,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         clipRule="evenodd"
                       />
                     </svg>
-            </div>
+                  </div>
                   <div>
                     <div className="font-medium">Export as JSON</div>
                     <div className="text-sm text-gray-500">
@@ -3465,6 +3462,69 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                 Cancel
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attachments View Modal */}
+      <Dialog open={!!selectedRefForAttachments} onOpenChange={(open) => !open && setSelectedRefForAttachments(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reference Attachments</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedRefForAttachments?.attachments && selectedRefForAttachments.attachments.length > 0 ? (
+              <div className="space-y-2">
+                {selectedRefForAttachments.attachments.map((attach: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-[#2B4863]" />
+                      <span className="text-sm font-medium text-gray-700 truncate max-w-[200px]">
+                        {attach.name || `Attachment ${idx + 1}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 h-8"
+                        onClick={() => attach.url && window.open(attach.url, '_blank')}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-600 h-8"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = attach.url;
+                          link.download = attach.name || 'attachment';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No attachments found
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button
+              style={{ backgroundColor: '#2B4863' }}
+              onClick={() => setSelectedRefForAttachments(null)}
+              className="text-white"
+            >
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
