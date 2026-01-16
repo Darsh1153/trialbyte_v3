@@ -1053,22 +1053,7 @@ export default function DrugsDashboardPage() {
             <Filter className="h-4 w-4 mr-2" />
             Filter
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setSaveQueryModalOpen(true)}
-            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Query
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setQueryHistoryModalOpen(true)}
-            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Saved Queries
-          </Button>
+
           <Button
             variant="outline"
             onClick={() => fetchDrugs(true)}
@@ -1191,69 +1176,92 @@ export default function DrugsDashboardPage() {
       )}
 
       {/* Sort By Dropdown */}
-      <div className="flex items-center space-x-2">
-        <div className="relative">
-          <Button
-            variant="outline"
-            onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-            className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
-          >
-            <ChevronDown className="h-4 w-4 mr-2" />
-            Sort By
-            {sortField && (
-              <span className="ml-2 text-xs">
-                {sortDirection === "asc" ? "↑" : "↓"}
-              </span>
-            )}
-          </Button>
-          {sortDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-              <div className="py-1 max-h-60 overflow-y-auto">
-                {DRUG_COLUMN_OPTIONS.map((option) => (
-                  <button
-                    key={option.key}
-                    onClick={() => {
-                      handleSort(option.key);
-                      setSortDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortField === option.key ? "bg-gray-100 font-semibold" : ""
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{option.label}</span>
-                      {sortField === option.key && (
-                        <span className="text-xs">
-                          {sortDirection === "asc" ? "↑" : "↓"}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                ))}
+      {/* Sort By Dropdown and Query Actions */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="relative">
+            <Button
+              variant="outline"
+              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+              className="bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+            >
+              <ChevronDown className="h-4 w-4 mr-2" />
+              Sort By
+              {sortField && (
+                <span className="ml-2 text-xs">
+                  {sortDirection === "asc" ? "↑" : "↓"}
+                </span>
+              )}
+            </Button>
+            {sortDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                <div className="py-1 max-h-60 overflow-y-auto">
+                  {DRUG_COLUMN_OPTIONS.map((option) => (
+                    <button
+                      key={option.key}
+                      onClick={() => {
+                        handleSort(option.key);
+                        setSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${sortField === option.key ? "bg-gray-100 font-semibold" : ""
+                        }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{option.label}</span>
+                        {sortField === option.key && (
+                          <span className="text-xs">
+                            {sortDirection === "asc" ? "↑" : "↓"}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+          {sortField && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSortField("");
+                setSortDirection("asc");
+              }}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              Clear Sort
+            </Button>
           )}
-        </div>
-        {sortField && (
           <Button
             variant="outline"
-            size="sm"
-            onClick={() => {
-              setSortField("");
-              setSortDirection("asc");
-            }}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={() => setCustomizeColumnModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
           >
-            Clear Sort
+            <Settings className="h-4 w-4 mr-2" />
+            Customize Columns
           </Button>
-        )}
-        <Button
-          variant="outline"
-          onClick={() => setCustomizeColumnModalOpen(true)}
-          className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
-        >
-          <Settings className="h-4 w-4 mr-2" />
-          Customize Columns
-        </Button>
+        </div>
+
+        {/* Right side - Query Action Buttons */}
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            onClick={() => setSaveQueryModalOpen(true)}
+            className="bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Query
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setQueryHistoryModalOpen(true)}
+            className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+          >
+            <Clock className="h-4 w-4 mr-2" />
+            Saved Queries
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card">
@@ -1374,78 +1382,80 @@ export default function DrugsDashboardPage() {
       </div>
 
       {/* Pagination Controls */}
-      {totalItems > 0 && (
-        <div className="flex items-center justify-between px-4 py-4 border-t">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="items-per-page" className="text-sm font-medium">
-                Results per page:
-              </Label>
-              <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <SelectItem value="100">100</SelectItem>
-                </SelectContent>
-              </Select>
+      {
+        totalItems > 0 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="items-per-page" className="text-sm font-medium">
+                  Results per page:
+                </Label>
+                <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} results
-            </div>
+
+            {totalPages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={currentPage === pageNum}
+                          className="cursor-pointer"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
-
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-
-                  return (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        onClick={() => handlePageChange(pageNum)}
-                        isActive={currentPage === pageNum}
-                        className="cursor-pointer"
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
-
-                <PaginationItem>
-                  <PaginationNext
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
-        </div>
-      )}
+        )
+      }
 
       {/* Advanced Search Modal */}
       <DrugAdvancedSearchModal
@@ -1517,6 +1527,6 @@ export default function DrugsDashboardPage() {
         columnSettings={columnSettings}
         onColumnSettingsChange={handleColumnSettingsChange}
       />
-    </div>
+    </div >
   );
 }

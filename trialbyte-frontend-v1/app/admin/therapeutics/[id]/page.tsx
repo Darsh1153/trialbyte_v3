@@ -1069,16 +1069,16 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
               key={tab.id}
               onClick={() => switchToTrial(tab.id)}
               className={`flex items-center gap-3 px-5 py-2 rounded-full text-sm font-bold cursor-pointer transition-all whitespace-nowrap flex-shrink-0 ${tab.id === resolvedParams.id
-                  ? "bg-[#2B4863] text-white shadow-md"
-                  : "bg-transparent text-[#2B4863] hover:bg-[#2B4863]/10"
+                ? "bg-[#2B4863] text-white shadow-md"
+                : "bg-transparent text-[#2B4863] hover:bg-[#2B4863]/10"
                 }`}
             >
               <span>{tab.identifier}</span>
               <button
                 onClick={(e) => closeTrialTab(e, tab.id)}
                 className={`flex items-center justify-center w-5 h-5 rounded-full transition-colors ${tab.id === resolvedParams.id
-                    ? "bg-white/20 text-white hover:bg-white/30"
-                    : "bg-[#2B4863]/10 text-[#2B4863] hover:bg-[#2B4863]/20"
+                  ? "bg-white/20 text-white hover:bg-white/30"
+                  : "bg-[#2B4863]/10 text-[#2B4863] hover:bg-[#2B4863]/20"
                   }`}
               >
                 <X className="h-3 w-3" />
@@ -1381,6 +1381,7 @@ export default function TherapeuticDetailPage({ params }: { params: Promise<{ id
                         <Switch
                           checked={endpointsMet}
                           onCheckedChange={setEndpointsMet}
+                          disabled={true}
                         />
                       </div>
                       <div className="flex items-center space-x-4">
