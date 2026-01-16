@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { SaveQueryModal } from "@/components/save-query-modal"
 import { useDrugNames } from "@/hooks/use-drug-names"
+import { useMultipleDynamicDropdowns } from "@/hooks/use-dynamic-dropdown"
 
 import { TherapeuticFilterState, SearchableSelectOption } from "@/components/therapeutic-types"
 export type { TherapeuticFilterState, SearchableSelectOption } // Re-export for compatibility
@@ -1080,12 +1081,57 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
 
   // Use the drug names hook to get drug options from API
   const { drugNames, isLoading: drugsLoading, refreshFromAPI } = useDrugNames()
+  
+  // Map filter field names to dropdown category names
+  const categoryMapping: Record<string, string> = {
+    therapeuticAreas: 'therapeutic_area',
+    trialPhases: 'trial_phase',
+    statuses: 'trial_status',
+    diseaseTypes: 'disease_type',
+    patientSegments: 'patient_segment',
+    lineOfTherapy: 'line_of_therapy',
+    trialRecordStatus: 'trial_record_status',
+    sex: 'sex',
+    healthyVolunteers: 'healthy_volunteers',
+    trialOutcome: 'trial_outcome',
+    adverseEventReported: 'adverse_event_reported',
+    adverseEventType: 'adverse_event_type',
+    publicationType: 'publication_type',
+    registryName: 'registry_name',
+    studyType: 'study_type',
+    studyDesignKeywords: 'study_design_keywords',
+    // Additional mappings for fields that might have dropdown management categories
+    trialTags: 'trial_tags',
+    sponsorsCollaborators: 'sponsor_collaborators',
+    sponsorFieldActivity: 'sponsor_field_activity',
+    associatedCro: 'associated_cro',
+    countries: 'country',
+    regions: 'region',
+  }
 
-  // Refresh drug names when modal opens
+  // Memoize category configs to prevent infinite loops
+  const categoryConfigs = useMemo(() => {
+    return Object.entries(categoryMapping).map(([filterKey, categoryName]) => ({
+      categoryName,
+      fallbackOptions: DROPDOWN_OPTIONS[filterKey as keyof TherapeuticFilterState] || []
+    }));
+  }, []); // Empty deps since categoryMapping and DROPDOWN_OPTIONS are stable
+
+  // Fetch all dynamic dropdown options
+  const { results: dynamicDropdowns, loading: dropdownsLoading } = useMultipleDynamicDropdowns(categoryConfigs)
+
+  // Refresh drug names and all dropdown options when modal opens
   useEffect(() => {
     if (open) {
       refreshFromAPI()
+      // Refetch all dynamic dropdowns
+      Object.values(dynamicDropdowns).forEach(dropdown => {
+        if (dropdown?.refetch) {
+          dropdown.refetch()
+        }
+      })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, refreshFromAPI])
 
   // Update filters when currentFilters prop changes or modal opens
@@ -1116,6 +1162,12 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
       if (category === 'primaryDrugs' || category === 'otherDrugs') {
         return getDrugOptions()
       }
+      // For categories with dynamic dropdown options, use them
+      const categoryName = categoryMapping[category]
+      if (categoryName && dynamicDropdowns[categoryName]) {
+        return dynamicDropdowns[categoryName].options.map(opt => opt.label)
+      }
+      // Fallback to static options
       const options = DROPDOWN_OPTIONS[category]
       if (options && Array.isArray(options)) {
         return options.map(opt => opt.label)
@@ -1226,7 +1278,7 @@ export function TherapeuticFilterModal({ open, onOpenChange, onApplyFilters, cur
 
       setFilterCategories(fallbackCategories)
     }
-  }, [trials, drugNames])
+  }, [trials, drugNames, dynamicDropdowns])
 
   const handleSelectAll = (category: keyof TherapeuticFilterState) => {
     setFilters((prev) => ({

@@ -305,8 +305,18 @@ export default function AdminTherapeuticsPage() {
 
       setUserNameMap(prev => ({ ...prev, ...newMap }));
       console.log('User name mapping populated:', newMap);
-    } catch (error) {
-      console.log('Error populating user name map:', error);
+    } catch (error: any) {
+      // Handle network errors gracefully
+      const isNetworkError = error?.message?.includes('Failed to fetch') || 
+                            error?.message?.includes('NetworkError') ||
+                            error?.message?.includes('Network error');
+      
+      if (isNetworkError) {
+        console.warn("Network error populating user name map (non-critical):", error);
+      } else {
+        console.warn("Error populating user name map (non-critical):", error);
+      }
+      // Continue with existing map if user fetch fails
     }
   };
 
@@ -373,16 +383,27 @@ export default function AdminTherapeuticsPage() {
       }
 
       // Fetch fresh data from API (removed localStorage caching to avoid quota issues)
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
+      let response: Response;
+      try {
+        response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          }
+        );
+      } catch (fetchError: any) {
+        // Handle network errors gracefully
+        if (fetchError?.message?.includes('Failed to fetch') || fetchError?.name === 'TypeError') {
+          console.warn("Network error fetching trials (non-critical):", fetchError);
+          // Don't show error toast for network errors, just use existing data
+          return;
         }
-      );
+        throw fetchError;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -410,13 +431,23 @@ export default function AdminTherapeuticsPage() {
         });
       }
 
-    } catch (error) {
-      console.error("Error fetching trials:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch trials data. Please check your connection and try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) {
+      // Handle network errors gracefully
+      const isNetworkError = error?.message?.includes('Failed to fetch') || 
+                            error?.message?.includes('NetworkError') ||
+                            error?.name === 'TypeError';
+      
+      if (isNetworkError) {
+        console.warn("Network error fetching trials (non-critical):", error);
+        // Don't show error toast for network errors, just use existing data
+      } else {
+        console.warn("Error fetching trials (non-critical):", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch trials data. Please check your connection and try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -426,19 +457,29 @@ export default function AdminTherapeuticsPage() {
   // Fetch drugs and build drug name mapping
   const fetchDrugsAndBuildMapping = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
+      let response: Response;
+      try {
+        response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          }
+        );
+      } catch (fetchError: any) {
+        // Handle network errors gracefully
+        if (fetchError?.message?.includes('Failed to fetch') || fetchError?.name === 'TypeError') {
+          console.warn("Network error fetching drugs for mapping (non-critical):", fetchError);
+          return;
         }
-      );
+        throw fetchError;
+      }
 
       if (!response.ok) {
-        console.error("Failed to fetch drugs for mapping");
+        console.warn("Failed to fetch drugs for mapping (non-critical):", response.status);
         return;
       }
 
@@ -498,8 +539,18 @@ export default function AdminTherapeuticsPage() {
       } else {
         console.warn("Drug name mapping is empty! No drugs found or drugs have no names.");
       }
-    } catch (error) {
-      console.error("Error fetching drugs for mapping:", error);
+    } catch (error: any) {
+      // Handle network errors gracefully
+      const isNetworkError = error?.message?.includes('Failed to fetch') || 
+                            error?.message?.includes('NetworkError') ||
+                            error?.name === 'TypeError';
+      
+      if (isNetworkError) {
+        console.warn("Network error fetching drugs for mapping (non-critical):", error);
+      } else {
+        console.warn("Error fetching drugs for mapping (non-critical):", error);
+      }
+      // Continue without drug mapping if fetch fails
     }
   };
 

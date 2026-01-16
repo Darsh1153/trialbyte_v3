@@ -292,17 +292,15 @@ export default function EligibilitySection() {
         <div className="space-y-2">
           <Label>Age From</Label>
           <div className="flex gap-2">
-            <SearchableSelect
-              options={ageNumberOptions}
+            <Input
+              type="number"
+              placeholder="e.g., 18"
               value={getAgeValue(form.age_min)}
-              onValueChange={(value) => {
+              onChange={(e) => {
                 const currentUnit = getAgeUnit(form.age_min);
-                updateField("step5_3", "age_min", [value, currentUnit]);
+                updateField("step5_3", "age_min", [e.target.value, currentUnit]);
               }}
-              placeholder="0"
-              searchPlaceholder="Search age..."
-              emptyMessage="No age found."
-              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <SearchableSelect
               options={ageUnitOptions}
@@ -333,17 +331,15 @@ export default function EligibilitySection() {
         <div className="space-y-2">
           <Label>Age To</Label>
           <div className="flex gap-2">
-            <SearchableSelect
-              options={ageNumberOptions}
+            <Input
+              type="number"
+              placeholder="e.g., 65"
               value={getAgeValue(form.age_max)}
-              onValueChange={(value) => {
+              onChange={(e) => {
                 const currentUnit = getAgeUnit(form.age_max);
-                updateField("step5_3", "age_max", [value, currentUnit]);
+                updateField("step5_3", "age_max", [e.target.value, currentUnit]);
               }}
-              placeholder="150"
-              searchPlaceholder="Search age..."
-              emptyMessage="No age found."
-              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800"
+              className="border-gray-600 focus:border-gray-800 focus:ring-gray-800 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <SearchableSelect
               options={ageUnitOptions}

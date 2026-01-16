@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -43,12 +44,24 @@ export default function BasicInfoSection() {
   };
 
   const getPatientSegmentOptions = (): SearchableSelectOption[] => {
-    const therapeuticAreas = Array.isArray(form.therapeutic_area) ? form.therapeutic_area : (form.therapeutic_area ? [form.therapeutic_area] : []);
-    if (therapeuticAreas.length === 0) {
-      return patientSegmentOptions; // Return all options if no therapeutic area selected
+    // Get current disease type value(s)
+    const diseaseType = form.disease_type;
+    const diseaseTypeArray = Array.isArray(diseaseType) ? diseaseType : (diseaseType ? [diseaseType] : []);
+    
+    // Check if "breast" is selected (case-insensitive)
+    const isBreastSelected = diseaseTypeArray.some(dt => 
+      dt && typeof dt === 'string' && dt.toLowerCase().includes('breast')
+    );
+
+    // Options to exclude when breast is selected
+    const optionsToExclude = ['children', 'adults', 'healthy_volunteers', 'unknown', 'first_line', 'second_line', 'adjuvant'];
+    
+    if (isBreastSelected) {
+      // Filter out the excluded options when breast is selected
+      return patientSegmentOptions.filter(option => !optionsToExclude.includes(option.value));
     }
 
-    // For multiple therapeutic areas, return all patient segments
+    // Return all options if breast is not selected
     return patientSegmentOptions;
   };
 
@@ -68,6 +81,31 @@ export default function BasicInfoSection() {
     // Clear patient segment when disease type changes
     updateField("step5_1", "patient_segment", []);
   };
+
+  // Filter out excluded patient segment options when breast is selected
+  useEffect(() => {
+    const diseaseType = form.disease_type;
+    const diseaseTypeArray = Array.isArray(diseaseType) ? diseaseType : (diseaseType ? [diseaseType] : []);
+    const isBreastSelected = diseaseTypeArray.some(dt => 
+      dt && typeof dt === 'string' && dt.toLowerCase().includes('breast')
+    );
+
+    if (isBreastSelected) {
+      const optionsToExclude = ['children', 'adults', 'healthy_volunteers', 'unknown', 'first_line', 'second_line', 'adjuvant'];
+      const currentPatientSegment = form.patient_segment;
+      const patientSegmentArray = Array.isArray(currentPatientSegment) ? currentPatientSegment : (currentPatientSegment ? [currentPatientSegment] : []);
+      
+      // Filter out excluded options from current selection
+      const filteredPatientSegment = patientSegmentArray.filter(ps => 
+        ps && !optionsToExclude.includes(ps)
+      );
+
+      // Update if any excluded options were removed
+      if (filteredPatientSegment.length !== patientSegmentArray.length) {
+        updateField("step5_1", "patient_segment", filteredPatientSegment.length > 0 ? filteredPatientSegment : []);
+      }
+    }
+  }, [form.disease_type, form.patient_segment, updateField]);
 
   // Hierarchical data structure for cascading dropdowns
   const hierarchicalData = {

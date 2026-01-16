@@ -46,15 +46,34 @@ class DropdownManagementAPI {
         ...options,
       });
 
-      const data = await response.json();
-      
+      // Handle network errors
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        try {
+          const data = await response.json();
+          return {
+            success: false,
+            error: data.message || `Request failed (${response.status})`,
+          };
+        } catch {
+          return {
+            success: false,
+            error: `Request failed (${response.status})`,
+          };
+        }
       }
 
+      const data = await response.json();
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      // Handle network errors (API unreachable, CORS, etc.)
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        console.warn('Dropdown management API might be unreachable:', `${API_BASE_URL}/api/v1/dropdown-management${endpoint}`);
+        return {
+          success: false,
+          error: 'Network error - API might be unreachable',
+        };
+      }
+      console.warn('Dropdown management API request failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

@@ -395,7 +395,7 @@ export default function SitesSection() {
                     <Input
                       id={`ref-attachments-${index}`}
                       type="file"
-                      accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {

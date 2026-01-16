@@ -343,7 +343,7 @@ export default function ResultsSection() {
                 <div className="flex gap-2">
                   <Input
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -523,7 +523,7 @@ export default function ResultsSection() {
                     <Input
                       id={`site-note-attachments-${index}`}
                       type="file"
-                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -559,7 +559,19 @@ export default function ResultsSection() {
                             key={attachIndex}
                             className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm"
                           >
-                            <span className="truncate max-w-[200px]">{fileName}</span>
+                            {fileUrl ? (
+                              <a
+                                href={fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="truncate max-w-[200px] text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                                title={fileName}
+                              >
+                                {fileName}
+                              </a>
+                            ) : (
+                              <span className="truncate max-w-[200px]">{fileName}</span>
+                            )}
                             {fileUrl && (
                               <a
                                 href={fileUrl}

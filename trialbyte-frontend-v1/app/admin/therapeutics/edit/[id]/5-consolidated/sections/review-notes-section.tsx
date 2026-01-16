@@ -261,7 +261,7 @@ export default function ReviewNotesSection() {
                 <div className="flex gap-2">
                   <Input
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {

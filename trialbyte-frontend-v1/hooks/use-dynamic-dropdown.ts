@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { dropdownManagementAPI, DropdownOption, convertToSearchableSelectOptions } from '@/lib/dropdown-management-api';
 import { SearchableSelectOption } from '@/components/ui/searchable-select';
 
@@ -73,8 +73,29 @@ export const useMultipleDynamicDropdowns = (
 ) => {
   const [results, setResults] = useState<Record<string, UseDynamicDropdownReturn>>({});
   const [loading, setLoading] = useState(true);
+  
+  // Create a stable dependency key from categoryConfigs to prevent infinite loops
+  // This compares the actual content, not the array reference
+  const configsKey = useMemo(() => {
+    return JSON.stringify(
+      categoryConfigs.map(config => ({
+        categoryName: config.categoryName,
+        fallbackCount: config.fallbackOptions?.length || 0
+      }))
+    );
+  }, [categoryConfigs]);
+  
+  // Use a ref to track if we've already loaded for this config
+  const lastConfigsKeyRef = useRef<string>('');
 
   useEffect(() => {
+    // Only load if the configs actually changed
+    if (configsKey === lastConfigsKeyRef.current) {
+      return;
+    }
+    
+    lastConfigsKeyRef.current = configsKey;
+    
     const loadAllOptions = async () => {
       setLoading(true);
       const newResults: Record<string, UseDynamicDropdownReturn> = {};
@@ -107,19 +128,54 @@ export const useMultipleDynamicDropdowns = (
                 }
               };
             } else {
+              // API failed or returned empty data, use fallback options
               newResults[config.categoryName] = {
                 options: config.fallbackOptions || [],
                 loading: false,
                 error: response.error || 'No options available from API, using fallback options',
-                refetch: async () => {}
+                refetch: async () => {
+                  const refetchResponse = await dropdownManagementAPI.getOptions(config.categoryName);
+                  if (refetchResponse.success && refetchResponse.data && refetchResponse.data.length > 0) {
+                    const refetchOptions = convertToSearchableSelectOptions(refetchResponse.data);
+                    setResults(prev => ({
+                      ...prev,
+                      [config.categoryName]: {
+                        ...prev[config.categoryName],
+                        options: refetchOptions,
+                        loading: false,
+                        error: null,
+                      }
+                    }));
+                  }
+                }
               };
             }
           } catch (err) {
+            // Network error or other exception, use fallback options
+            console.warn(`Failed to fetch dropdown options for ${config.categoryName}:`, err);
             newResults[config.categoryName] = {
               options: config.fallbackOptions || [],
               loading: false,
               error: err instanceof Error ? err.message : 'Unknown error',
-              refetch: async () => {}
+              refetch: async () => {
+                try {
+                  const refetchResponse = await dropdownManagementAPI.getOptions(config.categoryName);
+                  if (refetchResponse.success && refetchResponse.data && refetchResponse.data.length > 0) {
+                    const refetchOptions = convertToSearchableSelectOptions(refetchResponse.data);
+                    setResults(prev => ({
+                      ...prev,
+                      [config.categoryName]: {
+                        ...prev[config.categoryName],
+                        options: refetchOptions,
+                        loading: false,
+                        error: null,
+                      }
+                    }));
+                  }
+                } catch (refetchErr) {
+                  console.warn(`Failed to refetch dropdown options for ${config.categoryName}:`, refetchErr);
+                }
+              }
             };
           }
         })
@@ -130,7 +186,7 @@ export const useMultipleDynamicDropdowns = (
     };
 
     loadAllOptions();
-  }, [categoryConfigs]);
+  }, [configsKey, categoryConfigs]);
 
   return {
     results,

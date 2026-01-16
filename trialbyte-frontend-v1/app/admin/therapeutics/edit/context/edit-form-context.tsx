@@ -150,12 +150,20 @@ const buildCriteriaPayload = (formData: EditTherapeuticFormData) => {
     sex: toNullableString(criteria.gender),
     healthy_volunteers: toNullableString(criteria.healthy_volunteers?.[0]),
     subject_type: toNullableString(criteria.subject_type),
-    target_no_volunteers: parseVolunteerNumber(
-      criteria.target_no_volunteers ?? formData.step5_4.estimated_enrollment
-    ),
-    actual_enrolled_volunteers: parseVolunteerNumber(
-      criteria.actual_enrolled_volunteers ?? formData.step5_4.actual_enrollment
-    ),
+    target_no_volunteers: (() => {
+      const value = criteria.target_no_volunteers ?? formData.step5_4.estimated_enrollment;
+      console.log('[buildCriteriaPayload] target_no_volunteers value:', value, 'Type:', typeof value);
+      const result = parseVolunteerNumber(value);
+      console.log('[buildCriteriaPayload] target_no_volunteers parsed:', result);
+      return result;
+    })(),
+    actual_enrolled_volunteers: (() => {
+      const value = criteria.actual_enrolled_volunteers ?? formData.step5_4.actual_enrollment;
+      console.log('[buildCriteriaPayload] actual_enrolled_volunteers value:', value, 'Type:', typeof value);
+      const result = parseVolunteerNumber(value);
+      console.log('[buildCriteriaPayload] actual_enrolled_volunteers parsed:', result);
+      return result;
+    })(),
   };
 
   console.log("[EditTherapeuticFormContext] buildCriteriaPayload output:", payload);
@@ -1376,13 +1384,39 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   : [],
                 age_min: ageMinParsed,
                 age_max: ageMaxParsed,
-                gender: toStringOrEmpty(criteria?.sex),
+                gender: (() => {
+                  const value = criteria?.sex;
+                  console.log('Loading gender/sex:', value, 'Type:', typeof value);
+                  if (value === null || value === undefined || value === "") return "";
+                  return typeof value === "string" ? value.trim() : String(value).trim();
+                })(),
                 healthy_volunteers: criteria?.healthy_volunteers
                   ? [toStringOrEmpty(criteria.healthy_volunteers)]
                   : [],
-                subject_type: toStringOrEmpty(criteria?.subject_type),
-                target_no_volunteers: toStringOrEmpty(criteria?.target_no_volunteers),
-                actual_enrolled_volunteers: toStringOrEmpty(criteria?.actual_enrolled_volunteers),
+                subject_type: (() => {
+                  const value = criteria?.subject_type;
+                  console.log('Loading subject_type:', value, 'Type:', typeof value);
+                  if (value === null || value === undefined || value === "") return "";
+                  return typeof value === "string" ? value.trim() : String(value).trim();
+                })(),
+                target_no_volunteers: (() => {
+                  const value = criteria?.target_no_volunteers;
+                  console.log('Loading target_no_volunteers:', value, 'Type:', typeof value, 'Raw:', JSON.stringify(value));
+                  if (value === null || value === undefined || value === "") return "";
+                  // Handle both string and number types
+                  const str = typeof value === "string" ? value.trim() : String(value).trim();
+                  // Remove any commas that might be in the value
+                  return str.replace(/,/g, "") || "";
+                })(),
+                actual_enrolled_volunteers: (() => {
+                  const value = criteria?.actual_enrolled_volunteers;
+                  console.log('Loading actual_enrolled_volunteers:', value, 'Type:', typeof value, 'Raw:', JSON.stringify(value));
+                  if (value === null || value === undefined || value === "") return "";
+                  // Handle both string and number types
+                  const str = typeof value === "string" ? value.trim() : String(value).trim();
+                  // Remove any commas that might be in the value
+                  return str.replace(/,/g, "") || "";
+                })(),
               };
 
               console.log('✅ Final mapped eligibility data:', eligibilityData);
@@ -2258,6 +2292,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
                   console.log(`Item ${index} type: ${itemType}, parsed data:`, parsedData);
                   console.log(`Item ${index} description field:`, parsedData?.description);
+                  console.log(`Item ${index} date field (raw):`, parsedData?.date, 'Type:', typeof parsedData?.date);
+                  console.log(`Item ${index} all keys:`, parsedData ? Object.keys(parsedData) : []);
 
                   if (!parsedData || !itemType) {
                     console.warn(`Item ${index} has unknown format, skipping`);
@@ -2293,10 +2329,15 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   } else if (itemType === 'publications') {
                     console.log(`📄 Loading publication ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
+                    console.log(`📄 Date value (raw):`, parsedData.date, 'Type:', typeof parsedData.date);
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    const publicationDate = parsedData.date || parsedData.publication_date || "";
+                    console.log(`📄 Date value (after fallback):`, publicationDate);
+                    const formattedDate = formatDateForUI(publicationDate);
+                    console.log(`📄 Date value (formatted):`, formattedDate);
                     publications.push({
                       id: item.id || parsedData.id || Date.now().toString(),
-                      date: formatDateForUI(parsedData.date || ""), // Format date from YYYY-MM-DD to MM-DD-YYYY
+                      date: formattedDate, // Format date from YYYY-MM-DD to MM-DD-YYYY
                       type: parsedData.publicationType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
@@ -2308,10 +2349,15 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   } else if (itemType === 'trial_registries') {
                     console.log(`📄 Loading trial registry ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
+                    console.log(`📄 Date value (raw):`, parsedData.date, 'Type:', typeof parsedData.date);
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    const registryDate = parsedData.date || parsedData.registry_date || "";
+                    console.log(`📄 Date value (after fallback):`, registryDate);
+                    const formattedDate = formatDateForUI(registryDate);
+                    console.log(`📄 Date value (formatted):`, formattedDate);
                     trial_registries.push({
                       id: item.id || parsedData.id || Date.now().toString(),
-                      date: formatDateForUI(parsedData.date || ""), // Format date from YYYY-MM-DD to MM-DD-YYYY
+                      date: formattedDate, // Format date from YYYY-MM-DD to MM-DD-YYYY
                       registry: parsedData.registry || "",
                       identifier: parsedData.identifier || "",
                       description: parsedData.description || parsedData.content || "",
@@ -2323,10 +2369,15 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   } else if (itemType === 'associated_studies') {
                     console.log(`📄 Loading associated study ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
+                    console.log(`📄 Date value (raw):`, parsedData.date, 'Type:', typeof parsedData.date);
                     const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    const studyDate = parsedData.date || parsedData.study_date || "";
+                    console.log(`📄 Date value (after fallback):`, studyDate);
+                    const formattedDate = formatDateForUI(studyDate);
+                    console.log(`📄 Date value (formatted):`, formattedDate);
                     associated_studies.push({
                       id: item.id || parsedData.id || Date.now().toString(),
-                      date: formatDateForUI(parsedData.date || ""), // Format date from YYYY-MM-DD to MM-DD-YYYY
+                      date: formattedDate, // Format date from YYYY-MM-DD to MM-DD-YYYY
                       type: parsedData.studyType || parsedData.type || "",
                       title: parsedData.title || "",
                       description: parsedData.description || parsedData.content || "",
@@ -2675,7 +2726,16 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             other_parsed: mappedData.step5_2.otherOutcomeMeasures,
           });
 
+          console.log('🔄 Dispatching SET_TRIAL_DATA with mapped eligibility data:', {
+            age_min: mappedData.step5_3.age_min,
+            age_max: mappedData.step5_3.age_max,
+            gender: mappedData.step5_3.gender,
+            target_no_volunteers: mappedData.step5_3.target_no_volunteers,
+            actual_enrolled_volunteers: mappedData.step5_3.actual_enrolled_volunteers,
+            subject_type: mappedData.step5_3.subject_type,
+          });
           dispatch({ type: "SET_TRIAL_DATA", payload: mappedData });
+          console.log('✅ Form state updated with new trial data');
 
           // Save all form sections to localStorage after loading from DB for auto-fill
           // This ensures that when revisiting the trial, the updated values are available
@@ -2724,11 +2784,12 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
     try {
       setIsSaving(true);
 
-      // Get user ID from localStorage
-      const currentUserId = localStorage.getItem("userId");
-      if (!currentUserId) {
-        throw new Error("User ID not found. Please log in again.");
-      }
+      // Get user ID from localStorage or use default admin UUID
+      const currentUserId = typeof window !== 'undefined' 
+        ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" 
+        : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
+      
+      console.log("👤 Current User ID:", currentUserId);
 
       // Check if we have original trial data
       if (!originalTrial) {
@@ -3640,8 +3701,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 }
               };
 
-              // Get current user ID
-              const currentUserId = localStorage.getItem("userId") || "admin";
+              // Get current user ID or use default admin UUID
+              const currentUserId = typeof window !== 'undefined' 
+                ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" 
+                : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
 
               // Prepare logs data
               const internalNoteValue = formData.step5_8.internalNote;
@@ -3807,14 +3870,15 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
             // Clear the localStorage update flag to ensure fresh data on next load
             localStorage.removeItem(`trial_updated_${trialId}`);
 
-            // Small delay to ensure database transaction completes
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Longer delay to ensure database transaction completes and data is committed
+            console.log('⏳ Waiting for database to commit changes before reloading...');
+            await new Promise(resolve => setTimeout(resolve, 1500)); // Increased to 1.5 seconds
 
             // Force reload the trial data to show the updated values
             // Pass skipLocalStorage=true to ensure fresh DB data is used
-            // Force reload the trial data to show the updated values
-            // Pass skipLocalStorage=true to ensure fresh DB data is used
+            console.log('🔄 Reloading trial data after save...');
             await loadTrialData(trialId, true);
+            console.log('✅ Trial data reloaded after save');
 
             // Trigger refresh event for the main page
             if (typeof window !== 'undefined') {

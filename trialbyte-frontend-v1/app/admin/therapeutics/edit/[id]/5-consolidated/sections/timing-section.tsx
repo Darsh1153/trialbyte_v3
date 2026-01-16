@@ -11,7 +11,6 @@ import CustomDateInput from "@/components/ui/custom-date-input";
 import { useEditTherapeuticForm } from "../../../context/edit-form-context";
 import { Calculator, Plus, X, Eye, EyeOff, ArrowLeft, ArrowRight, Loader2, Upload, FileText, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { PreviewLink } from "@/components/ui/preview-link";
 import { useEdgeStore } from "@/lib/edgestore";
 
 export default function TimingSection() {
@@ -1086,7 +1085,7 @@ export default function TimingSection() {
                     <Input
                       id={`ref-attachments-${index}`}
                       type="file"
-                      accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -1164,26 +1163,6 @@ export default function TimingSection() {
                   )}
                 </div>
 
-                {/* Preview Section */}
-                {reference.content && (
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                    <Label className="text-sm font-medium text-gray-700 mb-2 block">Preview</Label>
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-gray-800 whitespace-pre-wrap">{reference.content}</p>
-                      {reference.viewSource && (
-                        <div className="mt-2">
-                          <PreviewLink
-                            href={reference.viewSource}
-                            title="Reference Source"
-                            className="text-blue-600 hover:text-blue-800 underline text-sm"
-                          >
-                            View Source →
-                          </PreviewLink>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}

@@ -21,7 +21,22 @@ export function PreviewLink({
 }: PreviewLinkProps) {
   const { openLinkPreview } = useLinkPreview()
 
+  // Check if the link is a PDF or other file that should open in a new tab
+  const isFile = href && (
+    href.match(/\.(pdf|doc|docx|xls|xlsx|csv|ppt|pptx|txt|rtf|zip|rar|jpg|jpeg|png|gif|webp|bmp|svg)$/i) ||
+    href.includes('edgestore') ||
+    href.includes('utfs.io')
+  )
+
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // If it's a file (PDF, etc.), always open in new tab
+    if (isFile && href) {
+      e.preventDefault()
+      window.open(href, '_blank', 'noopener,noreferrer')
+      return
+    }
+    
+    // Otherwise, use the panel if enabled
     if (openInPanel && href) {
       e.preventDefault()
       openLinkPreview(href, title)
@@ -32,6 +47,8 @@ export function PreviewLink({
     <a
       href={href}
       onClick={handleClick}
+      target={isFile ? "_blank" : undefined}
+      rel={isFile ? "noopener noreferrer" : undefined}
       className={cn("cursor-pointer", className)}
       {...props}
     >

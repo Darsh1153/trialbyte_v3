@@ -73,13 +73,23 @@ async function request<T>(path: string, options: { method?: HttpMethod; body?: u
     
     if (!res.ok) {
       const message = data?.error || data?.message || `Request failed (${res.status})`;
-      console.error("API request failed:", {
-        status: res.status,
-        statusText: res.statusText,
-        url: targetUrl,
-        message,
-        data
-      });
+      // Only log as error for critical failures (5xx), use warn for client errors (4xx)
+      if (res.status >= 500) {
+        console.error("API request failed:", {
+          status: res.status,
+          statusText: res.statusText,
+          url: targetUrl,
+          message,
+          data
+        });
+      } else {
+        console.warn("API request failed (non-critical):", {
+          status: res.status,
+          statusText: res.statusText,
+          url: targetUrl,
+          message
+        });
+      }
       throw new Error(message);
     }
     return data as T;
@@ -87,8 +97,13 @@ async function request<T>(path: string, options: { method?: HttpMethod; body?: u
     if (error instanceof Error) {
       // Check if it's a network error
       if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-        console.error("Network error - API might be unreachable:", targetUrl);
-        throw new Error(`Cannot connect to API. Please check if the backend is running and the API URL is configured correctly.`);
+        console.warn("Network error - API might be unreachable:", targetUrl);
+        // Return a rejected promise with a proper error structure instead of throwing
+        return Promise.reject({
+          success: false,
+          error: 'Network error - API might be unreachable',
+          message: 'Cannot connect to API. Please check if the backend is running and the API URL is configured correctly.'
+        });
       }
       throw error;
     }

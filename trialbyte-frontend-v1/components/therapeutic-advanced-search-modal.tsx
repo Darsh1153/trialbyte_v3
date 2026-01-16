@@ -2,7 +2,7 @@
 
 import { formatDateToMMDDYYYY } from "@/lib/date-utils";
 import { getUniqueFieldValues, normalizePhaseValue, arePhasesEquivalent } from "@/lib/search-utils";
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +27,7 @@ import { MultiTagInput } from "@/components/ui/multi-tag-input"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { SaveQueryModal } from "@/components/save-query-modal"
 import { TherapeuticFilterState, TherapeuticSearchCriteria, DEFAULT_THERAPEUTIC_FILTERS } from "@/components/therapeutic-types"
+import { useMultipleDynamicDropdowns } from "@/hooks/use-dynamic-dropdown"
 export type { TherapeuticSearchCriteria } // Re-export for compatibility
 import { toast } from "@/hooks/use-toast"
 import { useDrugNames } from "@/hooks/use-drug-names"
@@ -556,6 +557,33 @@ export function TherapeuticAdvancedSearchModal({
   const [therapeuticData, setTherapeuticData] = useState<TherapeuticTrial[]>([])
   const [loading, setLoading] = useState(false)
   const { getPrimaryDrugsOptions, refreshFromAPI, isLoading: isDrugsLoading } = useDrugNames()
+  
+  // List of all dropdown categories that should use dynamic options
+  const dropdownCategories = [
+    'therapeutic_area', 'trial_phase', 'trial_status', 'disease_type', 'patient_segment',
+    'line_of_therapy', 'trial_record_status', 'sex', 'healthy_volunteers', 'trial_outcome',
+    'adverse_event_reported', 'adverse_event_type', 'publication_type', 'registry_name',
+    'study_type', 'study_design_keywords', 'trial_tags', 'sponsor_collaborators',
+    'sponsor_field_activity', 'associated_cro', 'country', 'region'
+  ]
+
+  // Map category names to field names for fallback options lookup
+  const categoryToFieldMap: Record<string, string> = {
+    'trial_status': 'status',
+    'sex': 'gender',
+    'country': 'countries',
+  };
+
+  // Memoize category configs to prevent infinite loops
+  const categoryConfigs = useMemo(() => {
+    return dropdownCategories.map(categoryName => ({
+      categoryName,
+      fallbackOptions: fieldOptions[categoryToFieldMap[categoryName] || categoryName] || []
+    }));
+  }, []); // Empty deps since dropdownCategories, categoryToFieldMap, and fieldOptions are stable
+
+  // Fetch all dynamic dropdown options
+  const { results: dynamicDropdowns, loading: dropdownsLoading } = useMultipleDynamicDropdowns(categoryConfigs)
 
   // Fetch therapeutic data when modal opens
   useEffect(() => {
@@ -563,11 +591,18 @@ export function TherapeuticAdvancedSearchModal({
       fetchTherapeuticData()
       // Refresh drug names from API to ensure we have the latest data
       refreshFromAPI()
+      // Refetch all dynamic dropdowns
+      Object.values(dynamicDropdowns).forEach(dropdown => {
+        if (dropdown?.refetch) {
+          dropdown.refetch()
+        }
+      })
       // Load initial criteria if provided
       if (initialCriteria && initialCriteria.length > 0) {
         setCriteria(initialCriteria)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialCriteria, refreshFromAPI])
 
   const fetchTherapeuticData = async () => {
@@ -755,7 +790,19 @@ export function TherapeuticAdvancedSearchModal({
 
   // Function to render the appropriate input type based on field
   const renderValueInput = (criterion: TherapeuticSearchCriteria) => {
-    const fieldOptionsForField = fieldOptions[criterion.field]
+    // Map field names to dropdown category names (some fields have different names)
+    const fieldToCategoryMap: Record<string, string> = {
+      'status': 'trial_status',
+      'gender': 'sex',
+      'countries': 'country',
+    };
+    const categoryName = fieldToCategoryMap[criterion.field] || criterion.field;
+    
+    // Use dynamic options if available, fallback to static fieldOptions
+    let fieldOptionsForField = fieldOptions[criterion.field]
+    if (dynamicDropdowns[categoryName] && dynamicDropdowns[categoryName].options.length > 0) {
+      fieldOptionsForField = dynamicDropdowns[categoryName].options
+    }
     const isDateField = dateFields.includes(criterion.field)
     // Exclude text-only fields from getting dynamic values - they should be text inputs
     const textOnlyFields = ['title', 'trial_identifier', 'purpose_of_trial', 'summary', 'treatment_regimen',

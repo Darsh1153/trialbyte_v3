@@ -78,7 +78,7 @@ router.get('/options', async (req, res) => {
         c.description as category_description
       FROM dropdown_options o
       JOIN dropdown_categories c ON o.category_id = c.id
-      WHERE c.is_active = true
+      WHERE c.is_active = true AND o.is_active = true
       ORDER BY c.name, o.sort_order, o.label
     `);
     

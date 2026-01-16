@@ -520,7 +520,7 @@ export default function ResultsSection() {
               <div className="flex items-center gap-2">
                 <Input
                   type="file"
-                  accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -682,7 +682,7 @@ export default function ResultsSection() {
                 <div className="flex items-center gap-2">
                   <Input
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -724,7 +724,19 @@ export default function ResultsSection() {
                           ) : (
                             <FileText className="h-4 w-4 text-gray-600" />
                           )}
-                          <span className="truncate max-w-[200px]">{attachmentName}</span>
+                          {attachmentUrl !== '#' ? (
+                            <a
+                              href={attachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="truncate max-w-[200px] text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                              title={attachmentName}
+                            >
+                              {attachmentName}
+                            </a>
+                          ) : (
+                            <span className="truncate max-w-[200px]">{attachmentName}</span>
+                          )}
                           {attachmentUrl !== '#' && (
                             <PreviewLink
                               href={attachmentUrl}

@@ -393,7 +393,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -431,8 +431,20 @@ export default function AdditionalInfoSection() {
                         ) : (
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
-                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
                         {item.fileUrl ? (
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 truncate text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                            title={meta.name || "Attachment"}
+                          >
+                            {meta.name || "Attachment"}
+                          </a>
+                        ) : (
+                          <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        )}
+                        {item.fileUrl && (
                           <a
                             href={item.fileUrl}
                             target="_blank"
@@ -442,7 +454,8 @@ export default function AdditionalInfoSection() {
                             <LinkIcon className="h-3 w-3" />
                             View
                           </a>
-                        ) : (
+                        )}
+                        {!item.fileUrl && (
                           <span className="text-xs text-gray-400">No preview</span>
                         )}
                         <Button
@@ -538,7 +551,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -576,8 +589,20 @@ export default function AdditionalInfoSection() {
                         ) : (
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
-                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
                         {item.fileUrl ? (
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 truncate text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                            title={meta.name || "Attachment"}
+                          >
+                            {meta.name || "Attachment"}
+                          </a>
+                        ) : (
+                          <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        )}
+                        {item.fileUrl && (
                           <a
                             href={item.fileUrl}
                             target="_blank"
@@ -587,7 +612,8 @@ export default function AdditionalInfoSection() {
                             <LinkIcon className="h-3 w-3" />
                             View
                           </a>
-                        ) : (
+                        )}
+                        {!item.fileUrl && (
                           <span className="text-xs text-gray-400">No preview</span>
                         )}
                         <Button
@@ -702,7 +728,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -740,8 +766,20 @@ export default function AdditionalInfoSection() {
                         ) : (
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
-                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
                         {item.fileUrl ? (
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 truncate text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                            title={meta.name || "Attachment"}
+                          >
+                            {meta.name || "Attachment"}
+                          </a>
+                        ) : (
+                          <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        )}
+                        {item.fileUrl && (
                           <a
                             href={item.fileUrl}
                             target="_blank"
@@ -751,7 +789,8 @@ export default function AdditionalInfoSection() {
                             <LinkIcon className="h-3 w-3" />
                             View
                           </a>
-                        ) : (
+                        )}
+                        {!item.fileUrl && (
                           <span className="text-xs text-gray-400">No preview</span>
                         )}
                         <Button
@@ -866,7 +905,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -904,8 +943,20 @@ export default function AdditionalInfoSection() {
                         ) : (
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
-                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
                         {item.fileUrl ? (
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 truncate text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                            title={meta.name || "Attachment"}
+                          >
+                            {meta.name || "Attachment"}
+                          </a>
+                        ) : (
+                          <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        )}
+                        {item.fileUrl && (
                           <a
                             href={item.fileUrl}
                             target="_blank"
@@ -915,7 +966,8 @@ export default function AdditionalInfoSection() {
                             <LinkIcon className="h-3 w-3" />
                             View
                           </a>
-                        ) : (
+                        )}
+                        {!item.fileUrl && (
                           <span className="text-xs text-gray-400">No preview</span>
                         )}
                         <Button
@@ -1030,7 +1082,7 @@ export default function AdditionalInfoSection() {
                       <div className="flex gap-2 mt-1">
                         <Input
                           type="file"
-                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.zip,.rar"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -1068,8 +1120,20 @@ export default function AdditionalInfoSection() {
                         ) : (
                           <FileText className="h-4 w-4 text-gray-600" />
                         )}
-                        <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
                         {item.fileUrl ? (
+                          <a
+                            href={item.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 truncate text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                            title={meta.name || "Attachment"}
+                          >
+                            {meta.name || "Attachment"}
+                          </a>
+                        ) : (
+                          <span className="flex-1 truncate">{meta.name || "Attachment"}</span>
+                        )}
+                        {item.fileUrl && (
                           <a
                             href={item.fileUrl}
                             target="_blank"
@@ -1079,7 +1143,8 @@ export default function AdditionalInfoSection() {
                             <LinkIcon className="h-3 w-3" />
                             View
                           </a>
-                        ) : (
+                        )}
+                        {!item.fileUrl && (
                           <span className="text-xs text-gray-400">No preview</span>
                         )}
                         <Button

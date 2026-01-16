@@ -64,11 +64,24 @@ export default function BasicInfoSection() {
   };
 
   const getPatientSegmentOptions = (): SearchableSelectOption[] => {
-    if (selectedTherapeuticAreas.length === 0) {
-      return patientSegmentOptions; // Return all options if no therapeutic area selected
+    // Get current disease type value(s)
+    const diseaseType = form.disease_type;
+    const diseaseTypeArray = Array.isArray(diseaseType) ? diseaseType : (diseaseType ? [diseaseType] : []);
+    
+    // Check if "breast" is selected (case-insensitive)
+    const isBreastSelected = diseaseTypeArray.some(dt => 
+      dt && typeof dt === 'string' && dt.toLowerCase().includes('breast')
+    );
+
+    // Options to exclude when breast is selected
+    const optionsToExclude = ['children', 'adults', 'healthy_volunteers', 'unknown', 'first_line', 'second_line', 'adjuvant'];
+    
+    if (isBreastSelected) {
+      // Filter out the excluded options when breast is selected
+      return patientSegmentOptions.filter(option => !optionsToExclude.includes(option.value));
     }
 
-    // For multiple therapeutic areas, return all patient segments
+    // Return all options if breast is not selected
     return patientSegmentOptions;
   };
 
@@ -88,6 +101,31 @@ export default function BasicInfoSection() {
     // Clear patient segment when disease type changes
     updateField("step5_1", "patient_segment", []);
   };
+
+  // Filter out excluded patient segment options when breast is selected
+  useEffect(() => {
+    const diseaseType = form.disease_type;
+    const diseaseTypeArray = Array.isArray(diseaseType) ? diseaseType : (diseaseType ? [diseaseType] : []);
+    const isBreastSelected = diseaseTypeArray.some(dt => 
+      dt && typeof dt === 'string' && dt.toLowerCase().includes('breast')
+    );
+
+    if (isBreastSelected) {
+      const optionsToExclude = ['children', 'adults', 'healthy_volunteers', 'unknown', 'first_line', 'second_line', 'adjuvant'];
+      const currentPatientSegment = form.patient_segment;
+      const patientSegmentArray = Array.isArray(currentPatientSegment) ? currentPatientSegment : (currentPatientSegment ? [currentPatientSegment] : []);
+      
+      // Filter out excluded options from current selection
+      const filteredPatientSegment = patientSegmentArray.filter(ps => 
+        ps && !optionsToExclude.includes(ps)
+      );
+
+      // Update if any excluded options were removed
+      if (filteredPatientSegment.length !== patientSegmentArray.length) {
+        updateField("step5_1", "patient_segment", filteredPatientSegment.length > 0 ? filteredPatientSegment : []);
+      }
+    }
+  }, [form.disease_type, form.patient_segment, updateField]);
 
   // Hierarchical data structure for cascading dropdowns
   const hierarchicalData = {
@@ -519,15 +557,28 @@ export default function BasicInfoSection() {
     const fetchCurrentUser = async () => {
       try {
         const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-        if (userId) {
-          const user = await usersApi.getById(userId);
-          // Check ipAuthority, ip_authority fields, or plan field (which is used to store IP Authority)
-          const ipAuthority = user?.ipAuthority || user?.ip_authority ||
-            (user?.plan && (user.plan.toLowerCase() === 'no' || user.plan.toLowerCase() === 'yes') ? user.plan.toLowerCase() : null);
-          setCurrentUserIpAuthority(ipAuthority);
+        
+        // Validate userId - must be a valid UUID format, not a fallback ID
+        if (userId && userId !== 'trialbyteuser-fallback-id') {
+          // Check if it's a valid UUID format
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (uuidRegex.test(userId)) {
+            try {
+              const user = await usersApi.getById(userId);
+              // Check ipAuthority, ip_authority fields, or plan field (which is used to store IP Authority)
+              const ipAuthority = user?.ipAuthority || user?.ip_authority ||
+                (user?.plan && (user.plan.toLowerCase() === 'no' || user.plan.toLowerCase() === 'yes') ? user.plan.toLowerCase() : null);
+              setCurrentUserIpAuthority(ipAuthority);
+            } catch (apiError) {
+              // Silently handle API errors (user might not exist or API might be unavailable)
+              console.warn('Could not fetch user data (non-critical):', apiError);
+            }
+          } else {
+            console.warn('Invalid user ID format, skipping user fetch:', userId);
+          }
         }
       } catch (error) {
-        console.error('Error fetching current user:', error);
+        console.warn('Error fetching current user (non-critical):', error);
       } finally {
         setIsLoadingUser(false);
       }
