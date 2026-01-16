@@ -2218,7 +2218,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   }
                 };
 
-                // considerUnknown(urlValue); // Do not use the text URL field to populate the fileUrl attachment field
+                considerUnknown(urlValue);
                 considerUnknown(fileValue);
 
                 const attachmentCandidates = collectOtherSourceAttachments(attachmentsValue);

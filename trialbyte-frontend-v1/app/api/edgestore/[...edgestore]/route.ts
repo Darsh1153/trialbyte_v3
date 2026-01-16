@@ -15,18 +15,20 @@ const createEdgeStoreRouter = (es: ReturnType<typeof initEdgeStore.create>) => {
 const buildEdgeStoreHandler = () => {
   console.log('[EdgeStore] buildEdgeStoreHandler invoked');
 
-  const accessKey = process.env.EDGE_STORE_ACCESS_KEY;
-  const secretKey = process.env.EDGE_STORE_SECRET_KEY;
+  // Hardcoded keys with basic "cryptography" (Base64 encoding) as requested
+  const ENCRYPTED_ACCESS_KEY = "V3NHYnQ2Q1FnYUtnOXJmMXdJMEg0a2FqV3BNTzYxalM=";
+  const ENCRYPTED_SECRET_KEY = "Q0dpVUxPTWlZTVhiQk9ENnphYktwcEhWaTg3ZG1obzlWdFJhWjNwdlN0YU96bWFj";
 
-  if (!accessKey || !secretKey) {
-    console.error('[EdgeStore] Missing credentials – EDGE_STORE_ACCESS_KEY and EDGE_STORE_SECRET_KEY must be configured.');
-    return null;
-  }
+  const accessKey = Buffer.from(ENCRYPTED_ACCESS_KEY, 'base64').toString('utf-8');
+  const secretKey = Buffer.from(ENCRYPTED_SECRET_KEY, 'base64').toString('utf-8');
 
-  const es = initEdgeStore.create({
-    accessKey,
-    secretKey,
-  });
+  console.log('[EdgeStore] Using hardcoded credentials');
+
+  // Set environment variables for EdgeStore to pick up (avoiding type issues with create())
+  process.env.EDGE_STORE_ACCESS_KEY = accessKey;
+  process.env.EDGE_STORE_SECRET_KEY = secretKey;
+
+  const es = initEdgeStore.create();
 
   /**
    * This is the main router for the Edge Store buckets.
@@ -43,27 +45,27 @@ let cachedHandler: ReturnType<typeof buildEdgeStoreHandler> | null = null;
 
 const handler = async (req: Request, ...args: any[]) => {
   console.log('[EdgeStore] handler invoked', { method: req.method, url: req.url });
-  
+
   try {
     // Build handler if not cached
     if (!cachedHandler) {
       console.log('[EdgeStore] Building handler...');
       cachedHandler = buildEdgeStoreHandler();
     }
-    
+
     if (!cachedHandler) {
       console.error('[EdgeStore] Handler not available - missing credentials');
       return new Response(
-        JSON.stringify({ 
-          error: 'EdgeStore not configured. Please set EDGE_STORE_ACCESS_KEY and EDGE_STORE_SECRET_KEY environment variables.' 
+        JSON.stringify({
+          error: 'EdgeStore not configured. Please set EDGE_STORE_ACCESS_KEY and EDGE_STORE_SECRET_KEY environment variables.'
         }),
-        { 
+        {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         }
       );
     }
-    
+
     // Call the Edge Store handler with all arguments
     console.log('[EdgeStore] Calling Edge Store handler...');
     return await cachedHandler(req, ...args);
@@ -72,10 +74,10 @@ const handler = async (req: Request, ...args: any[]) => {
     const errorMessage = error instanceof Error ? error.message : 'Failed to process EdgeStore request';
     console.error('[EdgeStore] Error details:', { message: errorMessage, stack: error instanceof Error ? error.stack : undefined });
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage 
+      JSON.stringify({
+        error: errorMessage
       }),
-      { 
+      {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       }
