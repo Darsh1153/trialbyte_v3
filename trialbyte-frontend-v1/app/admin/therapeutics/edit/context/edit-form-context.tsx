@@ -2218,7 +2218,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   }
                 };
 
-                considerUnknown(urlValue);
+                // considerUnknown(urlValue); // Do not use the text URL field to populate the fileUrl attachment field
                 considerUnknown(fileValue);
 
                 const attachmentCandidates = collectOtherSourceAttachments(attachmentsValue);
@@ -2785,10 +2785,10 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       setIsSaving(true);
 
       // Get user ID from localStorage or use default admin UUID
-      const currentUserId = typeof window !== 'undefined' 
-        ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" 
+      const currentUserId = typeof window !== 'undefined'
+        ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497"
         : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
-      
+
       console.log("👤 Current User ID:", currentUserId);
 
       // Check if we have original trial data
@@ -3702,8 +3702,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               };
 
               // Get current user ID or use default admin UUID
-              const currentUserId = typeof window !== 'undefined' 
-                ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" 
+              const currentUserId = typeof window !== 'undefined'
+                ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497"
                 : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
 
               // Prepare logs data
