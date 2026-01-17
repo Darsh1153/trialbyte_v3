@@ -22,21 +22,28 @@ function resolveBaseUrl(): string {
     return cachedBaseUrl;
   }
 
-  if (typeof window !== "undefined") {
-    const origin = window.location.origin.replace(/\/$/, "");
-    cachedBaseUrl = origin;
-    debugApiLog("resolveBaseUrl using window origin", cachedBaseUrl);
-    return cachedBaseUrl;
-  }
-
+  // In development, use localhost fallback
   if (process.env.NODE_ENV === "development") {
     cachedBaseUrl = DEFAULT_DEV_API_BASE;
     debugApiLog("resolveBaseUrl using development fallback", cachedBaseUrl);
     return cachedBaseUrl;
   }
 
+  // In production, if NEXT_PUBLIC_API_BASE_URL is not set, log error and return empty
+  // This will cause API calls to fail, making it obvious that the env var is missing
+  if (process.env.NODE_ENV === "production") {
+    console.error(
+      "❌ NEXT_PUBLIC_API_BASE_URL is not set! " +
+      "Please set this environment variable in Vercel to your backend URL."
+    );
+    cachedBaseUrl = "";
+    debugApiLog("resolveBaseUrl production mode - env var missing", cachedBaseUrl);
+    return cachedBaseUrl;
+  }
+
+  // Fallback for other cases
   cachedBaseUrl = "";
-  debugApiLog("resolveBaseUrl defaulting to relative paths", cachedBaseUrl);
+  debugApiLog("resolveBaseUrl defaulting to empty", cachedBaseUrl);
   return cachedBaseUrl;
 }
 
