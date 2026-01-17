@@ -41,6 +41,7 @@ import { SaveQueryModal } from "@/components/save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
 import { CustomizeColumnModal, ColumnSettings, DEFAULT_COLUMN_SETTINGS } from "@/components/customize-column-modal";
 import { FavoriteTrialsModal } from "@/components/favorite-trials-modal";
+import { buildApiUrl } from "@/app/_lib/api";
 
 // Types based on the therapeutics API response
 interface TherapeuticTrial {
@@ -196,16 +197,15 @@ export default function ClinicalTrialDashboard() {
       } else {
         setLoading(true);
       }
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
+      // Use normalized URL helper to prevent double slashes
+      const apiUrl = buildApiUrl("/api/v1/therapeutic/all-trials-with-data");
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);

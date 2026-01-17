@@ -45,7 +45,7 @@ import { SaveQueryModal } from "@/components/save-query-modal";
 import { QueryHistoryModal } from "@/components/query-history-modal";
 import { QueryLogsModal } from "@/components/query-logs-modal";
 import { CustomizeColumnModal, ColumnSettings, DEFAULT_COLUMN_SETTINGS, COLUMN_OPTIONS } from "@/components/customize-column-modal";
-import { usersApi } from "@/app/_lib/api";
+import { usersApi, buildApiUrl } from "@/app/_lib/api";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 // Types based on the API response
@@ -385,16 +385,15 @@ export default function AdminTherapeuticsPage() {
       // Fetch fresh data from API (removed localStorage caching to avoid quota issues)
       let response: Response;
       try {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          }
-        );
+        // Use normalized URL helper to prevent double slashes
+        const apiUrl = buildApiUrl("/api/v1/therapeutic/all-trials-with-data");
+        response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
       } catch (fetchError: any) {
         // Handle network errors gracefully
         if (fetchError?.message?.includes('Failed to fetch') || fetchError?.name === 'TypeError') {
@@ -459,16 +458,15 @@ export default function AdminTherapeuticsPage() {
     try {
       let response: Response;
       try {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/drugs/all-drugs-with-data`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          }
-        );
+        // Use normalized URL helper to prevent double slashes
+        const apiUrl = buildApiUrl("/api/v1/drugs/all-drugs-with-data");
+        response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
       } catch (fetchError: any) {
         // Handle network errors gracefully
         if (fetchError?.message?.includes('Failed to fetch') || fetchError?.name === 'TypeError') {
@@ -604,16 +602,16 @@ export default function AdminTherapeuticsPage() {
     setIsDeletingAllTrials(true);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials/dev`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ user_id: currentUserId }),
-        }
+      // Use normalized URL helper to prevent double slashes
+      const apiUrl = buildApiUrl("/api/v1/therapeutic/all-trials/dev");
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ user_id: currentUserId }),
+      }
       );
 
       if (response.ok) {
@@ -667,13 +665,12 @@ export default function AdminTherapeuticsPage() {
         ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497"
         : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trial/${trialId}/${currentUserId}/delete-all`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        }
-      );
+      // Use normalized URL helper to prevent double slashes
+      const apiUrl = buildApiUrl(`/api/v1/therapeutic/trial/${trialId}/${currentUserId}/delete-all`);
+      const response = await fetch(apiUrl, {
+        method: "DELETE",
+        credentials: "include",
+      });
 
       if (response.ok) {
         // Clear localStorage cache to prevent stale data

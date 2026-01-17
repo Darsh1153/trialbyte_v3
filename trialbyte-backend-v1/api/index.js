@@ -88,6 +88,15 @@ const corsOptions = {
 // extra packages
 app.use(express.json());
 
+// Normalize URLs to prevent double-slash redirects that break CORS preflight
+app.use((req, res, next) => {
+  // Normalize the URL path by removing double slashes (but preserve http:// or https://)
+  if (req.url.includes('//')) {
+    req.url = req.url.replace(/([^:]\/)\/+/g, '$1');
+  }
+  next();
+});
+
 // Handle preflight requests for all routes
 app.options('*', cors(corsOptions));
 

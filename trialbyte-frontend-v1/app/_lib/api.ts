@@ -17,7 +17,8 @@ function resolveBaseUrl(): string {
 
   const envBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").trim();
   if (envBase) {
-    cachedBaseUrl = envBase.replace(/\/$/, "");
+    // Remove trailing slash to prevent double slashes when concatenating paths
+    cachedBaseUrl = envBase.replace(/\/+$/, "");
     debugApiLog("resolveBaseUrl using env base", cachedBaseUrl);
     return cachedBaseUrl;
   }
@@ -49,8 +50,12 @@ function resolveBaseUrl(): string {
 
 function buildRequestUrl(path: string): string {
   const baseUrl = resolveBaseUrl();
+  // Ensure path starts with / and remove any leading slashes to prevent double slashes
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const fullUrl = baseUrl ? `${baseUrl}${normalizedPath}` : normalizedPath;
+  // Remove any double slashes that might occur (but preserve http:// or https://)
+  const fullUrl = baseUrl
+    ? `${baseUrl}${normalizedPath}`.replace(/([^:]\/)\/+/g, "$1")
+    : normalizedPath;
   debugApiLog("buildRequestUrl computed url", { baseUrl, normalizedPath, fullUrl });
   return fullUrl;
 }
@@ -383,5 +388,20 @@ export const drugsApi = {
 };
 
 export type { HttpMethod };
+
+/**
+ * Helper function to build a normalized API URL, removing double slashes
+ * Use this for direct fetch calls instead of manually concatenating URLs
+ */
+export function buildApiUrl(path: string): string {
+  const baseUrl = resolveBaseUrl();
+  // Ensure path starts with / and remove any leading slashes to prevent double slashes
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  // Remove any double slashes that might occur (but preserve http:// or https://)
+  const fullUrl = baseUrl
+    ? `${baseUrl}${normalizedPath}`.replace(/([^:]\/)\/+/g, "$1")
+    : normalizedPath;
+  return fullUrl;
+}
 
 
