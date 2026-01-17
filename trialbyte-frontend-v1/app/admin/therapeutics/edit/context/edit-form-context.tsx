@@ -2142,19 +2142,33 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 let fileName = "";
                 let fileUrl = "";
 
-                const considerUrl = (candidateUrl: string | undefined | null) => {
+                // Check if a URL is from EdgeStore (file attachment) vs regular web link
+                const isFileUrl = (candidateUrl: string): boolean => {
+                  if (!candidateUrl || typeof candidateUrl !== "string") return false;
+                  const trimmed = candidateUrl.trim();
+                  // EdgeStore URLs typically contain 'edgestore' or are from the file upload service
+                  // Regular web links should not be treated as file attachments
+                  return trimmed.includes('edgestore') || 
+                         trimmed.includes('/api/edgestore') ||
+                         trimmed.includes('file') && (trimmed.endsWith('.pdf') || trimmed.endsWith('.doc') || trimmed.endsWith('.docx') || trimmed.endsWith('.xls') || trimmed.endsWith('.xlsx') || trimmed.endsWith('.csv') || trimmed.endsWith('.png') || trimmed.endsWith('.jpg') || trimmed.endsWith('.jpeg'));
+                };
+
+                const considerFileUrl = (candidateUrl: string | undefined | null) => {
                   if (typeof candidateUrl === "string" && candidateUrl.trim()) {
                     const trimmed = candidateUrl.trim();
-                    if (!fileUrl) {
-                      fileUrl = trimmed;
-                    }
-                    if (!fileName) {
-                      fileName = deriveOtherSourceFileName(trimmed);
+                    // Only treat as file if it's a file URL, not a regular web link
+                    if (isFileUrl(trimmed)) {
+                      if (!fileUrl) {
+                        fileUrl = trimmed;
+                      }
+                      if (!fileName) {
+                        fileName = deriveOtherSourceFileName(trimmed);
+                      }
                     }
                   }
                 };
 
-                const considerString = (value: string) => {
+                const considerString = (value: string, isFromFileField: boolean = false) => {
                   const trimmed = value.trim();
                   if (!trimmed) {
                     return;
@@ -2167,21 +2181,25 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     try {
                       const parsed = JSON.parse(trimmed);
                       const candidates = Array.isArray(parsed) ? parsed : [parsed];
-                      candidates.forEach(considerUnknown);
+                      candidates.forEach((candidate) => considerUnknown(candidate, isFromFileField));
                       return;
                     } catch (error) {
                       console.warn("⚠️ Failed to parse JSON string when normalizing file:", trimmed, error);
                     }
                   }
 
+                  // Only treat URLs as files if they're from file fields or are file URLs
                   if (/^https?:\/\//i.test(trimmed)) {
-                    considerUrl(trimmed);
-                  } else if (!fileName) {
+                    if (isFromFileField || isFileUrl(trimmed)) {
+                      considerFileUrl(trimmed);
+                    }
+                  } else if (!fileName && isFromFileField) {
+                    // Only use as filename if it's from a file field
                     fileName = trimmed;
                   }
                 };
 
-                const considerObject = (obj: Record<string, any>) => {
+                const considerObject = (obj: Record<string, any>, isFromFileField: boolean = false) => {
                   if (!obj) {
                     return;
                   }
@@ -2197,32 +2215,39 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   const possibleName =
                     typeof obj.name === "string" && obj.name.trim() ? obj.name.trim() : "";
 
-                  if (possibleUrl) {
-                    considerUrl(possibleUrl);
+                  // Only treat URL as file if it's from file field or is a file URL
+                  if (possibleUrl && (isFromFileField || isFileUrl(possibleUrl))) {
+                    considerFileUrl(possibleUrl);
                   }
 
-                  if (possibleName && !fileName) {
+                  if (possibleName && !fileName && isFromFileField) {
                     fileName = possibleName;
                   }
                 };
 
-                const considerUnknown = (value: any) => {
+                const considerUnknown = (value: any, isFromFileField: boolean = false) => {
                   if (!value) {
                     return;
                   }
 
                   if (typeof value === "string") {
-                    considerString(value);
+                    considerString(value, isFromFileField);
                   } else if (typeof value === "object") {
-                    considerObject(value as Record<string, any>);
+                    considerObject(value as Record<string, any>, isFromFileField);
                   }
                 };
 
-                considerUnknown(urlValue);
-                considerUnknown(fileValue);
+                // Only process urlValue if it's a file URL (EdgeStore), not a regular web link
+                if (urlValue && isFileUrl(String(urlValue))) {
+                  considerUnknown(urlValue, false);
+                }
+                
+                // Process fileValue - this is definitely a file field
+                considerUnknown(fileValue, true);
 
+                // Process attachmentsValue - these are file attachments
                 const attachmentCandidates = collectOtherSourceAttachments(attachmentsValue);
-                attachmentCandidates.forEach(considerUnknown);
+                attachmentCandidates.forEach((candidate) => considerUnknown(candidate, true));
 
                 if (!fileName && fileUrl) {
                   fileName = deriveOtherSourceFileName(fileUrl);
@@ -2302,7 +2327,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
                   // Group by type
                   if (itemType === 'pipeline_data') {
-                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    // Only pass fileUrl (not url) to avoid treating web links as file attachments
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.fileUrl || null, parsedData.attachments);
                     pipeline_data.push({
                       id: item.id || parsedData.id || Date.now().toString(),
                       date: parsedData.date || "",
@@ -2315,7 +2341,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   } else if (itemType === 'press_releases') {
                     console.log(`📄 Loading press release ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
-                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    // Only pass fileUrl (not url) to avoid treating web links as file attachments
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.fileUrl || null, parsedData.attachments);
                     press_releases.push({
                       id: item.id || parsedData.id || Date.now().toString(),
                       date: parsedData.date || "",
@@ -2330,7 +2357,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     console.log(`📄 Loading publication ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
                     console.log(`📄 Date value (raw):`, parsedData.date, 'Type:', typeof parsedData.date);
-                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    // Only pass fileUrl (not url) to avoid treating web links as file attachments
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.fileUrl || null, parsedData.attachments);
                     const publicationDate = parsedData.date || parsedData.publication_date || "";
                     console.log(`📄 Date value (after fallback):`, publicationDate);
                     const formattedDate = formatDateForUI(publicationDate);
@@ -2350,7 +2378,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     console.log(`📄 Loading trial registry ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
                     console.log(`📄 Date value (raw):`, parsedData.date, 'Type:', typeof parsedData.date);
-                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    // Only pass fileUrl (not url) to avoid treating web links as file attachments
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.fileUrl || null, parsedData.attachments);
                     const registryDate = parsedData.date || parsedData.registry_date || "";
                     console.log(`📄 Date value (after fallback):`, registryDate);
                     const formattedDate = formatDateForUI(registryDate);
@@ -2370,7 +2399,8 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                     console.log(`📄 Loading associated study ${index}:`, parsedData);
                     console.log(`📄 Description value:`, parsedData.description);
                     console.log(`📄 Date value (raw):`, parsedData.date, 'Type:', typeof parsedData.date);
-                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.url, parsedData.attachments);
+                    // Only pass fileUrl (not url) to avoid treating web links as file attachments
+                    const normalizedFile = normalizeOtherSourceFileFields(parsedData.file, parsedData.fileUrl || null, parsedData.attachments);
                     const studyDate = parsedData.date || parsedData.study_date || "";
                     console.log(`📄 Date value (after fallback):`, studyDate);
                     const formattedDate = formatDateForUI(studyDate);
