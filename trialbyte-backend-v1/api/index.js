@@ -40,11 +40,14 @@ const isOriginAllowed = (origin) => {
   return false;
 };
 
-// Universal CORS middleware - applies to ALL requests
-app.use((req, res, next) => {
+// Helper to set CORS headers
+const setCorsHeaders = (req, res) => {
   const origin = req.headers.origin;
+  const allowed = isOriginAllowed(origin);
   
-  if (isOriginAllowed(origin)) {
+  console.log("[CORS] Setting headers for origin:", origin, "Allowed:", allowed);
+  
+  if (allowed) {
     if (origin) {
       res.setHeader("Access-Control-Allow-Origin", origin);
     }
@@ -52,13 +55,31 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, X-CSRF-Token");
     res.setHeader("Access-Control-Max-Age", "600");
+  } else {
+    console.error("[CORS] Origin not allowed:", origin);
   }
+};
+
+// Universal CORS middleware - applies to ALL requests (FIRST)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log("[CORS] Request:", req.method, req.path, "from origin:", origin);
+  
+  // Set CORS headers
+  setCorsHeaders(req, res);
   
   // Handle preflight requests immediately
   if (req.method === "OPTIONS") {
-    console.log("[CORS] Preflight request from:", origin, "- Allowed:", isOriginAllowed(origin));
+    console.log("[CORS] Preflight allowed for:", origin);
     return res.status(200).end();
   }
+  
+  // Intercept response to ensure CORS headers are always set
+  const originalEnd = res.end;
+  res.end = function(...args) {
+    setCorsHeaders(req, res);
+    originalEnd.apply(this, args);
+  };
   
   next();
 });
@@ -118,6 +139,7 @@ const ensureDbConnection = async () => {
 ========================= */
 
 app.get("/api/health", (req, res) => {
+  setCorsHeaders(req, res);
   res.status(200).json({
     status: "ok",
     message: "API is running",
@@ -136,6 +158,7 @@ app.use("/api", async (req, res, next) => {
     await ensureDbConnection();
     next();
   } catch (error) {
+    setCorsHeaders(req, res);
     res.status(500).json({
       message: "Database connection failed",
       error: error.message,
@@ -163,6 +186,7 @@ app.use("/api/v1/dropdown-management", require("../src/routers/dropdownManagemen
 
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err);
+  setCorsHeaders(req, res);
   res.status(500).json({
     message: "Internal Server Error",
     error: err.message,

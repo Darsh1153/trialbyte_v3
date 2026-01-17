@@ -87,13 +87,13 @@ async function request<T>(path: string, options: { method?: HttpMethod; body?: u
       const message = data?.error || data?.message || `Request failed (${res.status})`;
       // Only log as error for critical failures (5xx), use warn for client errors (4xx)
       if (res.status >= 500) {
-        console.error("API request failed:", {
-          status: res.status,
-          statusText: res.statusText,
-          url: targetUrl,
-          message,
-          data
-        });
+      console.error("API request failed:", {
+        status: res.status,
+        statusText: res.statusText,
+        url: targetUrl,
+        message,
+        data
+      });
       } else {
         console.warn("API request failed (non-critical):", {
           status: res.status,
