@@ -2,83 +2,17 @@ require("dotenv").config();
 require("express-async-errors");
 
 const express = require("express");
-const cors = require("cors");
 const serverless = require("serverless-http");
 
 const app = express();
 
 /* =========================
-   CORS — SINGLE SOURCE
+   CORS — COMPREHENSIVE HANDLING
 ========================= */
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:5173",
-      "http://localhost:4200",
-      "http://127.0.0.1:3000",
-      "http://127.0.0.1:5173",
-      process.env.FRONTEND_URL,
-      "https://trialbyte-frontend-v1-eta.vercel.app",
-    ].filter(Boolean);
-
-    const vercelRegex = /^https:\/\/.*\.vercel\.app$/i;
-
-    // Allow non-browser and preflight
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    if (vercelRegex.test(origin)) {
-      return callback(null, true);
-    }
-
-    // ❗ DO NOT THROW
-    return callback(null, false);
-  },
-
-  credentials: true,
-  optionsSuccessStatus: 200,
-
-  methods: [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS",
-    "HEAD",
-  ],
-
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "X-Requested-With",
-    "Accept",
-    "Origin",
-    "Cache-Control",
-    "Pragma",
-    "X-CSRF-Token",
-  ],
-
-  exposedHeaders: ["Content-Range", "X-Content-Range"],
-  maxAge: 600,
-};
-
-/* =========================
-   CORS MUST BE FIRST
-========================= */
-
-// Explicit preflight handler - ensures headers are always set
-app.options("*", (req, res) => {
-  const origin = req.headers.origin;
-  console.log("[CORS] Preflight request from:", origin);
+// Helper function to check if origin is allowed
+const isOriginAllowed = (origin) => {
+  if (!origin) return true; // Allow requests without origin (e.g., Postman, curl)
   
   const allowedOrigins = [
     "http://localhost:3000",
@@ -93,37 +27,41 @@ app.options("*", (req, res) => {
   
   const vercelRegex = /^https:\/\/.*\.vercel\.app$/i;
   
-  let isAllowed = false;
-  if (!origin) {
-    isAllowed = true;
-  } else if (allowedOrigins.includes(origin)) {
-    isAllowed = true;
-  } else if (vercelRegex.test(origin)) {
-    isAllowed = true;
-  } else if (process.env.ADDITIONAL_ALLOWED_ORIGINS) {
+  if (allowedOrigins.includes(origin)) return true;
+  if (vercelRegex.test(origin)) return true;
+  
+  if (process.env.ADDITIONAL_ALLOWED_ORIGINS) {
     const extra = process.env.ADDITIONAL_ALLOWED_ORIGINS.split(",")
       .map((entry) => entry.trim())
       .filter(Boolean);
-    if (extra.includes(origin)) {
-      isAllowed = true;
-    }
+    if (extra.includes(origin)) return true;
   }
   
-  if (isAllowed && origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+  return false;
+};
+
+// Universal CORS middleware - applies to ALL requests
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  if (isOriginAllowed(origin)) {
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    }
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, X-CSRF-Token");
     res.setHeader("Access-Control-Max-Age", "600");
-    console.log("[CORS] Preflight allowed for:", origin);
-  } else {
-    console.error("[CORS] Preflight blocked for:", origin);
   }
   
-  res.status(200).end();
+  // Handle preflight requests immediately
+  if (req.method === "OPTIONS") {
+    console.log("[CORS] Preflight request from:", origin, "- Allowed:", isOriginAllowed(origin));
+    return res.status(200).end();
+  }
+  
+  next();
 });
-
-app.use(cors(corsOptions));
 
 /* =========================
    BODY PARSING
