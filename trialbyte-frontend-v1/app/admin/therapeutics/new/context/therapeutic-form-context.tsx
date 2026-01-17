@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import { buildApiUrl } from "@/app/_lib/api";
 
 // Define the complete form structure
 export interface TherapeuticFormData {
@@ -1462,16 +1463,9 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         step5_8_keys: Object.keys(allFormData.step5_8),
       });
 
-      // Check if API base URL is configured
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (!apiBaseUrl) {
-        throw new Error("API base URL is not configured. Please check your environment variables.");
-      }
-
       // Get user ID from localStorage or use default admin UUID
       const currentUserId = typeof window !== 'undefined' ? localStorage.getItem("userId") || "2be97b5e-5bf3-43f2-b84a-4db4a138e497" : "2be97b5e-5bf3-43f2-b84a-4db4a138e497";
 
-      console.log("🌐 API Base URL:", apiBaseUrl);
       console.log("👤 Current User ID:", currentUserId);
 
       // Transform the form data to match the API structure
@@ -1846,7 +1840,7 @@ export function TherapeuticFormProvider({ children }: { children: ReactNode }) {
         })(),
       };
 
-      const fullUrl = `${apiBaseUrl}/api/v1/therapeutic/create-therapeutic`;
+      const fullUrl = buildApiUrl("/api/v1/therapeutic/create-therapeutic");
       console.log("📤 Making POST request to:", fullUrl);
       console.log("📦 Complete Payload Being Sent:", JSON.stringify(therapeuticPayload, null, 2));
       console.log("📏 Payload size:", JSON.stringify(therapeuticPayload).length, "characters");

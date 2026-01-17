@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { buildApiUrl } from "@/app/_lib/api";
 
 const parseVolunteerNumber = (value: unknown): string | null => {
   console.log("[EditTherapeuticFormContext] parseVolunteerNumber input:", value);
@@ -1046,7 +1047,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
         // Try the all-trials endpoint first
         let response = await fetchWithRetry(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data?_t=${timestamp}`,
+          buildApiUrl(`/api/v1/therapeutic/all-trials-with-data?_t=${timestamp}`),
           {
             method: 'GET',
             headers: {
@@ -1067,7 +1068,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         if (!data || !data.trials || data.trials.length === 0) {
           console.log('All-trials endpoint failed, trying single trial endpoint...');
           response = await fetchWithRetry(
-            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trials/${trialId}?_t=${timestamp}`,
+            buildApiUrl(`/api/v1/therapeutic/trials/${trialId}?_t=${timestamp}`),
             {
               method: 'GET',
               headers: {
@@ -2890,7 +2891,6 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
       }
 
       // Check if backend is reachable first
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000';
       let backendAvailable = false;
 
       try {
@@ -2898,7 +2898,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
         const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout for health check
 
         // Wrap health check in a promise that never rejects
-        const healthCheckPromise = fetch(`${baseUrl}/api/v1/therapeutic/overview`, {
+        const healthCheckPromise = fetch(buildApiUrl('/api/v1/therapeutic/overview'), {
           method: 'GET',
           credentials: 'include',
           signal: controller.signal,
@@ -2926,7 +2926,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
           const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
           // Wrap fetch in a promise that never rejects
-          const fetchPromise = fetch(`${baseUrl}/api/v1/therapeutic/overview/${overviewId}/update`, {
+          const fetchPromise = fetch(buildApiUrl(`/api/v1/therapeutic/overview/${overviewId}/update`), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2950,7 +2950,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               };
               console.log("Outcome payload to be saved:", outcomePayload);
 
-              const outcomeResponse = await fetch(`${baseUrl}/api/v1/therapeutic/outcome/trial/${dbTrialId}/update`, {
+              const outcomeResponse = await fetch(buildApiUrl(`/api/v1/therapeutic/outcome/trial/${dbTrialId}/update`), {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -2982,7 +2982,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               };
               console.log("Participation criteria payload:", criteriaPayload);
 
-              const criteriaResponse = await fetch(`${baseUrl}/api/v1/therapeutic/criteria/trial/${dbTrialId}/update`, {
+              const criteriaResponse = await fetch(buildApiUrl(`/api/v1/therapeutic/criteria/trial/${dbTrialId}/update`), {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -3015,7 +3015,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
             // Update sites section via API
             try {
-              const sitesResponse = await fetch(`${baseUrl}/api/v1/therapeutic/sites/trial/${dbTrialId}/update`, {
+              const sitesResponse = await fetch(buildApiUrl(`/api/v1/therapeutic/sites/trial/${dbTrialId}/update`), {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -3126,7 +3126,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                 overall_duration_publish: timingData.overall_duration_publish,
               });
 
-              const timingResponse = await fetch(`${baseUrl}/api/v1/therapeutic/timing/trial/${dbTrialId}/update`, {
+              const timingResponse = await fetch(buildApiUrl(`/api/v1/therapeutic/timing/trial/${dbTrialId}/update`), {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -3238,7 +3238,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               console.log('Results data to be saved to API:', resultsData);
 
-              const resultsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/results/trial/${dbTrialId}/update`, {
+              const resultsResponse = await fetch(buildApiUrl(`/api/v1/therapeutic/results/trial/${dbTrialId}/update`), {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -3332,7 +3332,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               }
 
               // Delete existing other_sources entries
-              const deleteResponse = await fetch(`${baseUrl}/api/v1/therapeutic/other/trial/${dbTrialId}`, {
+              const deleteResponse = await fetch(buildApiUrl(`/api/v1/therapeutic/other/trial/${dbTrialId}`), {
                 method: 'DELETE',
                 credentials: 'include',
               }).catch(() => null);
@@ -3375,7 +3375,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   console.log('Creating pipeline_data entry:', sourceData);
 
                   otherSourcesPromises.push(
-                    fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                    fetch(buildApiUrl('/api/v1/therapeutic/other'), {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -3429,7 +3429,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   console.log('Creating press_releases entry:', sourceData);
 
                   otherSourcesPromises.push(
-                    fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                    fetch(buildApiUrl('/api/v1/therapeutic/other'), {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -3502,7 +3502,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   console.log('Creating publications entry:', sourceData);
 
                   otherSourcesPromises.push(
-                    fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                    fetch(buildApiUrl('/api/v1/therapeutic/other'), {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -3575,7 +3575,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   console.log('Creating trial_registries entry:', sourceData);
 
                   otherSourcesPromises.push(
-                    fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                    fetch(buildApiUrl('/api/v1/therapeutic/other'), {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -3648,7 +3648,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   console.log('Creating associated_studies entry:', sourceData);
 
                   otherSourcesPromises.push(
-                    fetch(`${baseUrl}/api/v1/therapeutic/other`, {
+                    fetch(buildApiUrl('/api/v1/therapeutic/other'), {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
@@ -3751,7 +3751,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
 
               console.log('Updating logs with data:', logsData);
 
-              const logsResponse = await fetch(`${baseUrl}/api/v1/therapeutic/logs/trial/${dbTrialId}/update`, {
+              const logsResponse = await fetch(buildApiUrl(`/api/v1/therapeutic/logs/trial/${dbTrialId}/update`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(logsData),
@@ -3776,7 +3776,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
               console.log('Updating notes for trial:', trialId);
 
               // First, delete existing notes
-              await fetch(`${baseUrl}/api/v1/therapeutic/notes/trial/${dbTrialId}`, {
+              await fetch(buildApiUrl(`/api/v1/therapeutic/notes/trial/${dbTrialId}`), {
                 method: 'DELETE',
                 credentials: 'include',
               }).catch(() => console.log('No existing notes to delete'));
@@ -3882,7 +3882,7 @@ export function EditTherapeuticFormProvider({ children, trialId }: { children: R
                   notes: typeof notesPayload.notes
                 });
 
-                await fetch(`${baseUrl}/api/v1/therapeutic/notes`, {
+                await fetch(buildApiUrl('/api/v1/therapeutic/notes'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(notesPayload),

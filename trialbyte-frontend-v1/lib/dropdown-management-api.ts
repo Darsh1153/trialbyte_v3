@@ -1,7 +1,6 @@
 // API service for dropdown management
 import { useState, useEffect } from 'react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5002';
+import { buildApiUrl } from '@/app/_lib/api';
 
 export interface DropdownCategory {
   id: number;
@@ -38,11 +37,13 @@ class DropdownManagementAPI {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/dropdown-management${endpoint}`, {
+      const url = buildApiUrl(`/api/v1/dropdown-management${endpoint}`);
+      const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
         },
+        credentials: 'include',
         ...options,
       });
 
@@ -67,7 +68,8 @@ class DropdownManagementAPI {
     } catch (error) {
       // Handle network errors (API unreachable, CORS, etc.)
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        console.warn('Dropdown management API might be unreachable:', `${API_BASE_URL}/api/v1/dropdown-management${endpoint}`);
+        const url = buildApiUrl(`/api/v1/dropdown-management${endpoint}`);
+        console.warn('Dropdown management API might be unreachable:', url);
         return {
           success: false,
           error: 'Network error - API might be unreachable',

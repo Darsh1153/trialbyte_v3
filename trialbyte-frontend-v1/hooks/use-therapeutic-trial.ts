@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { therapeuticsApi } from "@/app/_lib/api";
+import { therapeuticsApi, buildApiUrl } from "@/app/_lib/api";
 
 export function useTherapeuticTrial(trialId: string) {
   return useQuery({
@@ -8,19 +8,17 @@ export function useTherapeuticTrial(trialId: string) {
       console.log("🔍 Fetching therapeutic trial data with react-query for trialId:", trialId);
       
       // Fetch all trials and find the one matching trialId
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data?_t=${new Date().getTime()}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-          credentials: "include",
-          cache: "no-store",
-        }
-      );
+      const url = buildApiUrl(`/api/v1/therapeutic/all-trials-with-data?_t=${new Date().getTime()}`);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+        credentials: "include",
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to fetch therapeutic trials: ${response.status}`);

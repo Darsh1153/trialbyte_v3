@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { buildApiUrl } from "@/app/_lib/api";
 
 export function useTherapeuticTrialDetail(trialId: string) {
   return useQuery({
@@ -6,19 +7,17 @@ export function useTherapeuticTrialDetail(trialId: string) {
     queryFn: async () => {
       console.log("🔍 Fetching therapeutic trial detail with react-query for trialId:", trialId);
       
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/trial/${trialId}/all-data?_t=${new Date().getTime()}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-          credentials: "include",
-          cache: "no-store",
-        }
-      );
+      const url = buildApiUrl(`/api/v1/therapeutic/trial/${trialId}/all-data?_t=${new Date().getTime()}`);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+        credentials: "include",
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         if (response.status === 404) {
