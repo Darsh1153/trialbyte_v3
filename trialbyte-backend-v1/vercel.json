@@ -12,7 +12,14 @@
     {
       "src": "/api/(.*)",
       "dest": "api/index.js",
-      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"]
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+      "headers": {
+        "Access-Control-Allow-Origin": "https://trialbyte-frontend-v1-eta.vercel.app",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, X-CSRF-Token",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Max-Age": "600"
+      }
     }
   ]
 }

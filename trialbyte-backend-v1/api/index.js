@@ -14,6 +14,11 @@ const app = express();
 const isOriginAllowed = (origin) => {
   if (!origin) return true; // Allow requests without origin (e.g., Postman, curl)
   
+  // CRITICAL: Always allow the production frontend
+  if (origin === "https://trialbyte-frontend-v1-eta.vercel.app") {
+    return true;
+  }
+  
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
@@ -40,14 +45,15 @@ const isOriginAllowed = (origin) => {
   return false;
 };
 
-// Helper to set CORS headers
+// Helper to set CORS headers - ALWAYS sets headers for allowed origins
 const setCorsHeaders = (req, res) => {
-  const origin = req.headers.origin;
+  const origin = req.headers.origin || req.get("origin");
   const allowed = isOriginAllowed(origin);
   
   console.log("[CORS] Setting headers for origin:", origin, "Allowed:", allowed);
   
-  if (allowed) {
+  // CRITICAL: Always set headers for production frontend
+  if (origin === "https://trialbyte-frontend-v1-eta.vercel.app" || allowed) {
     if (origin) {
       res.setHeader("Access-Control-Allow-Origin", origin);
     }
@@ -55,26 +61,29 @@ const setCorsHeaders = (req, res) => {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, X-CSRF-Token");
     res.setHeader("Access-Control-Max-Age", "600");
+    console.log("[CORS] Headers set successfully for:", origin);
   } else {
     console.error("[CORS] Origin not allowed:", origin);
   }
 };
 
-// Universal CORS middleware - applies to ALL requests (FIRST)
+// Universal CORS middleware - applies to ALL requests (FIRST - BEFORE ANYTHING ELSE)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
+  const origin = req.headers.origin || req.get("origin");
   console.log("[CORS] Request:", req.method, req.path, "from origin:", origin);
   
-  // Set CORS headers
-  setCorsHeaders(req, res);
-  
-  // Handle preflight requests immediately
+  // CRITICAL: Handle preflight requests FIRST, before anything else
   if (req.method === "OPTIONS") {
-    console.log("[CORS] Preflight allowed for:", origin);
+    console.log("[CORS] Preflight request detected from:", origin);
+    setCorsHeaders(req, res);
+    console.log("[CORS] Preflight response sent for:", origin);
     return res.status(200).end();
   }
   
-  // Intercept response to ensure CORS headers are always set
+  // Set CORS headers for all other requests
+  setCorsHeaders(req, res);
+  
+  // Intercept response to ensure CORS headers are always set on response
   const originalEnd = res.end;
   res.end = function(...args) {
     setCorsHeaders(req, res);
