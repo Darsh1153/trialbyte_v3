@@ -14,11 +14,6 @@ const app = express();
 const isOriginAllowed = (origin) => {
   if (!origin) return true; // Allow requests without origin (e.g., Postman, curl)
   
-  // CRITICAL: Always allow the production frontend
-  if (origin === "https://trialbyte-frontend-v1-eta.vercel.app") {
-    return true;
-  }
-  
   const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
@@ -27,9 +22,10 @@ const isOriginAllowed = (origin) => {
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
     process.env.FRONTEND_URL,
-    "https://trialbyte-frontend-v1-eta.vercel.app",
+    "https://trialbyte-v3-frontend.vercel.app", // New frontend URL
   ].filter(Boolean);
   
+  // Match any Vercel deployment (production, preview, etc.)
   const vercelRegex = /^https:\/\/.*\.vercel\.app$/i;
   
   if (allowedOrigins.includes(origin)) return true;
@@ -52,8 +48,8 @@ const setCorsHeaders = (req, res) => {
   
   console.log("[CORS] Setting headers for origin:", origin, "Allowed:", allowed);
   
-  // CRITICAL: Always set headers for production frontend
-  if (origin === "https://trialbyte-frontend-v1-eta.vercel.app" || allowed) {
+  // CRITICAL: Always set headers for allowed origins
+  if (allowed) {
     if (origin) {
       res.setHeader("Access-Control-Allow-Origin", origin);
     }
