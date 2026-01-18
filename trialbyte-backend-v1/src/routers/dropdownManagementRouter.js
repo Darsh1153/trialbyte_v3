@@ -1,14 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
 
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
+// Use shared database pool to prevent connection exhaustion
+const { pool } = require('../infrastructure/PgDB/connect');
 
 // Get all dropdown categories
 router.get('/categories', async (req, res) => {

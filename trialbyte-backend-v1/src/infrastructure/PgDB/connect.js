@@ -1,11 +1,20 @@
 const { Pool } = require("pg");
 require("dotenv").config();
 
+// Configure pool for serverless environments (Vercel)
+// Use smaller max connections to prevent pool exhaustion
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
+  // Serverless-optimized pool settings
+  max: 5, // Maximum number of clients in the pool (reduced for serverless)
+  min: 0, // Minimum number of clients (0 for serverless)
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection cannot be established
+  // Allow pool to close idle connections quickly in serverless
+  allowExitOnIdle: true,
 });
 
 // Retry configuration

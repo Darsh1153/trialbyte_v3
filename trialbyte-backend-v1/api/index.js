@@ -79,11 +79,28 @@ app.use((req, res, next) => {
   // Set CORS headers for all other requests
   setCorsHeaders(req, res);
   
-  // Intercept response to ensure CORS headers are always set on response
+  // Intercept ALL response methods to ensure CORS headers are always set
   const originalEnd = res.end;
+  const originalJson = res.json;
+  const originalSend = res.send;
+  const originalStatus = res.status;
+  
+  // Override end() to always set CORS headers
   res.end = function(...args) {
     setCorsHeaders(req, res);
-    originalEnd.apply(this, args);
+    return originalEnd.apply(this, args);
+  };
+  
+  // Override json() to always set CORS headers
+  res.json = function(...args) {
+    setCorsHeaders(req, res);
+    return originalJson.apply(this, args);
+  };
+  
+  // Override send() to always set CORS headers
+  res.send = function(...args) {
+    setCorsHeaders(req, res);
+    return originalSend.apply(this, args);
   };
   
   next();
