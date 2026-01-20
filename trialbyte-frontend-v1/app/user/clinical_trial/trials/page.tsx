@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,7 @@ import Image from "next/image";
 import NotesSection, { NoteItem } from "@/components/notes-section";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { TrialSidebar } from "@/components/trial-sidebar";
 
 import {
   ChevronLeft,
@@ -45,6 +46,10 @@ import {
   ChevronDown,
   LogOut,
   Bell,
+  Pencil,
+  Folder,
+  Bookmark,
+  Calendar,
 } from "lucide-react";
 import { Suspense } from "react";
 import { useLinkPreview } from "@/components/ui/link-preview-panel";
@@ -155,6 +160,7 @@ interface TherapeuticTrial {
 }
 
 function ClinicalTrialsPage() {
+  const pathname = usePathname();
   const [trials, setTrials] = useState<TherapeuticTrial[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTrialIndex, setCurrentTrialIndex] = useState(0);
@@ -199,28 +205,44 @@ function ClinicalTrialsPage() {
   const fetchTrials = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/therapeutic/all-trials-with-data`;
+      
+      if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+        throw new Error("API base URL is not configured. Please check your environment variables.");
+      }
+
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Try to get error details from response
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // If response is not JSON, use the status text
+        }
+        throw new Error(errorMessage);
       }
 
       const data: ApiResponse = await response.json();
       setTrials(data.trials);
     } catch (error) {
       console.error("Error fetching trials:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch trials data";
       toast({
         title: "Error",
-        description: "Failed to fetch trials data",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -699,49 +721,263 @@ function ClinicalTrialsPage() {
         }`}
     >
       {/* Top Navigation */}
-      <div className="bg-white border-b">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-2">
+      <div
+        className="sticky top-0 z-40"
+        style={{
+          width: "calc(100% - 32px)",
+          maxWidth: "1409px",
+          margin: "25px auto 0",
+          borderRadius: "24px",
+          backgroundColor: "#F7F9FB",
+        }}
+      >
+        {/* Navigation Container */}
+        <div
+          className="flex items-center"
+          style={{
+            width: "calc(100% - 54px)",
+            height: "32px",
+            marginTop: "11.75px",
+            marginLeft: "16px",
+            marginRight: "16px",
+            gap: "8px",
+          }}
+        >
+          {/* Logo Box */}
+          <div
+            className="flex items-center justify-center flex-shrink-0"
+            style={{
+              width: "52px",
+              height: "52px",
+              borderRadius: "12px",
+              padding: "10px",
+              gap: "8px",
+              backgroundColor: "#FFFFFF",
+            }}
+          >
               <Image
-                src="/logo.jpeg"
+              src="/pngs/logo1.png"
                 alt="Logo"
-                width={160}
-                height={40}
-                className="h-10 w-auto rounded"
+              width={32}
+              height={32}
+              className="object-contain"
               />
             </div>
-            <Button
-              onClick={() => {
-                router.push("/user/clinical_trial/dashboard");
+
+          {/* Dashboard Box */}
+          <button
+            onClick={() => {
+              router.push("/user/clinical_trial/dashboard");
+            }}
+            className="flex items-center justify-center flex-shrink-0"
+            style={{
+              width: "140px",
+              height: "52px",
+              borderRadius: "12px",
+              paddingTop: "12px",
+              paddingRight: "20px",
+              paddingBottom: "12px",
+              paddingLeft: "16px",
+              gap: "8px",
+              backgroundColor: pathname === "/user/clinical_trial/dashboard" ? "#204B73" : "#FFFFFF",
+            }}
+          >
+            <Image
+              src="/pngs/dashboardicon.png"
+              alt="Dashboard"
+              width={20}
+              height={20}
+              className="object-contain"
+              style={{
+                filter: pathname === "/user/clinical_trial/dashboard" ? "brightness(0) invert(1)" : "none",
               }}
-              variant="ghost"
-              className="text-gray-600"
+            />
+            <span
+              style={{
+                fontFamily: "Poppins",
+                fontWeight: 400,
+                fontStyle: "normal",
+                fontSize: "14px",
+                lineHeight: "150%",
+                letterSpacing: "-2%",
+                color: pathname === "/user/clinical_trial/dashboard" ? "#FFFFFF" : "#000000",
+              }}
             >
               Dashboard
-            </Button>
-            {/* <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              <Search className="h-4 w-4 mr-2" />
+            </span>
+          </button>
+
+          {/* Trials Search Box */}
+          <button
+            className="flex items-center justify-center flex-shrink-0"
+            style={{
+              width: "165px",
+              height: "52px",
+              borderRadius: "12px",
+              paddingTop: "12px",
+              paddingRight: "20px",
+              paddingBottom: "12px",
+              paddingLeft: "16px",
+              gap: "8px",
+              backgroundColor: "#FFFFFF",
+            }}
+          >
+            <Image
+              src="/pngs/trialsearchIcon.png"
+              alt="Trials Search"
+              width={20}
+              height={20}
+              className="object-contain"
+            />
+            <span
+              style={{
+                fontFamily: "Poppins",
+                fontWeight: 400,
+                fontStyle: "normal",
+                fontSize: "14px",
+                lineHeight: "150%",
+                letterSpacing: "-2%",
+                color: "#000000",
+              }}
+            >
               Trials Search
-            </Button> */}
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              <FileText className="h-4 w-4 mr-2" />
+            </span>
+          </button>
+
+          {/* Trials Box */}
+          <button
+            className="flex items-center justify-center flex-shrink-0"
+            style={{
+              width: "151px",
+              height: "52px",
+              borderRadius: "12px",
+              paddingTop: "12px",
+              paddingRight: "20px",
+              paddingBottom: "12px",
+              paddingLeft: "16px",
+              gap: "8px",
+              backgroundColor: pathname.includes("/trials") ? "#204B73" : "#FFFFFF",
+            }}
+          >
+            <Image
+              src="/pngs/trialsicon.png"
+              alt="Trials"
+              width={20}
+              height={20}
+              className="object-contain"
+              style={{
+                filter: pathname.includes("/trials") ? "brightness(0) invert(1)" : "none",
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "Poppins",
+                fontWeight: 400,
+                fontStyle: "normal",
+                fontSize: "14px",
+                lineHeight: "150%",
+                letterSpacing: "-2%",
+                color: pathname.includes("/trials") ? "#FFFFFF" : "#000000",
+              }}
+            >
               Trials
-            </Button>
+            </span>
+          </button>
+
+          {/* Search Box */}
+          <div
+            className="flex items-center"
+            style={{
+              flex: "1",
+              minWidth: "300px",
+              maxWidth: "800px",
+              height: "52px",
+              borderRadius: "12px",
+              gap: "8px",
+              padding: "16px",
+              backgroundColor: "#FFFFFF",
+              marginLeft: "auto",
+            }}
+          >
+            <Image
+              src="/pngs/trialsearchIcon.png"
+              alt="Search"
+              width={20}
+              height={20}
+              className="object-contain"
+            />
+            <input
+              type="text"
+              placeholder="Search.."
+              className="flex-1 outline-none bg-transparent"
+              style={{
+                fontFamily: "Poppins",
+                fontWeight: 400,
+                fontStyle: "normal",
+                fontSize: "14px",
+                lineHeight: "150%",
+                letterSpacing: "-2%",
+                color: "#000000",
+              }}
+            />
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-blue-500 font-medium">TrialByte</span>
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-600">✉</span>
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition-colors"
-                  onClick={() => setShowLogoutDropdown(!showLogoutDropdown)}
-                  aria-label="User menu"
-                >
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-gray-600" />
-                  </div>
+
+          {/* Message Icon Box */}
+          <button
+            className="flex items-center justify-center"
+            style={{
+              width: "56px",
+              height: "48px",
+              borderRadius: "12px",
+              padding: "16px",
+              gap: "8px",
+              backgroundColor: "#FFFFFF",
+              flexShrink: 0,
+            }}
+          >
+            <Image
+              src="/pngs/messageicon.png"
+              alt="Messages"
+              width={24}
+              height={24}
+              className="object-contain"
+            />
+          </button>
+
+          {/* Profile Box */}
+          <div ref={dropdownRef} style={{ flexShrink: 0 }}>
+            <button
+              className="flex items-center"
+              onClick={() => setShowLogoutDropdown(!showLogoutDropdown)}
+              style={{
+                width: "220px",
+                height: "48px",
+                borderRadius: "12px",
+                backgroundColor: "#FFFFFF",
+                padding: "8px 8px",
+                gap: "8px",
+              }}
+            >
+              <Image
+                src="/pngs/Profile.png"
+                alt="Profile"
+                width={32}
+                height={32}
+                className="object-contain"
+              />
+              <span
+                style={{
+                  fontFamily: "Poppins",
+                  fontWeight: 400,
+                  fontStyle: "normal",
+                  fontSize: "14px",
+                  lineHeight: "150%",
+                  letterSpacing: "-2%",
+                  color: "#000000",
+                }}
+              >
+                James cameron
+              </span>
                   <ChevronDown
                     className={`h-4 w-4 text-gray-400 transition-transform ${showLogoutDropdown ? "rotate-180" : ""
                       }`}
@@ -763,19 +999,40 @@ function ClinicalTrialsPage() {
                     </button>
                   </div>
                 )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Secondary Navigation */}
-      <div className="bg-blue-100 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      {/* Container for gradient and content overlay */}
+      <div className="relative" style={{ width: "calc(100% - 32px)", maxWidth: "1409px", margin: "0 auto" }}>
+        {/* Blue Gradient Background - Full height overlay */}
+        <div
+          className="absolute"
+          style={{
+            top: "30px",
+            left: "0",
+            right: "0",
+            minHeight: "100vh",
+            borderRadius: "12px",
+            background: "linear-gradient(180deg, rgba(97, 204, 250, 0.4) 0%, rgba(247, 249, 251, 0.2) 100%)",
+            zIndex: 1,
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Secondary Navigation - On top of gradient */}
+        <div
+          className="sticky top-[82px] z-30"
+          style={{
+            paddingTop: "0",
+          }}
+        >
+        <div className="flex items-center justify-between px-6 py-4">
+          {/* Left Section - Navigation and Title */}
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              className="flex items-center text-gray-600 hover:text-gray-800"
+              className="flex items-center text-gray-600 hover:text-gray-800 h-8 px-3"
               onClick={() => router.back()}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
@@ -784,196 +1041,178 @@ function ClinicalTrialsPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 h-8 px-3"
               onClick={() => router.forward()}
             >
               Forward
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-700 hover:text-gray-900 h-8 px-3 font-medium bg-green-100 hover:bg-green-200"
+            >
+              TrialByte
+            </Button>
+            
+            {/* Trial Tabs */}
+            <div className="flex items-center gap-2 ml-2">
+              {trials.map((trial, index) => (
+                <div
+                  key={trial.trial_id}
+                  className={`relative flex items-center rounded-lg px-3 py-1.5 transition-colors ${
+                    index === currentTrialIndex
+                      ? "bg-[#204B73] text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                  style={{
+                    fontFamily: "Poppins",
+                    fontSize: "14px",
+                    fontWeight: 400,
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      setCurrentTrialIndex(index);
+                      router.push(
+                        `/user/clinical_trial/trials?trialId=${trial.trial_id}`,
+                        { scroll: false }
+                      );
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <span>
+                      {trial.overview.trial_identifier?.[0] || trial.trial_id}
+                    </span>
+                    {index === currentTrialIndex && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseTab(index);
+                        }}
+                        className="ml-1 hover:bg-white/20 rounded p-0.5"
+                        title="Close this trial tab"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </button>
+                  {index !== currentTrialIndex && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseTab(index);
+                      }}
+                      className="ml-1 hover:bg-gray-400 rounded p-0.5"
+                      title="Close this trial tab"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
+
+          {/* Right Section - Action Buttons and Icons */}
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowHistoryModal(true)}
+              className="h-8"
             >
+              <Calendar className="h-4 w-4 mr-2" />
               Record History
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowExportModal(true)}
+              className="h-8"
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2" />
               Export
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Bookmark"
+            >
+              <Bookmark className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 flex items-center justify-center"
+              title="Document"
+            >
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold leading-none">A</span>
+                <span className="text-[8px] leading-none">a</span>
+              </div>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Decrease font size"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 flex items-center justify-center"
+              title="Font size"
+            >
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold leading-none">A</span>
+                <span className="text-[8px] leading-none">a</span>
+              </div>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Increase font size"
+            >
+              <Plus className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="flex">
-        {/* Left Sidebar */}
-        <div className="w-64 bg-white border-r min-h-screen">
-          <div className="p-4 space-y-2">
-            {isSectionVisible("overview") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("overview")}
-                className={`w-full justify-start ${activeSection === "overview"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Overview
-              </Button>
-            )}
-            {isSectionVisible("objectives") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("objectives")}
-                className={`w-full justify-start ${activeSection === "objectives"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded-full border-2 ${activeSection === "objectives"
-                    ? "border-blue-600"
-                    : "border-gray-400"
-                    }`}
-                ></div>
-                Objectives
-              </Button>
-            )}
-            {isSectionVisible("treatmentPlan") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("treatmentPlan")}
-                className={`w-full justify-start ${activeSection === "treatmentPlan"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Treatment Plan
-              </Button>
-            )}
-            {isSectionVisible("patientDescription") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("patientDescription")}
-                className={`w-full justify-start ${activeSection === "patientDescription"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Patient Description
-              </Button>
-            )}
-            {isSectionVisible("timing") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("timing")}
-                className={`w-full justify-start ${activeSection === "timing"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "timing"
-                    ? "border-blue-600"
-                    : "border-gray-400"
-                    }`}
-                ></div>
-                Timing
-              </Button>
-            )}
-            {isSectionVisible("outcome") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("outcome")}
-                className={`w-full justify-start ${activeSection === "outcome"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Outcome
-              </Button>
-            )}
-            {isSectionVisible("publishedResults") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("publishedResults")}
-                className={`w-full justify-start ${activeSection === "publishedResults"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Published Results
-              </Button>
-            )}
-            {isSectionVisible("sites") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("sites")}
-                className={`w-full justify-start ${activeSection === "sites"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded border ${activeSection === "sites"
-                    ? "border-blue-600"
-                    : "border-gray-400"
-                    }`}
-                ></div>
-                Sites
-              </Button>
-            )}
-            {isSectionVisible("otherSources") && (
-              <Button
-                variant="ghost"
-                onClick={() => scrollToSection("otherSources")}
-                className={`w-full justify-start ${activeSection === "otherSources"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-              >
-                <div
-                  className={`w-4 h-4 mr-2 rounded ${activeSection === "otherSources"
-                    ? "bg-blue-600"
-                    : "bg-gray-400"
-                    }`}
-                ></div>
-                Other Sources
-              </Button>
-            )}
-          </div>
-
-          <div className="px-4 py-6 border-t">
-            <div className="space-y-4">
-              <div className="text-sm text-gray-600">Pipeline Data</div>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                onClick={() => {
+          {/* Content Container - Overlaying the gradient */}
+          <div 
+            className="flex relative" 
+            style={{ 
+              marginTop: "-60px", 
+              zIndex: 20, 
+              position: "relative",
+            }}
+          >
+        {/* Left Sidebar - CSS-based with icons */}
+        <TrialSidebar
+          activeSection={activeSection}
+          onSectionClick={scrollToSection}
+          isSectionVisible={isSectionVisible}
+          onAssociatedStudiesClick={() => {
                   toast({
                     title: "Feature Coming Soon",
                     description:
                       "Associated Studies functionality will be available in the next update.",
                   });
                 }}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Associated Studies
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                onClick={() => {
+          onLogsClick={() => {
                   if (currentTrial.logs && currentTrial.logs.length > 0) {
                     const logMessages = currentTrial.logs
                       .map((log) => log.trial_changes_log)
@@ -989,149 +1228,18 @@ function ClinicalTrialsPage() {
                     });
                   }
                 }}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Logs
-              </Button>
-            </div>
-          </div>
-        </div>
+        />
 
-        {/* Main Content */}
-        <div className="flex-1">
-          {/* Trial Tabs */}
-          <div
-            className={`bg-white border-b ${isMinimized ? "px-2 py-1" : "px-6 py-2"
-              }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1 flex-1 flex-wrap">
-                {trials.map((trial, index) => (
-                  <div key={trial.trial_id} className="flex items-center">
-                    <div className="relative flex items-center">
-                      <Button
-                        variant={
-                          index === currentTrialIndex ? "default" : "ghost"
-                        }
-                        size="sm"
-                        onClick={() => {
-                          setCurrentTrialIndex(index);
-                          // Update URL with new trial ID
-                          router.push(
-                            `/user/clinical_trial/trials?trialId=${trial.trial_id}`,
-                            { scroll: false }
-                          );
-                        }}
-                        className={`flex items-center ${index === currentTrialIndex
-                          ? "bg-gray-600 text-white pr-8"
-                          : "text-gray-600 hover:bg-gray-100"
-                          }`}
-                      >
-                        <span>
-                          {trial.overview.trial_identifier?.[0] || trial.trial_id}
-                        </span>
-                      </Button>
-                      {index === currentTrialIndex && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleCloseTab(index);
-                          }}
-                          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-4 w-4 flex items-center justify-center hover:bg-red-500 hover:text-white rounded cursor-pointer transition-colors"
-                          title="Close this trial tab"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                    {index < trials.length - 1 && (
-                      <div className="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center mx-1">
-                        <span className="text-gray-500 text-xs">×</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Close All Other Tabs Button */}
-              {trials.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const currentTrial = trials[currentTrialIndex];
-                    setTrials([currentTrial]);
-                    setCurrentTrialIndex(0);
-                    router.push(
-                      `/user/clinical_trial/trials?trialId=${currentTrial.trial_id}`,
-                      { scroll: false }
-                    );
-                    toast({
-                      title: "Tabs Closed",
-                      description: "All other tabs have been closed",
-                    });
-                  }}
-                  className="text-gray-500 hover:text-red-600 ml-2 px-2"
-                  title="Close all other tabs (Ctrl+Shift+W)"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center justify-end space-x-2 mt-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMaximize}
-                className={`${isMaximized ? "bg-blue-100 text-blue-600" : ""}`}
-                title={isMaximized ? "Restore view" : "Maximize view"}
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleMinimize}
-                className={`${isMinimized ? "bg-blue-100 text-blue-600" : ""}`}
-                title={isMinimized ? "Expand view" : "Minimize view"}
-              >
-                <Minimize2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                title="Refresh trial data"
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleFilter}
-                className={`${filteredSections.length > 0 ? "bg-blue-100 text-blue-600" : ""
-                  }`}
-                title="Filter sections"
-              >
-                <Filter className="h-4 w-4" />
-                {filteredSections.length > 0 && (
-                  <span className="ml-1 text-xs bg-blue-600 text-white rounded-full px-1">
-                    {filteredSections.length}
-                  </span>
-                )}
-              </Button>
-            </div>
-          </div>
-
+        {/* Main Content - with left margin to account for sidebar */}
+        <div className="flex-1" style={{ marginLeft: "288.33px", maxWidth: "calc(100% - 288.33px)" }}>
           {/* Trial Content */}
-          <div className={`${isMinimized ? "p-2" : "p-6"} overflow-x-hidden`} data-export-content>
+          <div className={`${isMinimized ? "p-2" : "p-6"} overflow-x-hidden margin`} style={{ marginTop: "130px" }} data-export-content>
             {/* Trial Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-t-lg p-6">
+            <div className="bg-[#204B73] text-white rounded-t-lg p-6">
               <div className="flex items-start space-x-4">
-                <div className="text-red-400 text-3xl">🎯</div>
+                <div className="text-pink-400 text-3xl">🎀</div>
                 <div className="flex-1">
-                  <h1 className="text-xl font-semibold mb-2">
+                  <h1 className="text-xl font-semibold mb-2 leading-relaxed">
                     {currentTrial.overview.title}
                   </h1>
                 </div>
@@ -2653,6 +2761,7 @@ function ClinicalTrialsPage() {
             )}
           </div>
         </div>
+      </div>
       </div>
       <Toaster />
 
